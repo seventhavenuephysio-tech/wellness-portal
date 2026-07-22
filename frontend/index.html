@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wellness Booking Portal</title>
+  <!-- Modern Styling using Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .time-slot.booked {
+      background-color: #f3f4f6;
+      color: #1f2937; /* Darker text for readability */
+      border-color: #d1d5db;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen">
+
+  <!-- Header Navigation -->
+  <header class="bg-white shadow-sm border-b border-gray-100 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🌿</span>
+        <h1 class="text-2xl font-bold text-emerald-700">Wellness Hub</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <!-- Status Indicator -->
+        <span id="conn-status-text" class="text-sm font-semibold px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+          Connecting to Database... ⏳
+        </span>
+        <!-- Sync Button -->
+        <button id="sync-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition duration-150">
+          Sync Database
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="max-w-7xl mx-auto px-6 py-10">
+    <div class="text-center mb-6">
+      <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Physiotherapist Appointment Diary</h2>
+      <p class="mt-3 text-lg text-gray-500">All appointments are saved directly to MongoDB Atlas Cloud!</p>
+    </div>
+
+    <!-- Date Calendar Selector -->
+    <div class="max-w-md mx-auto mb-10 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between gap-4">
+      <label for="booking-date" class="font-bold text-gray-700">Choose Diary Date:</label>
+      <input type="date" id="booking-date" class="border border-emerald-200 rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-gray-700 font-semibold bg-emerald-50/20">
+    </div>
+
+    <!-- Grid of Physiotherapists -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      
+      <!-- Column: Chido -->
+      <div class="bg-white rounded-2xl shadow-md border-t-4 border-emerald-500 p-6">
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 mt-2">Chido</h3>
+          <p class="text-sm text-emerald-600 font-semibold tracking-wider uppercase">Physiotherapist</p>
+        </div>
+        <div class="space-y-3" id="slots-Chido">
+          <!-- Slots dynamically generated below -->
+        </div>
+      </div>
+
+      <!-- Column: Mispar -->
+      <div class="bg-white rounded-2xl shadow-md border-t-4 border-emerald-500 p-6">
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 mt-2">Mispar</h3>
+          <p class="text-sm text-emerald-600 font-semibold tracking-wider uppercase">Physiotherapist</p>
+        </div>
+        <div class="space-y-3" id="slots-Mispar">
+          <!-- Slots dynamically generated below -->
+        </div>
+      </div>
+
+      <!-- Column: Tinotenda -->
+      <div class="bg-white rounded-2xl shadow-md border-t-4 border-emerald-500 p-6">
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 mt-2">Tinotenda</h3>
+          <p class="text-sm text-emerald-600 font-semibold tracking-wider uppercase">Physiotherapist</p>
+        </div>
+        <div class="space-y-3" id="slots-Tinotenda">
+          <!-- Slots dynamically generated below -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- JAVASCRIPT SYSTEM -->
+  <script>
+    // 💡 LOCAL HOSTING URL (Once your Render website is ready, update this to your Render URL!)
+  const API_BASE_URL = 'https://wellness-backend-a92z.onrender.com/api';
+const API_URL = 'https://wellness-backend-a92z.onrender.com/api';
+    const DOCTORS = ['Chido', 'Mispar', 'Tinotenda'];
+    const TIME_SLOTS_LIST = [
+      '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+      '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
+    ];
+
+    const connStatusText = document.getElementById('conn-status-text');
+    const syncBtn = document.getElementById('sync-btn');
+    const dateInput = document.getElementById('booking-date');
+
+    // Automatically set default calendar view to today
+    const todayStr = new Date().toISOString().split('T')[0];
+    dateInput.value = todayStr;
+    dateInput.min = todayStr; // Prevent booking past dates
+
+    function initializeSlots() {
+      DOCTORS.forEach(doctor => {
+        const container = document.getElementById(`slots-${doctor}`);
+        if (!container) return;
+        container.innerHTML = ''; 
+
+        TIME_SLOTS_LIST.forEach(time => {
+          const slotDiv = document.createElement('div');
+          slotDiv.className = "time-slot flex justify-between items-center p-3 border border-emerald-100 rounded-xl hover:border-emerald-300 transition duration-150 bg-emerald-50/30";
+          slotDiv.setAttribute('data-doctor', doctor);
+          slotDiv.setAttribute('data-time', time);
+
+          slotDiv.innerHTML = `
+            <span class="time-label font-medium text-gray-700">${time}</span>
+            <div class="action-area">
+              <button onclick="bookAppointment('${doctor}', '${time}')" class="book-btn bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-semibold px-3 py-1 rounded-lg text-sm transition duration-150 shadow-sm">
+                BOOK
+              </button>
+            </div>
+          `;
+          container.appendChild(slotDiv);
+        });
+      });
+    }
+
+    async function checkServerStatus() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings`);
+        if (response.ok) {
+          connStatusText.className = "text-sm font-semibold px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-2";
+          connStatusText.innerHTML = `
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            Database Online 🟢
+          `;
+          return true;
+        }
+      } catch (error) {
+        console.warn("Status check failed:", error);
+      }
+      
+      connStatusText.className = "text-sm font-semibold px-3 py-1.5 rounded-full bg-red-100 text-red-800 flex items-center gap-2";
+      connStatusText.innerHTML = `
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+        Backend Server Offline 🔴
+      `;
+      return false;
+    }
+
+    async function fetchAndRenderBookings() {
+      const isOnline = await checkServerStatus();
+      if (!isOnline) return;
+
+      const selectedDate = dateInput.value;
+
+      try {
+        // Fetch only bookings belonging to the chosen calendar date!
+        const response = await fetch(`${API_BASE_URL}/bookings?date=${selectedDate}`);
+        const bookings = await response.json();
+
+        // Reset elements back to blank slate
+        document.querySelectorAll('.time-slot').forEach(slot => {
+          slot.classList.remove('booked');
+          slot.removeAttribute('data-booking-id');
+          
+          const timeLabel = slot.querySelector('.time-label');
+          if (timeLabel) {
+            timeLabel.innerText = slot.getAttribute('data-time');
+          }
+
+          const actionArea = slot.querySelector('.action-area');
+          const doctor = slot.getAttribute('data-doctor');
+          const time = slot.getAttribute('data-time');
+          if (actionArea) {
+            actionArea.innerHTML = `
+              <button onclick="bookAppointment('${doctor}', '${time}')" class="book-btn bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-semibold px-3 py-1 rounded-lg text-sm transition duration-150 shadow-sm">
+                BOOK
+              </button>
+            `;
+          }
+        });
+
+        // Loop through active database records and render Edit/Cancel buttons
+        bookings.forEach(booking => {
+          const docName = booking.therapist;
+          const timeVal = booking.time;
+          const patient = booking.patientName || 'Unknown Patient';
+          const bookingId = booking._id;
+          
+          const slot = document.querySelector(`[data-doctor="${docName}"][data-time="${timeVal}"]`);
+          if (slot) {
+            slot.classList.add('booked');
+            slot.setAttribute('data-booking-id', bookingId);
+            
+            const timeLabel = slot.querySelector('.time-label');
+            if (timeLabel) {
+              timeLabel.innerHTML = `${timeVal} <span class="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-900 rounded text-xs font-bold">👤 ${patient}</span>`;
+            }
+
+            const actionArea = slot.querySelector('.action-area');
+            if (actionArea) {
+              actionArea.innerHTML = `
+                <div class="flex gap-1.5">
+                  <button onclick="editBooking('${bookingId}', '${patient}', '${docName}', '${timeVal}')" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-2 py-1 rounded-lg text-xs transition duration-150 shadow-sm">
+                    ✏️ Edit
+                  </button>
+                  <button onclick="cancelBooking('${bookingId}', '${docName}', '${timeVal}')" class="bg-red-500 hover:bg-red-600 text-white font-semibold px-2 py-1 rounded-lg text-xs transition duration-150 shadow-sm">
+                    🗑️ Cancel
+                  </button>
+                </div>
+              `;
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+      }
+    }
+
+    async function bookAppointment(doctor, time) {
+      const selectedDate = dateInput.value;
+      const patientName = prompt(`Enter patient name to book ${doctor} at ${time} on [${selectedDate}]:`);
+      if (!patientName || patientName.trim() === '') {
+        alert("Booking cancelled. Patient name is required.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            therapist: doctor,
+            time: time,
+            patientName: patientName.trim(),
+            date: selectedDate
+          })
+        });
+
+        if (response.ok) {
+          alert(`Successfully booked ${doctor} at ${time} for ${patientName}!`);
+          fetchAndRenderBookings();
+        } else {
+          const errData = await response.json();
+          alert(`Error: ${errData.error || 'Failed to book slot'}`);
+        }
+      } catch (error) {
+        alert("Network error! Unable to reach backend server.");
+        console.error("Booking error:", error);
+      }
+    }
+
+    // Edit/Update patient name on current date view
+    async function editBooking(bookingId, currentPatient, therapist, time) {
+      const selectedDate = dateInput.value;
+      const newName = prompt(`Edit patient name for ${therapist} at ${time} on [${selectedDate}]:`, currentPatient);
+      if (newName === null) return; // Cancelled
+      if (newName.trim() === '') {
+        alert("Patient name cannot be empty.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            therapist: therapist,
+            time: time,
+            patientName: newName.trim(),
+            date: selectedDate
+          })
+        });
+
+        if (response.ok) {
+          alert("Booking updated successfully!");
+          fetchAndRenderBookings();
+        } else {
+          const errData = await response.json();
+          alert(`Error updating: ${errData.error || 'Check server routes'}`);
+        }
+      } catch (error) {
+        alert("Network error! Unable to reach backend to update.");
+        console.error("Update error:", error);
+      }
+    }
+
+    // Cancel appointment on active date
+    async function cancelBooking(bookingId, therapist, time) {
+      const selectedDate = dateInput.value;
+      if (!confirm(`Are you sure you want to cancel the booking for ${therapist} at ${time} on [${selectedDate}]?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          alert("Booking successfully cancelled!");
+          fetchAndRenderBookings();
+        } else {
+          const errData = await response.json();
+          alert(`Error deleting: ${errData.error || 'Check server routes'}`);
+        }
+      } catch (error) {
+        alert("Network error! Unable to reach backend to cancel.");
+        console.error("Delete error:", error);
+      }
+    }
+
+    // Trigger update automatically when the user selects a new date
+    dateInput.addEventListener('change', () => {
+      fetchAndRenderBookings();
+    });
+
+    syncBtn.addEventListener('click', () => {
+      fetchAndRenderBookings();
+    });
+
+    initializeSlots();
+    fetchAndRenderBookings();
+    setInterval(fetchAndRenderBookings, 10000);
+  </script>
+</body>
+</html>

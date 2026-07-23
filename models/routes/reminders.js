@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reminder = require('../models/Reminder');
 
-// ✅ GET all reminders from MongoDB
+// GET all reminders from MongoDB
 router.get('/', async (req, res) => {
   try {
     const reminders = await Reminder.find().sort({ createdAt: -1 });
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ POST a new reminder to MongoDB
+// POST a new reminder to MongoDB
 router.post('/', async (req, res) => {
   try {
     const newReminder = new Reminder({

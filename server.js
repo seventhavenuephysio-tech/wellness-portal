@@ -5,16 +5,11 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ Enable CORS for your Render frontend domain
-app.use(cors({
-  origin: '*', // Allows requests from any origin, including your frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
-
+// Enable CORS for all incoming requests
+app.use(cors());
 app.use(express.json());
 
-// Database connection
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -22,13 +17,15 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => console.log('MongoDB Connected successfully!'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// Base health check route
+// 1. Root route for Health/Status checks
 app.get('/', (req, res) => {
-  res.send('API is running successfully!');
+  res.status(200).json({ status: 'online', message: 'Wellness Portal API is running' });
 });
 
-// Reminders route
+// 2. Reminders API Route
 app.use('/api/reminders', require('./routes/reminders'));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

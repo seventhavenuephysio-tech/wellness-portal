@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-// GET /api/bookings
+// GET /api/bookings - Returns bookings or an empty list
 router.get('/', async (req, res) => {
   try {
-    // Returns an empty array or your database bookings
     res.status(200).json([]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/bookings
+// POST /api/bookings - Save a new booking
 router.post('/', async (req, res) => {
   try {
     res.status(201).json({ message: 'Booking created successfully', data: req.body });

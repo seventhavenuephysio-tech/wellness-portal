@@ -6,8 +6,18 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+const cors = require('cors');
+
+// Allow requests from your frontend Render domain and local development
+app.use(cors({
+  origin: [
+    'https://wellness-portal-7qny.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:5000'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -16,7 +26,10 @@ mongoose.connect(process.env.MONGO_URI, {
 })
 .then(() => console.log('MongoDB Connected successfully!'))
 .catch(err => console.error('MongoDB connection error:', err));
-
+// Health check route for the frontend badge / Sync button
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'online', message: 'Backend is fully operational' });
+});
 // Routes
 app.get('/', (req, res) => {
   res.send('API is running successfully!');

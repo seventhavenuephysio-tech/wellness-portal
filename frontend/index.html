@@ -1,104 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wellness Booking Portal</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      padding: 0;
-      background-color: #f8f9fa;
-      color: #333;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-    .status-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    #status-badge {
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-weight: bold;
-      background-color: #ffe6e6;
-      color: #d9534f;
-    }
-    #status-badge.online {
-      background-color: #e6ffe6;
-      color: #2e7d32;
-    }
-    button {
-      padding: 10px 16px;
-      background-color: #00875a;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background-color: #006644;
-    }
-  </style>
-</head>
-<body>
+// Live Render Backend Endpoint
+const API_URL = 'https://wellness-portal-api.onrender.com';
 
-  <div class="header">
-    <h2>🌿 Wellness Hub</h2>
-    <div class="status-container">
-      <span id="status-badge">Backend Server Offline 🔴</span>
-      <button id="sync-btn" onclick="syncDatabase()">Sync Database</button>
-    </div>
-  </div>
+async function syncDatabase() {
+  const statusBadge = document.getElementById('status-badge');
+  if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
 
-  <main>
-    <h2>Physiotherapist Appointment Diary</h2>
-    <p>All appointments are saved directly to MongoDB Atlas Cloud!</p>
+  try {
+    // Fetch bookings from live API endpoint
+    const response = await fetch(`${API_URL}/api/bookings`);
     
-    <div>
-      <label for="diary-date">Choose Diary Date:</label>
-      <input type="date" id="diary-date" />
-    </div>
-  </main>
-
-  <script>
-    // Live Backend URL
-    const API_URL = 'https://wellness-portal-api.onrender.com';
-
-    async function syncDatabase() {
-      const statusBadge = document.getElementById('status-badge');
-      if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
-
-      try {
-        const response = await fetch(`${API_URL}/`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Connected to backend:', data);
-          if (statusBadge) {
-            statusBadge.innerText = 'Backend Server Online 🟢';
-            statusBadge.classList.add('online');
-          }
-        } else {
-          throw new Error('Server non-200 response');
-        }
-      } catch (error) {
-        console.error('Connection failed:', error);
-        if (statusBadge) {
-          statusBadge.innerText = 'Backend Server Offline 🔴';
-          statusBadge.classList.remove('online');
-        }
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Successfully connected to backend! Bookings:', data);
+      
+      if (statusBadge) {
+        statusBadge.innerText = 'Backend Server Online 🟢';
+        statusBadge.classList.add('online');
+        statusBadge.style.backgroundColor = '#e6ffe6';
+        statusBadge.style.color = '#2e7d32';
       }
+    } else {
+      throw new Error(`Server returned status ${response.status}`);
     }
+  } catch (error) {
+    console.error('Connection failed:', error);
+    if (statusBadge) {
+      statusBadge.innerText = 'Backend Server Offline 🔴';
+      statusBadge.classList.remove('online');
+      statusBadge.style.backgroundColor = '#ffe6e6';
+      statusBadge.style.color = '#d9534f';
+    }
+  }
+}
 
-    // Auto check on page load
-    document.addEventListener('DOMContentLoaded', syncDatabase);
-  </script>
-</body>
-</html>
+// Attach click event to Sync Database button
+document.addEventListener('DOMContentLoaded', () => {
+  const syncBtn = document.getElementById('sync-btn');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', syncDatabase);
+  }
+  
+  // Auto-run sync check when page loads
+  syncDatabase();
+});

@@ -21,21 +21,17 @@ if (process.env.MONGO_URI) {
   })
   .then(() => console.log('MongoDB Connected successfully!'))
   .catch(err => console.error('MongoDB connection error:', err));
-} else {
-  console.log('MONGO_URI not found in environment variables.');
 }
 
-// 1. Health Check Endpoint
+// 1. Root Health Check Endpoint
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'online', message: 'Wellness Portal API is active' });
+  res.status(200).json({ status: 'online', message: 'Wellness Portal API is running' });
 });
 
-// 2. Booking Routes
+// 2. Mount Booking Routes
 const bookingRoutes = require('./routes/bookingRoutes');
 app.use('/api/bookings', bookingRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

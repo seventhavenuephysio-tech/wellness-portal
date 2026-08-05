@@ -2,7 +2,7 @@
   // Correct Live Render Backend Endpoint
   const API_URL = 'https://wellness-portal-backend.onrender.com';
 
-  // 1. Sync & Health Check
+  // 1. Sync & Health Check (FETCH ALL BOOKINGS)
   async function syncDatabase() {
     const statusBadge = document.getElementById('status-badge');
     if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
@@ -34,7 +34,34 @@
     }
   }
 
-  // 2. Edit / Update Booking Request
+  // 2. Create / Save New Booking (MISSING PIECE ADDED HERE ➕)
+  async function createBooking(therapist, time, date, clientName) {
+    try {
+      const response = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ therapist, time, date, clientName })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || `Server returned status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Booking saved successfully:', result);
+      
+      // Refresh the diary view and status
+      syncDatabase();
+    } catch (error) {
+      console.error('Booking Error:', error);
+      alert('Network error! Unable to reach backend server.');
+    }
+  }
+
+  // 3. Edit / Update Booking Request
   async function updateBooking(bookingId, updatedData) {
     try {
       const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
@@ -60,7 +87,7 @@
     }
   }
 
-  // 3. Delete / Cancel Booking Request
+  // 4. Delete / Cancel Booking Request
   async function deleteBooking(bookingId) {
     try {
       const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {

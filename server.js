@@ -5,11 +5,10 @@ require('dotenv').config();
 
 const app = express();
 
-// Enable CORS for all origins and HTTP methods (PUT, DELETE, etc.)
 app.use(cors());
 app.use(express.json());
 
-// Booking Schema & Model
+// Booking Schema
 const bookingSchema = new mongoose.Schema({
   therapist: { type: String, required: true },
   time: { type: String, required: true },
@@ -24,11 +23,15 @@ const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSche
 const MONGO_URI = process.env.MONGO_URI;
 if (MONGO_URI) {
   mongoose.connect(MONGO_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })
-    .then(() => console.log('MongoDB Connected successfully!'))
-    .catch(err => console.error('MongoDB connection error:', err));
+    .then(() => console.log('MongoDB Connected!'))
+    .catch(err => console.error('MongoDB Error:', err));
 }
 
-// GET All Bookings
+// Routes
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'online', dbConnected: mongoose.connection.readyState === 1 });
+});
+
 app.get('/api/bookings', async (req, res) => {
   try {
     const bookings = await Booking.find({});
@@ -38,21 +41,29 @@ app.get('/api/bookings', async (req, res) => {
   }
 });
 
-// PUT Endpoint (Handles Patient Edits)
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const newBooking = new Booking(req.body);
+    const saved = await newBooking.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/bookings/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const updated = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.status(200).json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    if (!updatedBooking) {
-      return res.status(404).json({ error: 'Booking not found' });
-    }
-
-    res.status(200).json({ message: 'Booking updated successfully', booking: updatedBooking });
+app.delete('/api/bookings/:id', async (req, res) => {
+  try {
+    await Booking.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

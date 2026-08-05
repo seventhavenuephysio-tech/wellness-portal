@@ -1,45 +1,92 @@
-// Live Render Backend Endpoint
-const API_URL = 'https://wellness-portal-api.onrender.com';
+<script>
+  // Correct Live Render Backend Endpoint
+  const API_URL = 'https://wellness-portal-backend.onrender.com';
 
-async function syncDatabase() {
-  const statusBadge = document.getElementById('status-badge');
-  if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
+  // 1. Sync & Health Check
+  async function syncDatabase() {
+    const statusBadge = document.getElementById('status-badge');
+    if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
 
-  try {
-    // Fetch bookings from live API endpoint
-    const response = await fetch(`${API_URL}/api/bookings`);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Successfully connected to backend! Bookings:', data);
+    try {
+      const response = await fetch(`${API_URL}/api/bookings`);
       
-      if (statusBadge) {
-        statusBadge.innerText = 'Backend Server Online 🟢';
-        statusBadge.classList.add('online');
-        statusBadge.style.backgroundColor = '#e6ffe6';
-        statusBadge.style.color = '#2e7d32';
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Connected to backend! Bookings:', data);
+        
+        if (statusBadge) {
+          statusBadge.innerText = 'Database Online 🟢';
+          statusBadge.classList.add('online');
+          statusBadge.style.backgroundColor = '#e6ffe6';
+          statusBadge.style.color = '#2e7d32';
+        }
+      } else {
+        throw new Error(`Server returned status ${response.status}`);
       }
-    } else {
-      throw new Error(`Server returned status ${response.status}`);
-    }
-  } catch (error) {
-    console.error('Connection failed:', error);
-    if (statusBadge) {
-      statusBadge.innerText = 'Backend Server Offline 🔴';
-      statusBadge.classList.remove('online');
-      statusBadge.style.backgroundColor = '#ffe6e6';
-      statusBadge.style.color = '#d9534f';
+    } catch (error) {
+      console.error('Connection failed:', error);
+      if (statusBadge) {
+        statusBadge.innerText = 'Database Offline 🔴';
+        statusBadge.classList.remove('online');
+        statusBadge.style.backgroundColor = '#ffe6e6';
+        statusBadge.style.color = '#d9534f';
+      }
     }
   }
-}
 
-// Attach click event to Sync Database button
-document.addEventListener('DOMContentLoaded', () => {
-  const syncBtn = document.getElementById('sync-btn');
-  if (syncBtn) {
-    syncBtn.addEventListener('click', syncDatabase);
+  // 2. Edit / Update Booking Request
+  async function updateBooking(bookingId, updatedData) {
+    try {
+      const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Update successful:', result);
+      
+      // Refresh database status and diary view
+      syncDatabase();
+    } catch (error) {
+      console.error('Edit error:', error);
+      alert('Unable to reach backend to update booking.');
+    }
   }
-  
-  // Auto-run sync check when page loads
-  syncDatabase();
-});
+
+  // 3. Delete / Cancel Booking Request
+  async function deleteBooking(bookingId) {
+    try {
+      const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+
+      console.log('Booking deleted');
+      syncDatabase();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Unable to cancel booking.');
+    }
+  }
+
+  // Event Listeners Initialization
+  document.addEventListener('DOMContentLoaded', () => {
+    const syncBtn = document.getElementById('sync-btn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', syncDatabase);
+    }
+    
+    // Auto-run connection check on load
+    syncDatabase();
+  });
+</script>

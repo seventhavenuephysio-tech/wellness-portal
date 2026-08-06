@@ -1,119 +1,207 @@
-<script>
-  // Correct Live Render Backend Endpoint
-  const API_URL = "https://wellness-portal-backend.onrender.com";
-
-  // 1. Sync & Health Check (FETCH ALL BOOKINGS)
-  async function syncDatabase() {
-    const statusBadge = document.getElementById('status-badge');
-    if (statusBadge) statusBadge.innerText = 'Connecting... ⏳';
-
-    try {
-      const response = await fetch(`${API_URL}/api/bookings`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Connected to backend! Bookings:', data);
-        
-        if (statusBadge) {
-          statusBadge.innerText = 'Database Online 🟢';
-          statusBadge.classList.add('online');
-          statusBadge.style.backgroundColor = '#e6ffe6';
-          statusBadge.style.color = '#2e7d32';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellness Booking Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
         }
-      } else {
-        throw new Error(`Server returned status ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Connection failed:', error);
-      if (statusBadge) {
-        statusBadge.innerText = 'Database Offline 🔴';
-        statusBadge.classList.remove('online');
-        statusBadge.style.backgroundColor = '#ffe6e6';
-        statusBadge.style.color = '#d9534f';
-      }
-    }
-  }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .status-online {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+        .status-offline {
+            background-color: #fce8e6;
+            color: #c5221f;
+        }
+        button {
+            cursor: pointer;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #1a73e8;
+            color: white;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .diary-section {
+            margin-top: 20px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .therapist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .therapist-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            padding: 6px 0;
+            border-bottom: 1px dashed #ccc;
+        }
+    </style>
+</head>
+<body>
 
-  // 2. Create / Save New Booking (MISSING PIECE ADDED HERE ➕)
-  async function createBooking(therapist, time, date, clientName) {
-    try {
-      const response = await fetch(`${API_URL}/api/bookings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ therapist, time, date, clientName })
-      });
+    <header>
+        <div>
+            <h2>🌿 Wellness Hub</h2>
+        </div>
+        <div>
+            <span id="statusBadge" class="status-badge status-offline">Checking...</span>
+            <button onclick="checkServerStatus()">Sync Database</button>
+        </div>
+    </header>
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || `Server returned status ${response.status}`);
-      }
+    <div class="diary-section">
+        <h1>Physiotherapist Appointment Diary</h1>
+        <p>All appointments are synchronized live with MongoDB Atlas Cloud!</p>
+        
+        <label for="diaryDate"><strong>Choose Diary Date:</strong></label>
+        <input type="date" id="diaryDate" value="2026-08-06">
 
-      const result = await response.json();
-      console.log('Booking saved successfully:', result);
-      
-      // Refresh the diary view and status
-      syncDatabase();
-    } catch (error) {
-      console.error('Booking Error:', error);
-      alert('Network error! Unable to reach backend server.');
-    }
-  }
+        <div class="therapist-grid">
+            <!-- Chido -->
+            <div class="therapist-card">
+                <h3>Chido</h3>
+                <p><em>PHYSIOTHERAPIST</em></p>
+                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Chido', '08:00 AM')">BOOK</button></div>
+                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Chido', '09:00 AM')">BOOK</button></div>
+                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Chido', '10:00 AM')">BOOK</button></div>
+                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Chido', '11:00 AM')">BOOK</button></div>
+                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Chido', '12:00 PM')">BOOK</button></div>
+                <div class="slot"><span>01:00 PM</span> <button onclick="bookSlot('Chido', '01:00 PM')">BOOK</button></div>
+            </div>
 
-  // 3. Edit / Update Booking Request
-  async function updateBooking(bookingId, updatedData) {
-    try {
-      const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedData)
-      });
+            <!-- Mispar -->
+            <div class="therapist-card">
+                <h3>Mispar</h3>
+                <p><em>PHYSIOTHERAPIST</em></p>
+                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Mispar', '08:00 AM')">BOOK</button></div>
+                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Mispar', '09:00 AM')">BOOK</button></div>
+                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Mispar', '10:00 AM')">BOOK</button></div>
+                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Mispar', '11:00 AM')">BOOK</button></div>
+                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Mispar', '12:00 PM')">BOOK</button></div>
+                <div class="slot"><span>01:00 PM</span> <button onclick="bookSlot('Mispar', '01:00 PM')">BOOK</button></div>
+            </div>
 
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
-      }
+            <!-- Tinotenda -->
+            <div class="therapist-card">
+                <h3>Tinotenda</h3>
+                <p><em>PHYSIOTHERAPIST</em></p>
+                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Tinotenda', '08:00 AM')">BOOK</button></div>
+                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Tinotenda', '09:00 AM')">BOOK</button></div>
+                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Tinotenda', '10:00 AM')">BOOK</button></div>
+                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Tinotenda', '11:00 AM')">BOOK</button></div>
+                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Tinotenda', '12:00 PM')">BOOK</button></div>
+                <div class="slot"><span>01:00 PM</span> <button onclick="bookSlot('Tinotenda', '01:00 PM')">BOOK</button></div>
+            </div>
+        </div>
+    </div>
 
-      const result = await response.json();
-      console.log('Update successful:', result);
-      
-      // Refresh database status and diary view
-      syncDatabase();
-    } catch (error) {
-      console.error('Edit error:', error);
-      alert('Unable to reach backend to update booking.');
-    }
-  }
+    <script>
+        // Points to your active Render backend service
+        const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
 
-  // 4. Delete / Cancel Booking Request
-  async function deleteBooking(bookingId) {
-    try {
-      const response = await fetch(`${API_URL}/api/bookings/${bookingId}`, {
-        method: 'DELETE'
-      });
+        async function checkServerStatus() {
+            const badge = document.getElementById("statusBadge");
+            badge.innerText = "Checking...";
+            badge.className = "status-badge status-offline";
 
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
-      }
+            try {
+                const response = await fetch(API_BASE_URL + "/");
+                const data = await response.json();
 
-      console.log('Booking deleted');
-      syncDatabase();
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Unable to cancel booking.');
-    }
-  }
+                if (data.status === "online" && data.dbConnected) {
+                    badge.innerText = "Database Online 🟢";
+                    badge.className = "status-badge status-online";
+                } else {
+                    badge.innerText = "Database Offline 🔴";
+                    badge.className = "status-badge status-offline";
+                }
+            } catch (error) {
+                console.error("Error connecting to backend:", error);
+                badge.innerText = "Backend Offline 🔴";
+                badge.className = "status-badge status-offline";
+            }
+        }
 
-  // Event Listeners Initialization
-  document.addEventListener('DOMContentLoaded', () => {
-    const syncBtn = document.getElementById('sync-btn');
-    if (syncBtn) {
-      syncBtn.addEventListener('click', syncDatabase);
-    }
-    
-    // Auto-run connection check on load
-    syncDatabase();
-  });
-</script>
+        async function fetchAndRenderBookings() {
+            try {
+                const response = await fetch(API_BASE_URL + "/api/bookings");
+                if (response.ok) {
+                    const bookings = await response.json();
+                    console.log("Current bookings in database:", bookings);
+                }
+            } catch (error) {
+                console.error("Failed to fetch bookings:", error);
+            }
+        }
+
+        async function bookSlot(therapist, time) {
+            const date = document.getElementById("diaryDate").value;
+            const patientName = prompt(`Enter patient name for ${therapist} at ${time}:`);
+
+            if (!patientName) return;
+
+            try {
+                const response = await fetch(API_BASE_URL + "/api/bookings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ therapist, time, date, patientName })
+                });
+
+                if (response.ok) {
+                    alert(`Booking confirmed for ${patientName} with ${therapist} at ${time}`);
+                    fetchAndRenderBookings();
+                } else {
+                    alert("Failed to save booking. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error saving booking:", error);
+                alert("Server error when saving booking.");
+            }
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            checkServerStatus();
+            fetchAndRenderBookings();
+        };
+    </script>
+</body>
+</html>

@@ -1,73 +1,75 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 
+// Enable CORS for all origins (allows frontend to call backend without browser blocks)
 app.use(cors());
 app.use(express.json());
 
-// Booking Schema
-const bookingSchema = new mongoose.Schema({
-  therapist: { type: String, required: true },
-  time: { type: String, required: true },
-  date: { type: String, required: true },
-  clientName: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
+// Load MongoDB Connection String from Environment Variable
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
-
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI;
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })
-    .then(() => console.log('MongoDB Connected!'))
-    .catch(err => console.error('MongoDB Error:', err));
+// Connect to MongoDB Atlas
+if (!MONGO_URI) {
+    console.error("CRITICAL ERROR: MONGO_URI / MONGODB_URI environment variable is missing!");
+} else {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log("MongoDB Connected Successfully!"))
+        .catch(err => console.error("MongoDB Error:", err));
 }
 
-// Routes
+// Define Booking Schema & Model
+const bookingSchema = new mongoose.Schema({
+    therapist: String,
+    time: String,
+    date: String,
+    patientName: String,
+    status: { type: String, default: "Booked" }
+}, { timestamps: true });
+
+const Booking = mongoose.model('Booking', bookingSchema);
+
+// Root / Health Check Route (Used by cron-job.org and Sync Database button)
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'online', dbConnected: mongoose.connection.readyState === 1 });
+    const isDbConnected = mongoose.connection.readyState === 1;
+    res.json({
+        status: "online",
+        dbConnected: isDbConnected,
+        message: isDbConnected ? "Server and Database connected" : "Server online, database disconnected"
+    });
 });
 
+// GET /api/bookings - Fetch all bookings
 app.get('/api/bookings', async (req, res) => {
-  try {
-    const bookings = await Booking.find({});
-    res.status(200).json(bookings);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({ error: "Database not connected" });
+        }
+        const bookings = await Booking.find({});
+        res.json(bookings);
+    } catch (error) {
+        console.error("Error fetching bookings:", error);
+        res.status(500).json({ error: "Failed to fetch bookings" });
+    }
 });
 
+// POST /api/bookings - Create a new booking
 app.post('/api/bookings', async (req, res) => {
-  try {
-    const newBooking = new Booking(req.body);
-    const saved = await newBooking.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    try {
+        const { therapist, time, date, patientName } = req.body;
+        const newBooking = new Booking({ therapist, time, date, patientName });
+        await newBooking.save();
+        res.status(201).json({ message: "Booking saved successfully", booking: newBooking });
+    } catch (error) {
+        console.error("Error saving booking:", error);
+        res.status(500).json({ error: "Failed to save booking" });
+    }
 });
 
-app.put('/api/bookings/:id', async (req, res) => {
-  try {
-    const updated = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.status(200).json(updated);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Start Server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
-
-app.delete('/api/bookings/:id', async (req, res) => {
-  try {
-    await Booking.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

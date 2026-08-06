@@ -4,72 +4,79 @@ const cors = require('cors');
 
 const app = express();
 
-// Enable CORS for all origins (allows frontend to call backend without browser blocks)
+// Enable CORS for all domains
 app.use(cors());
 app.use(express.json());
 
-// Load MongoDB Connection String from Environment Variable
+// Load Connection String
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 // Connect to MongoDB Atlas
 if (!MONGO_URI) {
-    console.error("CRITICAL ERROR: MONGO_URI / MONGODB_URI environment variable is missing!");
+    console.error("CRITICAL WARNING: Neither MONGO_URI nor MONGODB_URI is defined!");
 } else {
     mongoose.connect(MONGO_URI)
         .then(() => console.log("MongoDB Connected Successfully!"))
-        .catch(err => console.error("MongoDB Error:", err));
+        .catch(err => console.error("MongoDB Connection Error:", err.message));
 }
 
-// Define Booking Schema & Model
+// Booking Schema & Model
 const bookingSchema = new mongoose.Schema({
-    therapist: String,
-    time: String,
-    date: String,
-    patientName: String,
+    therapist: { type: String, required: true },
+    time: { type: String, required: true },
+    date: { type: String, required: true },
+    patientName: { type: String, required: true },
     status: { type: String, default: "Booked" }
 }, { timestamps: true });
 
-const Booking = mongoose.model('Booking', bookingSchema);
+const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
-// Root / Health Check Route (Used by cron-job.org and Sync Database button)
+// Root Route: Status Ping
 app.get('/', (req, res) => {
     const isDbConnected = mongoose.connection.readyState === 1;
     res.json({
         status: "online",
         dbConnected: isDbConnected,
-        message: isDbConnected ? "Server and Database connected" : "Server online, database disconnected"
+        timestamp: new Date()
     });
 });
 
-// GET /api/bookings - Fetch all bookings
+// GET /api/bookings: Fetch all bookings safely
 app.get('/api/bookings', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
-            return res.status(500).json({ error: "Database not connected" });
+            // Return empty array instead of throwing 500 error if DB isn't connected yet
+            return res.json([]);
         }
-        const bookings = await Booking.find({});
+        const bookings = await Booking.find({}).sort({ createdAt: -1 });
         res.json(bookings);
     } catch (error) {
-        console.error("Error fetching bookings:", error);
-        res.status(500).json({ error: "Failed to fetch bookings" });
+        console.error("GET /api/bookings error:", error);
+        res.status(500).json({ error: "Internal Server Error loading bookings", details: error.message });
     }
 });
 
-// POST /api/bookings - Create a new booking
+// POST /api/bookings: Create new booking
 app.post('/api/bookings', async (req, res) => {
     try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: "Database not connected. Please try again in a few seconds." });
+        }
         const { therapist, time, date, patientName } = req.body;
+        if (!therapist || !time || !date || !patientName) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
         const newBooking = new Booking({ therapist, time, date, patientName });
         await newBooking.save();
-        res.status(201).json({ message: "Booking saved successfully", booking: newBooking });
+        res.status(201).json({ message: "Booking created", booking: newBooking });
     } catch (error) {
-        console.error("Error saving booking:", error);
-        res.status(500).json({ error: "Failed to save booking" });
+        console.error("POST /api/bookings error:", error);
+        res.status(500).json({ error: "Internal Server Error creating booking", details: error.message });
     }
 });
 
 // Start Server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server listening on port ${PORT}`);
 });

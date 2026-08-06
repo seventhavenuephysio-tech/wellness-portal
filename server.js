@@ -2,22 +2,23 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// Only load local .env during local development, NOT on Render
-if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
+// Load .env variables locally (Render handles production variables automatically)
+if (process.env.NODE_ENV !== 'production') {
     try {
         require('dotenv').config();
     } catch (e) {
-        // dotenv not present or skipped
+        // dotenv optional in production
     }
 }
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Hardcode the URI temporarily to bypass any broken .env injection
-const MONGO_URI = "mongodb+srv://seventhavenuephysio_db_user:WELLNESS26@cluster0.xpbfymc.mongodb.net/wellness-db?retryWrites=true&w=majority";
+// Load connection string strictly from system environment
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!MONGO_URI) {
     console.error("CRITICAL ERROR: MONGO_URI environment variable is missing!");
@@ -27,7 +28,7 @@ if (!MONGO_URI) {
         .catch(err => console.error("MongoDB Error:", err.message));
 }
 
-// Booking Schema
+// Booking Schema & Model
 const bookingSchema = new mongoose.Schema({
     therapist: String,
     time: String,
@@ -38,7 +39,7 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
-// Status route
+// Base Health Check Route
 app.get('/', (req, res) => {
     const isDbConnected = mongoose.connection.readyState === 1;
     res.json({
@@ -48,7 +49,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// GET Bookings
+// GET /api/bookings - Fetch all bookings
 app.get('/api/bookings', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
@@ -62,7 +63,7 @@ app.get('/api/bookings', async (req, res) => {
     }
 });
 
-// POST Booking
+// POST /api/bookings - Create new booking
 app.post('/api/bookings', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
@@ -78,6 +79,7 @@ app.post('/api/bookings', async (req, res) => {
     }
 });
 
+// Start Server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);

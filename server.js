@@ -2,22 +2,21 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// Only load local .env in development (prevents overwriting Render environment variables)
-if (process.env.NODE_ENV !== 'production') {
+// Only load local .env during local development, NOT on Render
+if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
     try {
         require('dotenv').config();
     } catch (e) {
-        // dotenv not loaded, rely on system env vars
+        // dotenv not present or skipped
     }
 }
 
 const app = express();
 
-// Enable CORS for frontend requests
 app.use(cors());
 app.use(express.json());
 
-// Load Connection String strictly from system environment
+// Pull MONGO_URI directly from system environment settings
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!MONGO_URI) {
@@ -28,7 +27,7 @@ if (!MONGO_URI) {
         .catch(err => console.error("MongoDB Error:", err.message));
 }
 
-// Booking Schema & Model
+// Booking Schema
 const bookingSchema = new mongoose.Schema({
     therapist: String,
     time: String,
@@ -39,7 +38,7 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
-// Health check endpoint
+// Status route
 app.get('/', (req, res) => {
     const isDbConnected = mongoose.connection.readyState === 1;
     res.json({
@@ -49,7 +48,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// GET /api/bookings
+// GET Bookings
 app.get('/api/bookings', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
@@ -63,7 +62,7 @@ app.get('/api/bookings', async (req, res) => {
     }
 });
 
-// POST /api/bookings
+// POST Booking
 app.post('/api/bookings', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {

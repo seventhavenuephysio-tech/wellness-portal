@@ -16,8 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Pull MONGO_URI directly from system environment settings
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+// Hardcode the URI temporarily to bypass any broken .env injection
+const MONGO_URI = "mongodb+srv://seventhavenuephysio_db_user:WELLNESS26@cluster0.xpbfymc.mongodb.net/wellness-db?retryWrites=true&w=majority";
 
 if (!MONGO_URI) {
     console.error("CRITICAL ERROR: MONGO_URI environment variable is missing!");

@@ -76,7 +76,6 @@
     </style>
 </head>
 <body>
-
     <header>
         <div>
             <h2>🌿 Wellness Hub</h2>
@@ -90,7 +89,6 @@
     <div class="diary-section">
         <h1>Physiotherapist Appointment Diary</h1>
         <p>Live status connected to MongoDB Atlas Cloud!</p>
-        
         <label for="diaryDate"><strong>Choose Diary Date:</strong></label>
         <input type="date" id="diaryDate" value="2026-08-06">
 
@@ -132,17 +130,15 @@
 
     <script>
         // Point strictly to your live, active backend URL
-const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
+        const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
 
         async function checkServerStatus() {
             const badge = document.getElementById("statusBadge");
             badge.innerText = "Checking...";
             badge.className = "status-badge status-offline";
-
             try {
                 const response = await fetch(API_BASE_URL + "/");
                 const data = await response.json();
-
                 if (data.status === "online" && data.dbConnected) {
                     badge.innerText = "Database Online 🟢";
                     badge.className = "status-badge status-online";
@@ -172,7 +168,6 @@ const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
         async function bookSlot(therapist, time) {
             const date = document.getElementById("diaryDate").value;
             const patientName = prompt(`Enter patient name for ${therapist} at ${time}:`);
-
             if (!patientName) return;
 
             try {

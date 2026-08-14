@@ -146,7 +146,7 @@
             badge.innerText = "Checking...";
             badge.className = "status-badge status-offline";
             try {
-                const response = await fetch(API_BASE_URL + "/");
+                const response = await fetch(API_BASE_URL + "/?t=" + Date.now(), { cache: "no-store" });
                 const data = await response.json();
                 if (data.status === "online" && data.dbConnected) {
                     badge.innerText = "Database Online 🟢";
@@ -164,19 +164,27 @@
 
         async function fetchAndRenderBookings() {
             try {
-                const response = await fetch(API_BASE_URL + "/api/bookings");
+                // Force fresh data on every call using cache-busting headers + query param
+                const response = await fetch(API_BASE_URL + "/api/bookings?t=" + Date.now(), {
+                    cache: "no-store",
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
                 if (response.ok) {
                     const bookings = await response.json();
                     const currentDate = cleanDateString(document.getElementById("diaryDate").value);
 
-                    // 1. Reset all buttons
+                    // 1. Reset all buttons to default available state
                     document.querySelectorAll(".slot button").forEach(btn => {
                         btn.disabled = false;
                         btn.innerText = "BOOK";
                         btn.style.backgroundColor = "#1a73e8";
                     });
 
-                    // 2. Disable booked buttons for current date
+                    // 2. Disable booked buttons for the current date
                     bookings.forEach(b => {
                         const bookingDate = cleanDateString(b.date);
 

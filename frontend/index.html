@@ -1,140 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wellness Booking Portal</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f7f6;
-            color: #333;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 25px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-        .status-online {
-            background-color: #e6f4ea;
-            color: #137333;
-        }
-        .status-offline {
-            background-color: #fce8e6;
-            color: #c5221f;
-        }
-        button {
-            cursor: pointer;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            background-color: #1a73e8;
-            color: white;
-            font-weight: bold;
-        }
-        button:hover {
-            background-color: #1557b0;
-        }
-        button:disabled {
-            cursor: not-allowed;
-            background-color: #888 !important;
-        }
-        .diary-section {
-            margin-top: 20px;
-            background: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .therapist-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .therapist-card {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 6px;
-            background: #fafafa;
-        }
-        .slot {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 8px 0;
-            padding: 6px 0;
-            border-bottom: 1px dashed #ccc;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div>
-            <h2>🌿 Wellness Hub</h2>
-        </div>
-        <div>
-            <span id="statusBadge" class="status-badge status-offline">Checking...</span>
-            <button onclick="checkServerStatus()">Sync Database</button>
-        </div>
-    </header>
-
-    <div class="diary-section">
-        <h1>Physiotherapist Appointment Diary</h1>
-        <p>Live status connected to MongoDB Atlas Cloud!</p>
-        <label for="diaryDate"><strong>Choose Diary Date:</strong></label>
-        <input type="date" id="diaryDate" value="2026-08-14" onchange="fetchAndRenderBookings()">
-
-        <div class="therapist-grid">
-            <!-- Chido -->
-            <div class="therapist-card">
-                <h3>Chido</h3>
-                <p><em>PHYSIOTHERAPIST</em></p>
-                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Chido', '08:00 AM')">BOOK</button></div>
-                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Chido', '09:00 AM')">BOOK</button></div>
-                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Chido', '10:00 AM')">BOOK</button></div>
-                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Chido', '11:00 AM')">BOOK</button></div>
-                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Chido', '12:00 PM')">BOOK</button></div>
-            </div>
-
-            <!-- Mispar -->
-            <div class="therapist-card">
-                <h3>Mispar</h3>
-                <p><em>PHYSIOTHERAPIST</em></p>
-                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Mispar', '08:00 AM')">BOOK</button></div>
-                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Mispar', '09:00 AM')">BOOK</button></div>
-                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Mispar', '10:00 AM')">BOOK</button></div>
-                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Mispar', '11:00 AM')">BOOK</button></div>
-                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Mispar', '12:00 PM')">BOOK</button></div>
-            </div>
-
-            <!-- Tinotenda -->
-            <div class="therapist-card">
-                <h3>Tinotenda</h3>
-                <p><em>PHYSIOTHERAPIST</em></p>
-                <div class="slot"><span>08:00 AM</span> <button onclick="bookSlot('Tinotenda', '08:00 AM')">BOOK</button></div>
-                <div class="slot"><span>09:00 AM</span> <button onclick="bookSlot('Tinotenda', '09:00 AM')">BOOK</button></div>
-                <div class="slot"><span>10:00 AM</span> <button onclick="bookSlot('Tinotenda', '10:00 AM')">BOOK</button></div>
-                <div class="slot"><span>11:00 AM</span> <button onclick="bookSlot('Tinotenda', '11:00 AM')">BOOK</button></div>
-                <div class="slot"><span>12:00 PM</span> <button onclick="bookSlot('Tinotenda', '12:00 PM')">BOOK</button></div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Points to your active backend on Render
+<script>
         const API_BASE_URL = "https://wellness-backend-a92z.onrender.com";
+
+        // Helper function to format any date into clean YYYY-MM-DD
+        function cleanDateString(dateVal) {
+            if (!dateVal) return "";
+            // Handle ISO string format from MongoDB (e.g., 2026-08-14T00:00:00.000Z)
+            return dateVal.toString().split("T")[0];
+        }
 
         async function checkServerStatus() {
             const badge = document.getElementById("statusBadge");
@@ -162,29 +34,36 @@
                 const response = await fetch(API_BASE_URL + "/api/bookings");
                 if (response.ok) {
                     const bookings = await response.json();
-                    const currentDate = document.getElementById("diaryDate").value;
+                    const currentDate = cleanDateString(document.getElementById("diaryDate").value);
 
-                    // Reset all slot buttons to default available state
+                    // 1. Reset all buttons to default available state
                     document.querySelectorAll(".slot button").forEach(btn => {
                         btn.disabled = false;
                         btn.innerText = "BOOK";
                         btn.style.backgroundColor = "#1a73e8";
                     });
 
-                    // Mark slots as booked for the selected date
+                    // 2. Filter bookings matching the selected date
                     bookings.forEach(b => {
-                        if (b.date === currentDate) {
+                        const bookingDate = cleanDateString(b.date);
+
+                        if (bookingDate === currentDate) {
                             const cards = document.querySelectorAll(".therapist-card");
                             cards.forEach(card => {
-                                const therapistName = card.querySelector("h3").innerText.trim();
-                                if (therapistName === b.therapist) {
+                                const therapistName = card.querySelector("h3").innerText.trim().toLowerCase();
+                                const bookingTherapist = (b.therapist || "").trim().toLowerCase();
+
+                                if (therapistName === bookingTherapist) {
                                     const slots = card.querySelectorAll(".slot");
                                     slots.forEach(slot => {
-                                        const timeText = slot.querySelector("span").innerText.trim();
-                                        if (timeText === b.time) {
+                                        const timeText = slot.querySelector("span").innerText.trim().toLowerCase();
+                                        const bookingTime = (b.time || "").trim().toLowerCase();
+
+                                        if (timeText === bookingTime) {
                                             const btn = slot.querySelector("button");
                                             btn.disabled = true;
                                             btn.innerText = `Booked (${b.patientName})`;
+                                            btn.style.backgroundColor = "#888";
                                         }
                                     });
                                 }
@@ -198,7 +77,9 @@
         }
 
         async function bookSlot(therapist, time) {
-            const date = document.getElementById("diaryDate").value;
+            const rawDate = document.getElementById("diaryDate").value;
+            const date = cleanDateString(rawDate);
+            
             const patientName = prompt(`Enter patient name for ${therapist} at ${time}:`);
             if (!patientName) return;
 
@@ -211,7 +92,7 @@
 
                 if (response.ok) {
                     alert(`Booking confirmed for ${patientName} with ${therapist} at ${time}`);
-                    fetchAndRenderBookings();
+                    fetchAndRenderBookings(); // Refresh interface immediately
                 } else {
                     const errorData = await response.json().catch(() => ({}));
                     alert(`Booking failed: ${errorData.error || 'Server error'}`);
@@ -227,5 +108,3 @@
             fetchAndRenderBookings();
         };
     </script>
-</body>
-</html>

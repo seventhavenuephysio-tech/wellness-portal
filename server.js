@@ -4,30 +4,22 @@ const cors = require('cors');
 
 const app = express();
 
-// 1. CRITICAL: Middleware to enable CORS and parse incoming JSON bodies
+// 1. Essential Middleware
 app.use(cors());
 app.use(express.json());
 
-// 2. Connect to MongoDB Atlas via Environment Variable
+// 2. Database Connection
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
-
-let dbConnected = false;
 
 if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
-        .then(() => {
-            console.log("Connected to MongoDB Atlas successfully");
-            dbConnected = true;
-        })
-        .catch(err => {
-            console.error("MongoDB Connection Error:", err.message);
-            dbConnected = false;
-        });
+        .then(() => console.log("Connected to MongoDB Atlas successfully"))
+        .catch(err => console.error("MongoDB Connection Error:", err.message));
 } else {
-    console.warn("Warning: MONGODB_URI environment variable is not defined!");
+    console.warn("Warning: MONGODB_URI environment variable is missing!");
 }
 
-// 3. Define Booking Schema & Model
+// 3. Schema & Model definition
 const bookingSchema = new mongoose.Schema({
     therapist: { type: String, required: true },
     time: { type: String, required: true },
@@ -37,9 +29,9 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.model('Booking', bookingSchema);
 
-// 4. API Endpoints
+// 4. API Routes
 
-// Health Check / Status Route
+// Root Health Check
 app.get('/', (req, res) => {
     res.json({
         status: "online",
@@ -65,25 +57,25 @@ app.post('/api/bookings', async (req, res) => {
 
         if (!therapist || !time || !date || !patientName) {
             return res.status(400).json({ 
-                error: "Missing required fields: therapist, time, date, and patientName are all required." 
+                error: "Missing required fields: therapist, time, date, and patientName are required." 
             });
         }
 
         const newBooking = new Booking({ therapist, time, date, patientName });
         await newBooking.save();
 
-        console.log("Booking successfully saved:", newBooking);
+        console.log("Booking created:", newBooking);
         return res.status(201).json({ 
             message: "Booking saved successfully", 
             booking: newBooking 
         });
     } catch (err) {
-        console.error("Error creating booking:", err);
+        console.error("Error saving booking:", err);
         return res.status(500).json({ error: "Server error when saving booking" });
     }
 });
 
-// 5. Start Express Server
+// 5. Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

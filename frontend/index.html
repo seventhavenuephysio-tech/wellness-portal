@@ -129,8 +129,8 @@
     </div>
 
     <script>
-        // Point strictly to your live, active backend URL
-        const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
+        // Updated to active backend URL on Render
+        const API_BASE_URL = "https://wellness-backend-a92z.onrender.com";
 
         async function checkServerStatus() {
             const badge = document.getElementById("statusBadge");
@@ -177,11 +177,16 @@
                     body: JSON.stringify({ therapist, time, date, patientName })
                 });
 
+                if (response.status === 503) {
+                    alert("Backend server is starting up. Please wait 20-30 seconds and try again!");
+                    return;
+                }
+
                 if (response.ok) {
                     alert(`Booking confirmed for ${patientName} with ${therapist} at ${time}`);
                     fetchAndRenderBookings();
                 } else {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({}));
                     alert(`Booking failed: ${errorData.error || 'Server error'}`);
                 }
             } catch (error) {

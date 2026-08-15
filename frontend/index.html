@@ -184,7 +184,17 @@
             });
 
             if (response.ok) {
-                alert(`Booking confirmed! WhatsApp reminder sent to ${patientName}.`);
+                alert(`Booking saved to database! Opening WhatsApp...`);
+
+                // Open WhatsApp link if phone is provided
+                if (patientPhone) {
+                    const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
+                    const message = `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`;
+                    const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+                    
+                    window.open(waLink, '_blank');
+                }
+
                 fetchAndRenderBookings();
             } else {
                 const errorData = await response.json().catch(() => ({}));

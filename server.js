@@ -7,11 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Twilio Client using your Render Environment Variables
+// Initialize Twilio Client
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI || process.env.MONGO_PASSWORD)
+const mongoURI = process.env.MONGO_URI || process.env.MONGO_PASSWORD;
+mongoose.connect(mongoURI)
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.error('MongoDB Connection Error:', err));
 
@@ -31,11 +32,11 @@ app.post('/api/bookings', async (req, res) => {
     try {
         const { therapist, time, date, patientName, patientPhone } = req.body;
 
-        // 1. Save booking to MongoDB Atlas
+        // Save booking to MongoDB
         const newBooking = new Booking({ therapist, time, date, patientName, patientPhone });
         await newBooking.save();
 
-        // 2. Send WhatsApp notification via Twilio
+        // Send WhatsApp notification
         if (patientPhone) {
             await twilioClient.messages.create({
                 body: `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
@@ -46,7 +47,7 @@ app.post('/api/bookings', async (req, res) => {
 
         res.status(201).json({ message: "Booking created and WhatsApp reminder sent!", booking: newBooking });
     } catch (error) {
-        console.error("Booking/WhatsApp Error:", error);
+        console.error("Booking Error:", error);
         res.status(500).json({ error: error.message });
     }
 });

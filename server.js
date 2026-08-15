@@ -1,26 +1,70 @@
-async function bookSlot(therapist, time) {
-    const date = cleanDateString(document.getElementById("diaryDate").value);
-    const patientName = prompt(`Enter patient name for ${therapist} at ${time}:`);
-    if (!patientName) return;
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const twilio = require('twilio');
 
-    const patientPhone = prompt(`Enter WhatsApp number with country code (e.g. +263771234567):`);
+const app = express();
+app.use(cors());
+app.use(express.json());
 
+// Initialize Twilio Client using your Render Environment Variables
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI || process.env.MONGO_PASSWORD)
+    .then(() => console.log('MongoDB Connected Successfully'))
+    .catch(err => console.error('MongoDB Connection Error:', err));
+
+// Booking Schema & Model
+const bookingSchema = new mongoose.Schema({
+    therapist: String,
+    time: String,
+    date: String,
+    patientName: String,
+    patientPhone: String
+});
+
+const Booking = mongoose.model('Booking', bookingSchema);
+
+// CREATE BOOKING + SEND WHATSAPP
+app.post('/api/bookings', async (req, res) => {
     try {
-        const response = await fetch(API_BASE_URL + "/api/bookings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ therapist, time, date, patientName, patientPhone })
-        });
+        const { therapist, time, date, patientName, patientPhone } = req.body;
 
-        if (response.ok) {
-            alert(`Booking confirmed! WhatsApp reminder sent to ${patientName}.`);
-            fetchAndRenderBookings();
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            alert(`Booking failed: ${errorData.error || 'Server error'}`);
+        // 1. Save booking to MongoDB Atlas
+        const newBooking = new Booking({ therapist, time, date, patientName, patientPhone });
+        await newBooking.save();
+
+        // 2. Send WhatsApp notification via Twilio
+        if (patientPhone) {
+            await twilioClient.messages.create({
+                body: `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
+                from: process.env.TWILIO_WHATSAPP_NUMBER,
+                to: `whatsapp:${patientPhone}`
+            });
         }
+
+        res.status(201).json({ message: "Booking created and WhatsApp reminder sent!", booking: newBooking });
     } catch (error) {
-        console.error("Error saving booking:", error);
-        alert("Server error when attempting to book.");
+        console.error("Booking/WhatsApp Error:", error);
+        res.status(500).json({ error: error.message });
     }
-}
+});
+
+// GET ALL BOOKINGS
+app.get('/api/bookings', async (req, res) => {
+    try {
+        const bookings = await Booking.find();
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ROOT STATUS CHECK
+app.get('/', (req, res) => {
+    res.json({ status: "online", dbConnected: mongoose.connection.readyState === 1 });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

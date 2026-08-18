@@ -349,7 +349,7 @@
             text-overflow: ellipsis;
         }
 
-        /* --- Modal Popup Styling --- */
+        /* Modal Overlay Styling */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -518,11 +518,11 @@
             font-weight: 400;
         }
 
-        /* Phonebook Pick Button */
+        /* CSV Contact Import & Pick Buttons */
         .btn-contact-picker {
             width: 100%;
             padding: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
             background: #f8fafc;
             color: var(--primary);
             border: 1px dashed var(--primary);
@@ -539,6 +539,14 @@
 
         .btn-contact-picker:hover {
             background: var(--primary-light);
+        }
+
+        .import-status-text {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 14px;
+            font-weight: 600;
         }
 
         .modal-actions {
@@ -706,18 +714,22 @@
                     <span class="banner-value" id="modalSlotSummary">Therapist at Time</span>
                 </div>
 
-                <button type="button" class="btn-contact-picker" id="contactPickerBtn" onclick="selectFromPhonebook()">
-                    🎛️ Pick Patient from Phone Contacts
+                <!-- CSV Upload Hidden File Input & Button -->
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+                <button type="button" class="btn-contact-picker" onclick="document.getElementById('csvFileInput').click()">
+                    📥 Import Google Contacts CSV
                 </button>
+                <div class="import-status-text" id="contactStoreStatus">Directory: 0 contacts loaded</div>
 
                 <form id="bookingForm" onsubmit="handleBookingSubmit(event)">
                     <div class="form-group">
-                        <label for="patientNameInput">Patient Full Name *</label>
-                        <input type="text" id="patientNameInput" class="form-control" placeholder="e.g. Sarah Jenkins" required autocomplete="name">
+                        <label for="patientNameInput">Patient Full Name * (Type to Auto-Fill)</label>
+                        <input type="text" id="patientNameInput" class="form-control" placeholder="Start typing name..." required autocomplete="off" list="patientContactsList" oninput="handleNameInputChange(event)">
+                        <datalist id="patientContactsList"></datalist>
                     </div>
 
                     <div class="form-group">
-                        <label for="patientPhoneInput">WhatsApp Number (Optional)</label>
+                        <label for="patientPhoneInput">WhatsApp Number (Auto-Filled)</label>
                         <input type="tel" id="patientPhoneInput" class="form-control" placeholder="e.g. +263771234567" autocomplete="tel">
                     </div>
 
@@ -780,18 +792,15 @@
 
         let activeBookingData = null;
         let selectedBookingTarget = null;
+        let contactsMap = {}; // Name -> Phone dictionary
 
         document.addEventListener("DOMContentLoaded", () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById("diaryDate").value = today;
             
+            loadStoredContacts();
             renderBaseGrid();
             fetchAndRenderBookings();
-
-            if (!('contacts' in navigator && 'ContactsManager' in window)) {
-                const btn = document.getElementById("contactPickerBtn");
-                if (btn) btn.style.display = "none";
-            }
         });
 
         window.addEventListener("focus", () => {
@@ -801,6 +810,104 @@
         function updateStatus(msg) {
             const bannerText = document.getElementById("statusText");
             if (bannerText) bannerText.innerText = msg;
+        }
+
+        /* --- Local Contact Directory & Auto-Complete --- */
+        function loadStoredContacts() {
+            try {
+                const stored = localStorage.getItem("saved_patient_contacts");
+                if (stored) {
+                    contactsMap = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.warn("Could not load contacts:", e);
+                contactsMap = {};
+            }
+            refreshContactsDatalist();
+        }
+
+        function saveContactToDirectory(name, phone) {
+            if (!name) return;
+            contactsMap[name.trim()] = phone ? phone.trim() : "";
+            try {
+                localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
+            } catch (e) {}
+            refreshContactsDatalist();
+        }
+
+        function refreshContactsDatalist() {
+            const datalist = document.getElementById("patientContactsList");
+            const statusLabel = document.getElementById("contactStoreStatus");
+            if (!datalist) return;
+
+            datalist.innerHTML = "";
+            const keys = Object.keys(contactsMap);
+
+            keys.forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                datalist.appendChild(option);
+            });
+
+            if (statusLabel) {
+                statusLabel.innerText = `Directory: ${keys.length} contact(s) ready for auto-fill`;
+            }
+        }
+
+        function handleNameInputChange(event) {
+            const inputVal = event.target.value.trim();
+            if (contactsMap[inputVal]) {
+                document.getElementById("patientPhoneInput").value = contactsMap[inputVal];
+            }
+        }
+
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseGoogleCSV(text);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseGoogleCSV(csvText) {
+            const lines = csvText.split(/\r\n|\n/);
+            if (lines.length < 2) return;
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+            
+            let nameIdx = headers.findIndex(h => h.includes('name') || h === 'given name');
+            let phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('value'));
+
+            if (nameIdx === -1) nameIdx = 0;
+            if (phoneIdx === -1) phoneIdx = 2;
+
+            let addedCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                // Simple CSV line splitter handling quoted strings
+                const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+                if (row.length > nameIdx) {
+                    const rawName = row[nameIdx] ? row[nameIdx].replace(/^"|"$/g, '').trim() : "";
+                    const rawPhone = (phoneIdx < row.length && row[phoneIdx]) ? row[phoneIdx].replace(/^"|"$/g, '').trim() : "";
+
+                    if (rawName) {
+                        contactsMap[rawName] = rawPhone;
+                        addedCount++;
+                    }
+                }
+            }
+
+            try {
+                localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
+            } catch (e) {}
+
+            refreshContactsDatalist();
+            alert(`Successfully imported ${addedCount} contacts into your auto-complete directory!`);
         }
 
         function datesMatch(d1, d2) {
@@ -911,6 +1018,9 @@
                             const phone = existingBooking.patientPhone || existingBooking.patient_phone || existingBooking.phone || '';
                             const bookingId = existingBooking.id || existingBooking._id || '';
 
+                            // Cache contact locally
+                            saveContactToDirectory(name, phone);
+
                             slotCell.className = "slot-cell booked";
                             slotCell.onclick = () => openActionModal({
                                 id: bookingId,
@@ -933,36 +1043,6 @@
             } catch (error) {
                 console.error("Error fetching bookings:", error);
                 updateStatus("Connection error.");
-            }
-        }
-
-        /* --- Native Phonebook Selection (Multi-Contact Selection Enabled) --- */
-        async function selectFromPhonebook() {
-            if (!('contacts' in navigator && 'ContactsManager' in window)) {
-                alert("Phonebook picker is only available on supported mobile browsers (e.g. Chrome on Android).");
-                return;
-            }
-
-            try {
-                const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
-                if (contacts && contacts.length > 0) {
-                    const names = contacts
-                        .map(c => (c.name && c.name.length > 0) ? c.name[0] : "")
-                        .filter(Boolean);
-
-                    const phones = contacts
-                        .map(c => (c.tel && c.tel.length > 0) ? c.tel.find(num => num && num.trim().length > 0) : "")
-                        .filter(Boolean);
-
-                    if (names.length > 0) {
-                        document.getElementById("patientNameInput").value = names.join(", ");
-                    }
-                    if (phones.length > 0) {
-                        document.getElementById("patientPhoneInput").value = phones.join(", ");
-                    }
-                }
-            } catch (err) {
-                console.warn("Contact selection cancelled or unavailable:", err);
             }
         }
 
@@ -1081,6 +1161,9 @@
             const submitBtn = document.getElementById("modalSubmitBtn");
 
             if (!patientName) return;
+
+            // Save contact into local auto-complete directory
+            saveContactToDirectory(patientName, patientPhone);
 
             const { therapist, slotTime, date } = activeBookingData;
 

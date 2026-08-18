@@ -105,7 +105,6 @@
             width: 22%;
         }
 
-        /* Editable Time Box Styling */
         .time-input {
             width: 100%;
             padding: 6px;
@@ -159,11 +158,7 @@
         .booked-info {
             color: #2c3e50;
             font-size: 0.95rem;
-            line-height: 1.3;
-        }
-
-        .booked-info strong {
-            color: #27ae60;
+            font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -258,7 +253,6 @@
         function renderBaseGrid() {
             const tbody = document.getElementById("scheduleBody");
             
-            // Retain custom typed values across renders
             const existingTimeInputs = document.querySelectorAll('.time-input');
             const currentTimes = [];
             if (existingTimeInputs.length === defaultTimeSlots.length) {
@@ -272,7 +266,6 @@
             currentTimes.forEach((slotTime, index) => {
                 const row = document.createElement("tr");
 
-                // Input box for custom start times
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
                 timeTd.innerHTML = `
@@ -340,7 +333,6 @@
                             slotCell.className = "slot-cell booked";
                             slotCell.innerHTML = `
                                 <div class="booked-info">
-                                    <strong>${existingBooking.time}</strong><br>
                                     ${name}
                                 </div>
                             `;
@@ -408,8 +400,6 @@
                 updateStatus("Server error.");
             }
         }
-
-       
     </script>
 </body>
 </html>

@@ -103,7 +103,7 @@
         .time-col {
             background-color: #f8f9fa;
             font-weight: bold;
-            color: #7f8c8d;
+            color: #2c3e50;
             width: 18%;
         }
 
@@ -175,7 +175,7 @@
         <table>
             <thead>
                 <tr>
-                    <th class="time-col">Base Slot</th>
+                    <th class="time-col">Time Slot</th>
                     <th>Chido</th>
                     <th>Mispar</th>
                     <th>Tinotenda</th>
@@ -241,22 +241,20 @@
             const tbody = document.getElementById("scheduleBody");
             tbody.innerHTML = "";
 
-            timeSlots.forEach((defaultTime, index) => {
+            timeSlots.forEach((slotTime, index) => {
                 const row = document.createElement("tr");
 
-                // Static Base Hour Label
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
-                timeTd.innerText = defaultTime;
+                timeTd.innerText = slotTime;
                 row.appendChild(timeTd);
 
-                // Therapist Columns
                 therapists.forEach(therapist => {
                     const slotTd = document.createElement("td");
                     slotTd.id = `slot-${therapist}-${index}`;
                     slotTd.className = "slot-cell available";
                     slotTd.innerHTML = `
-                        <button class="book-btn" onclick="bookSlot('${therapist}', '${defaultTime}')">BOOK</button>
+                        <button class="book-btn" onclick="bookSlot('${therapist}', '${slotTime}')">BOOK</button>
                     `;
                     row.appendChild(slotTd);
                 });
@@ -286,11 +284,11 @@
                 updateStatus(`Server connected! Total bookings: ${bookingsList.length}`);
 
                 therapists.forEach(therapist => {
-                    timeSlots.forEach((defaultTime, index) => {
+                    timeSlots.forEach((slotTime, index) => {
                         const slotCell = document.getElementById(`slot-${therapist}-${index}`);
                         if (!slotCell) return;
 
-                        const slotHour = parseHour(defaultTime);
+                        const slotHour = parseHour(slotTime);
 
                         const existingBooking = bookingsList.find(b => {
                             if (!b || !b.therapist || !b.time) return false;
@@ -322,23 +320,17 @@
             }
         }
 
-        async function bookSlot(therapist, defaultTime) {
+        async function bookSlot(therapist, slotTime) {
             const date = document.getElementById("diaryDate").value;
 
-            // Step 1: Prompt staff to confirm or change start time
-            const actualTime = prompt(`Confirm or edit appointment start time for ${therapist}:`, defaultTime);
-            if (!actualTime) return; // Cancelled
+            const patientName = prompt(`Enter patient name for ${therapist} at ${slotTime}:`);
+            if (!patientName) return;
 
-            // Step 2: Patient Name
-            const patientName = prompt(`Enter patient name for ${therapist} at ${actualTime}:`);
-            if (!patientName) return; // Cancelled
-
-            // Step 3: WhatsApp Number
             const patientPhone = prompt(`Enter WhatsApp number with country code (e.g. +263771234567):`);
 
             const payload = { 
                 therapist, 
-                time: actualTime.trim(), 
+                time: slotTime, 
                 date, 
                 patientName: patientName.trim(), 
                 patient_name: patientName.trim(),
@@ -357,12 +349,12 @@
                 });
 
                 if (response.ok) {
-                    alert(`Booking saved for ${actualTime}!`);
+                    alert(`Booking saved for ${slotTime}!`);
                     await fetchAndRenderBookings();
 
                     if (patientPhone) {
                         const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
-                        const message = `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${actualTime}. - Seventh Avenue Physio`;
+                        const message = `Hello ${patientName.trim()}, your appointment with ${therapist} is confirmed for ${date} at ${slotTime}. - Seventh Avenue Physio`;
                         window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
                     }
                 } else {

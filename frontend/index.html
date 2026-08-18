@@ -937,7 +937,7 @@
             }
         }
 
-        /* --- Native Phonebook Selection --- */
+        /* --- Native Phonebook Selection (Enhanced Multi-Number Extraction) --- */
         async function selectFromPhonebook() {
             if (!('contacts' in navigator && 'ContactsManager' in window)) {
                 alert("Phonebook picker is only available on supported mobile browsers (e.g. Chrome on Android).");
@@ -948,11 +948,22 @@
                 const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
                 if (contacts && contacts.length > 0) {
                     const contact = contacts[0];
-                    if (contact.name && contact.name[0]) {
+                    
+                    // Auto-fill Patient Name
+                    if (contact.name && contact.name.length > 0) {
                         document.getElementById("patientNameInput").value = contact.name[0];
                     }
-                    if (contact.tel && contact.tel[0]) {
-                        document.getElementById("patientPhoneInput").value = contact.tel[0];
+
+                    // Scan through all numbers attached to the contact card
+                    let foundPhone = "";
+                    if (contact.tel && contact.tel.length > 0) {
+                        foundPhone = contact.tel.find(num => num && num.trim().length > 0) || "";
+                    }
+
+                    if (foundPhone) {
+                        document.getElementById("patientPhoneInput").value = foundPhone.trim();
+                    } else {
+                        alert("No valid phone number returned. Make sure the number is saved under the main 'Mobile' or 'Phone' field in your phonebook.");
                     }
                 }
             } catch (err) {

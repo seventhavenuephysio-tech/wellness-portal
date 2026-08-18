@@ -174,34 +174,7 @@
 
         <h2>Available Slots</h2>
         <div class="schedule-grid" id="slotsContainer">
-            <div class="slot-card">
-                <div>
-                    <div class="slot-time">08:00 AM</div>
-                    <small>Today</small>
-                </div>
-                <button class="btn" onclick="openBookingModal('08:00 AM')">+ Book</button>
-            </div>
-            <div class="slot-card">
-                <div>
-                    <div class="slot-time">09:30 AM</div>
-                    <small>Today</small>
-                </div>
-                <button class="btn" onclick="openBookingModal('09:30 AM')">+ Book</button>
-            </div>
-            <div class="slot-card">
-                <div>
-                    <div class="slot-time">11:00 AM</div>
-                    <small>Today</small>
-                </div>
-                <button class="btn" onclick="openBookingModal('11:00 AM')">+ Book</button>
-            </div>
-            <div class="slot-card">
-                <div>
-                    <div class="slot-time">02:00 PM</div>
-                    <small>Today</small>
-                </div>
-                <button class="btn" onclick="openBookingModal('02:00 PM')">+ Book</button>
-            </div>
+            <!-- Loaded dynamically from server or default fallback -->
         </div>
     </div>
 
@@ -245,13 +218,13 @@
     </div>
 
     <script>
-        // Load stored contacts from browser local storage
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
+        const defaultSlots = ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"];
 
         document.addEventListener("DOMContentLoaded", () => {
+            loadSlots();
             refreshContactsDatalist();
 
-            // Auto-fill phone when typing/selecting a patient name
             const nameInput = document.getElementById("patientName");
             if (nameInput) {
                 nameInput.addEventListener("input", (e) => {
@@ -262,6 +235,40 @@
                 });
             }
         });
+
+        async function loadSlots() {
+            try {
+                const res = await fetch("/api/slots");
+                if (res.ok) {
+                    const slots = await res.json();
+                    if (Array.isArray(slots) && slots.length > 0) {
+                        renderSlots(slots);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.log("API unavailable, loading local default slots.");
+            }
+            renderSlots(defaultSlots.map(time => ({ time, status: 'available' })));
+        }
+
+        function renderSlots(slots) {
+            const container = document.getElementById("slotsContainer");
+            container.innerHTML = "";
+            slots.forEach(slot => {
+                const timeStr = typeof slot === 'string' ? slot : slot.time;
+                const card = document.createElement("div");
+                card.className = "slot-card";
+                card.innerHTML = `
+                    <div>
+                        <div class="slot-time">${timeStr}</div>
+                        <small>Today</small>
+                    </div>
+                    <button class="btn" onclick="openBookingModal('${timeStr}')">+ Book</button>
+                `;
+                container.appendChild(card);
+            });
+        }
 
         function refreshContactsDatalist() {
             const datalist = document.getElementById("contactsDatalist");
@@ -296,7 +303,6 @@
                 return;
             }
 
-            // Correctly parse CSV rows preserving quoted text
             function parseCSVLine(line) {
                 const result = [];
                 let cur = '';
@@ -318,45 +324,61 @@
 
             const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
 
-            // Locate Google Contacts name and phone headers
-            let nameIdx = headers.findIndex(h => h === 'name' || h === 'given name');
-            let phoneIdx = headers.findIndex(h => h.includes('phone 1 - value') || h.includes('phone number') || h.includes('phone 1'));
+            let nameIdx = headers.findIndex(h => h === 'name');
+            let givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
+            let familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
 
-            if (nameIdx === -1) nameIdx = 0;
+            let phoneIndices = [];
+            headers.forEach((h, idx) => {
+                if (h.includes('phone') && (h.includes('value') || h.includes('number') || h === 'phone 1' || h === 'phone')) {
+                    phoneIndices.push(idx);
+                }
+            });
 
             let addedCount = 0;
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 const row = parseCSVLine(lines[i]);
 
-                if (row.length > nameIdx) {
-                    const rawName = row[nameIdx] || "";
-                    let rawPhone = (phoneIdx !== -1 && row[phoneIdx]) ? row[phoneIdx] : "";
+                // Fallback name parsing (Given + Family if Name is incomplete or missing)
+                let fullName = "";
+                if (nameIdx !== -1 && row[nameIdx]) {
+                    fullName = row[nameIdx];
+                } else {
+                    const g = givenIdx !== -1 ? row[givenIdx] : "";
+                    const f = familyIdx !== -1 ? row[familyIdx] : "";
+                    fullName = `${g} ${f}`.trim();
+                }
 
-                    // Fallback search across columns if phone column is missing or empty
-                    if (!rawPhone) {
-                        for (let c = 0; c < row.length; c++) {
-                            if (headers[c] && headers[c].includes('phone') && row[c]) {
-                                rawPhone = row[c];
-                                break;
-                            }
+                // Phone number selection
+                let phone = "";
+                for (let idx of phoneIndices) {
+                    if (row[idx]) {
+                        phone = row[idx];
+                        break;
+                    }
+                }
+
+                if (!phone) {
+                    for (let c = 0; c < row.length; c++) {
+                        if (headers[c] && headers[c].includes('phone') && row[c]) {
+                            phone = row[c];
+                            break;
                         }
                     }
+                }
 
-                    if (rawName) {
-                        // Clean non-numeric characters from phone numbers
-                        const cleanPhone = rawPhone.replace(/[^\d+]/g, '');
-                        contactsMap[rawName] = cleanPhone;
-                        addedCount++;
-                    }
+                if (fullName) {
+                    let cleanPhone = phone.replace(/[^\d+]/g, '');
+                    contactsMap[fullName] = cleanPhone;
+                    addedCount++;
                 }
             }
 
-            // Persist into localStorage
             try {
                 localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
             } catch (e) {
-                console.error("LocalStorage save failed:", e);
+                console.error("LocalStorage save error:", e);
             }
 
             refreshContactsDatalist();
@@ -372,7 +394,7 @@
             document.getElementById("bookingModal").classList.remove("active");
         }
 
-        function confirmBooking(event) {
+        async function confirmBooking(event) {
             event.preventDefault();
             const slot = document.getElementById("slotTime").value;
             const name = document.getElementById("patientName").value.trim();
@@ -381,6 +403,17 @@
 
             const cleanPhone = rawPhone.replace(/[^\d]/g, '');
             const todayDate = new Date().toISOString().split('T')[0];
+
+            // Post booking data to backend service if configured
+            try {
+                await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slot, name, phone: cleanPhone, practitioner, date: todayDate })
+                });
+            } catch (err) {
+                console.log("Logged booking locally.");
+            }
 
             const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
             const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;

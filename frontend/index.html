@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Prevent Mobile Browser Caching -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Wellness Booking Portal</title>
     
-    <!-- PWA & Theme Support -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#27ae60">
 
@@ -104,7 +102,9 @@
 
         .time-col {
             background-color: #f8f9fa;
-            width: 20%;
+            font-weight: bold;
+            color: #7f8c8d;
+            width: 18%;
         }
 
         .slot-cell {
@@ -119,28 +119,6 @@
         .slot-cell.booked {
             background-color: #e8f8f5;
             border-left: 4px solid #27ae60;
-        }
-
-        /* Editable Base Slot Time Styling */
-        .editable-time {
-            display: inline-block;
-            font-weight: bold;
-            color: #2c3e50;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            border: 1px dashed #27ae60;
-            background-color: #ffffff;
-        }
-
-        .editable-time:hover {
-            background-color: #e8f8f5;
-        }
-
-        .editable-time:focus {
-            background-color: #ffffff;
-            outline: 2px solid #27ae60;
-            border-style: solid;
         }
 
         .book-btn {
@@ -234,7 +212,6 @@
             if (banner) banner.innerText = msg;
         }
 
-        // Flexible date matching for YYYY-MM-DD vs DD/MM/YYYY vs ISO strings
         function datesMatch(d1, d2) {
             if (!d1 || !d2) return false;
             const s1 = String(d1).trim().replace(/\//g, '-').split('T')[0];
@@ -244,13 +221,11 @@
             const parts1 = s1.split('-');
             const parts2 = s2.split('-');
             if (parts1.length === 3 && parts2.length === 3) {
-                // Check reverse YYYY-MM-DD vs DD-MM-YYYY
                 if (parts1[0] === parts2[2] && parts1[1] === parts2[1] && parts1[2] === parts2[0]) return true;
             }
             return false;
         }
 
-        // Converts time strings into a 24-hr integer for row matching
         function parseHour(timeStr) {
             if (!timeStr) return -1;
             const match = String(timeStr).trim().toUpperCase().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
@@ -269,20 +244,19 @@
             timeSlots.forEach((defaultTime, index) => {
                 const row = document.createElement("tr");
 
+                // Static Base Hour Label
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
-                const baseTimeId = `base-time-${index}`;
-                timeTd.innerHTML = `
-                    <span contenteditable="true" id="${baseTimeId}" class="editable-time" title="Click to edit slot time">${defaultTime}</span>
-                `;
+                timeTd.innerText = defaultTime;
                 row.appendChild(timeTd);
 
+                // Therapist Columns
                 therapists.forEach(therapist => {
                     const slotTd = document.createElement("td");
                     slotTd.id = `slot-${therapist}-${index}`;
                     slotTd.className = "slot-cell available";
                     slotTd.innerHTML = `
-                        <button class="book-btn" onclick="bookSlot('${therapist}', ${index})">BOOK</button>
+                        <button class="book-btn" onclick="bookSlot('${therapist}', '${defaultTime}')">BOOK</button>
                     `;
                     row.appendChild(slotTd);
                 });
@@ -309,7 +283,7 @@
                     ? rawData 
                     : (rawData.bookings || rawData.data || []);
 
-                updateStatus(`Server connected! Found ${bookingsList.length} total bookings.`);
+                updateStatus(`Server connected! Total bookings: ${bookingsList.length}`);
 
                 therapists.forEach(therapist => {
                     timeSlots.forEach((defaultTime, index) => {
@@ -324,7 +298,6 @@
                             const sameTherapist = String(b.therapist).trim().toLowerCase() === therapist.trim().toLowerCase();
                             if (!sameTherapist) return false;
 
-                            // Date check fallback (if backend returns all bookings)
                             if (b.date && !datesMatch(b.date, diaryDate)) return false;
 
                             const bookingHour = parseHour(b.time);
@@ -349,29 +322,27 @@
             }
         }
 
-        async function bookSlot(therapist, index) {
+        async function bookSlot(therapist, defaultTime) {
             const date = document.getElementById("diaryDate").value;
-            const timeSpan = document.getElementById(`base-time-${index}`);
-            const actualTime = timeSpan ? timeSpan.innerText.trim() : "";
 
-            if (!actualTime) {
-                alert("Please enter a valid start time.");
-                return;
-            }
+            // Step 1: Prompt staff to confirm or change start time
+            const actualTime = prompt(`Confirm or edit appointment start time for ${therapist}:`, defaultTime);
+            if (!actualTime) return; // Cancelled
 
+            // Step 2: Patient Name
             const patientName = prompt(`Enter patient name for ${therapist} at ${actualTime}:`);
-            if (!patientName) return;
+            if (!patientName) return; // Cancelled
 
+            // Step 3: WhatsApp Number
             const patientPhone = prompt(`Enter WhatsApp number with country code (e.g. +263771234567):`);
 
-            // Dual field payload to support any backend property naming convention
             const payload = { 
                 therapist, 
-                time: actualTime, 
+                time: actualTime.trim(), 
                 date, 
-                patientName, 
-                patient_name: patientName,
-                name: patientName,
+                patientName: patientName.trim(), 
+                patient_name: patientName.trim(),
+                name: patientName.trim(),
                 patientPhone: patientPhone ? patientPhone.trim() : "",
                 phone: patientPhone ? patientPhone.trim() : ""
             };

@@ -90,9 +90,7 @@
 
         .time-col {
             background-color: #f8f9fa;
-            font-weight: bold;
-            color: #7f8c8d;
-            width: 15%;
+            width: 20%;
         }
 
         .slot-cell {
@@ -109,17 +107,20 @@
             border-left: 4px solid #27ae60;
         }
 
-        /* Editable Time Styling */
+        /* Editable Base Slot Time Styling */
         .editable-time {
             display: inline-block;
             font-weight: bold;
             color: #2c3e50;
-            padding: 4px 8px;
+            padding: 6px 10px;
             border-radius: 4px;
             cursor: pointer;
-            margin-bottom: 6px;
             border: 1px dashed #27ae60;
-            background-color: #fafafa;
+            background-color: #ffffff;
+        }
+
+        .editable-time:hover {
+            background-color: #e8f8f5;
         }
 
         .editable-time:focus {
@@ -132,7 +133,7 @@
             background-color: #27ae60;
             color: white;
             border: none;
-            padding: 6px 14px;
+            padding: 8px 18px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
@@ -160,7 +161,7 @@
             body { padding: 10px; }
             .container { padding: 15px; }
             th, td { padding: 8px; font-size: 0.85rem; }
-            .book-btn { padding: 4px 8px; font-size: 0.75rem; }
+            .book-btn { padding: 6px 10px; font-size: 0.75rem; }
         }
     </style>
 </head>
@@ -204,7 +205,7 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById("diaryDate").value = today;
             
-            // 1. Render base grid immediately so table is never blank
+            // 1. Render base grid immediately
             renderBaseGrid();
             
             // 2. Fetch existing bookings from database
@@ -222,22 +223,22 @@
             timeSlots.forEach((defaultTime, index) => {
                 const row = document.createElement("tr");
 
-                // Base Time Column
+                // Editable Base Time Column
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
-                timeTd.innerText = defaultTime;
+                const baseTimeId = `base-time-${index}`;
+                timeTd.innerHTML = `
+                    <span contenteditable="true" id="${baseTimeId}" class="editable-time" title="Click to edit slot time">${defaultTime}</span>
+                `;
                 row.appendChild(timeTd);
 
                 // Therapist Columns
                 therapists.forEach(therapist => {
                     const slotTd = document.createElement("td");
-                    const timeId = `time-text-${therapist}-${index}`;
-                    
                     slotTd.id = `slot-${therapist}-${index}`;
                     slotTd.className = "slot-cell available";
                     slotTd.innerHTML = `
-                        <span contenteditable="true" id="${timeId}" class="editable-time" title="Click to edit time">${defaultTime}</span>
-                        <button class="book-btn" onclick="bookSlot('${therapist}', '${timeId}')">BOOK</button>
+                        <button class="book-btn" onclick="bookSlot('${therapist}', ${index})">BOOK</button>
                     `;
                     row.appendChild(slotTd);
                 });
@@ -266,7 +267,7 @@
                         const slotCell = document.getElementById(`slot-${therapist}-${index}`);
                         if (!slotCell) return;
 
-                        // Match booking to the base hour slot
+                        // Match booking to the base hour slot window
                         const existingBooking = bookings.find(b => 
                             b.therapist === therapist && 
                             b.time && 
@@ -289,9 +290,9 @@
             }
         }
 
-        async function bookSlot(therapist, timeId) {
+        async function bookSlot(therapist, index) {
             const date = cleanDateString(document.getElementById("diaryDate").value);
-            const timeSpan = document.getElementById(timeId);
+            const timeSpan = document.getElementById(`base-time-${index}`);
             const actualTime = timeSpan ? timeSpan.innerText.trim() : "";
 
             if (!actualTime) {

@@ -205,15 +205,24 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById("diaryDate").value = today;
             
-            // 1. Render base grid immediately
             renderBaseGrid();
-            
-            // 2. Fetch existing bookings from database
             fetchAndRenderBookings();
         });
 
         function cleanDateString(dateStr) {
             return dateStr.trim();
+        }
+
+        // Converts any time string ("8:00 AM", "08:10 AM", "1:00 PM") into a 24-hr integer for accurate row matching
+        function parseHour(timeStr) {
+            if (!timeStr) return -1;
+            const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            if (!match) return -1;
+            let hour = parseInt(match[1], 10);
+            const period = match[3] ? match[3].toUpperCase() : null;
+            if (period === "PM" && hour < 12) hour += 12;
+            if (period === "AM" && hour === 12) hour = 0;
+            return hour;
         }
 
         function renderBaseGrid() {
@@ -251,7 +260,6 @@
             const diaryDate = document.getElementById("diaryDate").value;
             const cleanDate = cleanDateString(diaryDate);
 
-            // Re-render clean base grid first
             renderBaseGrid();
 
             try {
@@ -267,12 +275,14 @@
                         const slotCell = document.getElementById(`slot-${therapist}-${index}`);
                         if (!slotCell) return;
 
-                        // Match booking to the base hour slot window
-                        const existingBooking = bookings.find(b => 
-                            b.therapist === therapist && 
-                            b.time && 
-                            b.time.substring(0, 2) === defaultTime.substring(0, 2)
-                        );
+                        const slotHour = parseHour(defaultTime);
+
+                        // Robust matching by 24-hour hour number
+                        const existingBooking = bookings.find(b => {
+                            if (b.therapist !== therapist || !b.time) return false;
+                            const bookingHour = parseHour(b.time);
+                            return bookingHour !== -1 && bookingHour === slotHour;
+                        });
 
                         if (existingBooking) {
                             slotCell.className = "slot-cell booked";
@@ -319,13 +329,13 @@
                 });
 
                 if (response.ok) {
+                    alert(`Booking saved for ${actualTime}!`);
+                    fetchAndRenderBookings();
+
                     if (patientPhone) {
                         const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
                         const message = `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${actualTime}. - Seventh Avenue Physio`;
-                        window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-                    } else {
-                        alert(`Booking saved for ${actualTime}!`);
-                        fetchAndRenderBookings();
+                        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
                     }
                 } else {
                     const errorData = await response.json().catch(() => ({}));

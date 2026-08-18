@@ -23,6 +23,9 @@
             --primary-light: #f0fdf4;
             --primary-soft: #d1fae5;
             --accent: #10b981;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --danger-light: #fef2f2;
             --bg-body: #f1f5f9;
             --surface: #ffffff;
             --text-main: #0f172a;
@@ -304,6 +307,13 @@
             background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
             border: 1px solid #a7f3d0;
             box-shadow: var(--shadow-sm);
+            cursor: pointer;
+        }
+
+        .slot-cell.booked:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
 
         .booked-card {
@@ -313,6 +323,7 @@
             gap: 8px;
             padding: 0 12px;
             height: 100%;
+            width: 100%;
         }
 
         .booked-icon {
@@ -368,7 +379,7 @@
             box-shadow: var(--shadow-modal);
             border: 1px solid var(--border-subtle);
             width: 100%;
-            max-width: 440px;
+            max-width: 450px;
             overflow: hidden;
             transform: translateY(12px) scale(0.98);
             transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -422,7 +433,7 @@
             background: var(--primary-light);
             border: 1px solid var(--primary-soft);
             border-radius: var(--radius-button);
-            padding: 12px 16px;
+            padding: 14px 16px;
             margin-bottom: 20px;
             display: flex;
             flex-direction: column;
@@ -441,6 +452,35 @@
             font-size: 0.95rem;
             font-weight: 700;
             color: #065f46;
+        }
+
+        /* Detail List Rows */
+        .info-row-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: var(--radius-button);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .info-val {
+            color: var(--text-main);
+            font-weight: 700;
         }
 
         .form-group {
@@ -480,8 +520,8 @@
 
         .modal-actions {
             display: flex;
-            gap: 12px;
-            margin-top: 24px;
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .btn-cancel {
@@ -521,6 +561,48 @@
             transform: translateY(-1px);
         }
 
+        .btn-whatsapp {
+            flex: 1;
+            padding: 12px;
+            background: #25d366;
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-button);
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+        }
+
+        .btn-whatsapp:hover {
+            background: #20ba5a;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            flex: 1;
+            padding: 12px;
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 1px solid #fca5a5;
+            border-radius: var(--radius-button);
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: #ffffff;
+            border-color: var(--danger);
+        }
+
         /* Mobile Layout Adjustments */
         @media (max-width: 768px) {
             body { padding: 16px 10px; }
@@ -530,6 +612,7 @@
             .therapist-badge { padding: 6px 12px; font-size: 0.8rem; }
             .slot-cell { height: 54px; }
             .patient-name { font-size: 0.78rem; }
+            .modal-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -587,12 +670,12 @@
         </div>
     </div>
 
-    <!-- Slick Modal Form Dialog -->
-    <div class="modal-overlay" id="bookingModal" onclick="handleOverlayClick(event)">
+    <!-- Booking Modal Dialog -->
+    <div class="modal-overlay" id="bookingModal" onclick="handleOverlayClick(event, 'bookingModal')">
         <div class="modal-card">
             <div class="modal-header">
                 <h2 class="modal-title">New Appointment</h2>
-                <button class="close-modal-btn" onclick="closeBookingModal()">&times;</button>
+                <button class="close-modal-btn" onclick="closeModal('bookingModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="booking-details-banner">
@@ -612,10 +695,50 @@
                     </div>
 
                     <div class="modal-actions">
-                        <button type="button" class="btn-cancel" onclick="closeBookingModal()">Cancel</button>
+                        <button type="button" class="btn-cancel" onclick="closeModal('bookingModal')">Cancel</button>
                         <button type="submit" class="btn-submit" id="modalSubmitBtn">Confirm Booking</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointment Actions Modal Dialog -->
+    <div class="modal-overlay" id="actionModal" onclick="handleOverlayClick(event, 'actionModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">Appointment Actions</h2>
+                <button class="close-modal-btn" onclick="closeModal('actionModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="booking-details-banner">
+                    <span class="banner-label">Patient Appointment</span>
+                    <span class="banner-value" id="actionPatientName">Patient Name</span>
+                </div>
+
+                <div class="info-row-list">
+                    <div class="info-row">
+                        <span class="info-label">Therapist:</span>
+                        <span class="info-val" id="actionTherapist">Chido</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Time & Date:</span>
+                        <span class="info-val" id="actionTimeDate">08:00 AM • 2026-08-18</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">WhatsApp Contact:</span>
+                        <span class="info-val" id="actionPhone">Not Provided</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-whatsapp" id="actionWhatsAppBtn" onclick="sendWhatsAppFromActionModal()">
+                        💬 Message
+                    </button>
+                    <button type="button" class="btn-delete" id="actionDeleteBtn" onclick="handleCancelAppointment()">
+                        Cancel Booking
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -629,6 +752,7 @@
         ];
 
         let activeBookingData = null;
+        let selectedBookingTarget = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             const today = new Date().toISOString().split('T')[0];
@@ -752,7 +876,19 @@
 
                         if (existingBooking) {
                             const name = existingBooking.patientName || existingBooking.patient_name || existingBooking.name || 'Booked';
+                            const phone = existingBooking.patientPhone || existingBooking.patient_phone || existingBooking.phone || '';
+                            const bookingId = existingBooking.id || existingBooking._id || '';
+
                             slotCell.className = "slot-cell booked";
+                            slotCell.onclick = () => openActionModal({
+                                id: bookingId,
+                                therapist,
+                                time: currentSlotTime,
+                                date: diaryDate,
+                                name,
+                                phone
+                            });
+
                             slotCell.innerHTML = `
                                 <div class="booked-card">
                                     <div class="booked-icon">✓</div>
@@ -793,15 +929,84 @@
             }, 100);
         }
 
-        function closeBookingModal() {
-            const modal = document.getElementById("bookingModal");
-            modal.classList.remove("active");
-            activeBookingData = null;
+        function openActionModal(booking) {
+            selectedBookingTarget = booking;
+
+            document.getElementById("actionPatientName").innerText = booking.name;
+            document.getElementById("actionTherapist").innerText = booking.therapist;
+            document.getElementById("actionTimeDate").innerText = `${booking.time} • ${booking.date}`;
+            document.getElementById("actionPhone").innerText = booking.phone || "None Provided";
+
+            const waBtn = document.getElementById("actionWhatsAppBtn");
+            if (!booking.phone) {
+                waBtn.style.opacity = "0.5";
+                waBtn.style.cursor = "not-allowed";
+            } else {
+                waBtn.style.opacity = "1";
+                waBtn.style.cursor = "pointer";
+            }
+
+            const modal = document.getElementById("actionModal");
+            modal.classList.add("active");
         }
 
-        function handleOverlayClick(event) {
-            if (event.target.id === "bookingModal") {
-                closeBookingModal();
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove("active");
+            if (modalId === 'bookingModal') activeBookingData = null;
+            if (modalId === 'actionModal') selectedBookingTarget = null;
+        }
+
+        function handleOverlayClick(event, modalId) {
+            if (event.target.id === modalId) {
+                closeModal(modalId);
+            }
+        }
+
+        function sendWhatsAppFromActionModal() {
+            if (!selectedBookingTarget || !selectedBookingTarget.phone) {
+                alert("No WhatsApp phone number attached to this booking.");
+                return;
+            }
+
+            const cleanPhone = selectedBookingTarget.phone.replace(/[^0-9]/g, '');
+            const message = `Hello ${selectedBookingTarget.name}, this is a reminder for your appointment with ${selectedBookingTarget.therapist} on ${selectedBookingTarget.date} at ${selectedBookingTarget.time}. - Seventh Avenue Physio`;
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        async function handleCancelAppointment() {
+            if (!selectedBookingTarget) return;
+
+            const confirmCancel = confirm(`Are you sure you want to cancel ${selectedBookingTarget.name}'s appointment with ${selectedBookingTarget.therapist}?`);
+            if (!confirmCancel) return;
+
+            updateStatus("Cancelling booking...");
+
+            try {
+                let deleteUrl = `${API_BASE_URL}/api/bookings`;
+                if (selectedBookingTarget.id) {
+                    deleteUrl += `/${selectedBookingTarget.id}`;
+                } else {
+                    deleteUrl += `?therapist=${encodeURIComponent(selectedBookingTarget.therapist)}&date=${encodeURIComponent(selectedBookingTarget.date)}&time=${encodeURIComponent(selectedBookingTarget.time)}`;
+                }
+
+                const response = await fetch(deleteUrl, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(selectedBookingTarget)
+                });
+
+                if (response.ok) {
+                    closeModal('actionModal');
+                    await fetchAndRenderBookings();
+                } else {
+                    alert("Could not cancel booking on server.");
+                    updateStatus("Cancellation failed.");
+                }
+            } catch (error) {
+                console.error("Error cancelling booking:", error);
+                alert("Server error when cancelling booking.");
+                updateStatus("Server error.");
             }
         }
 
@@ -840,7 +1045,7 @@
                 });
 
                 if (response.ok) {
-                    closeBookingModal();
+                    closeModal('bookingModal');
                     await fetchAndRenderBookings();
 
                     if (patientPhone) {

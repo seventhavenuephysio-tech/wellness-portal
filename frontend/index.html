@@ -209,17 +209,22 @@
             fetchAndRenderBookings();
         });
 
+        // Refresh grid automatically when switching back to portal tab
+        window.addEventListener("focus", () => {
+            fetchAndRenderBookings();
+        });
+
         function cleanDateString(dateStr) {
-            return dateStr.trim();
+            return dateStr ? dateStr.trim() : "";
         }
 
-        // Converts any time string ("8:00 AM", "08:10 AM", "1:00 PM") into a 24-hr integer for accurate row matching
+        // Converts time strings ("8:00 AM", "08:10 AM", "1:00 PM", "13:00") into a 24-hr integer
         function parseHour(timeStr) {
             if (!timeStr) return -1;
-            const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+            const match = timeStr.trim().toUpperCase().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
             if (!match) return -1;
             let hour = parseInt(match[1], 10);
-            const period = match[3] ? match[3].toUpperCase() : null;
+            const period = match[3];
             if (period === "PM" && hour < 12) hour += 12;
             if (period === "AM" && hour === 12) hour = 0;
             return hour;
@@ -266,8 +271,12 @@
                 const response = await fetch(`${API_BASE_URL}/api/bookings?date=${cleanDate}`);
                 if (!response.ok) return;
 
-                const bookings = await response.json();
-                if (!Array.isArray(bookings)) return;
+                const rawData = await response.json();
+                
+                // Flexible array parsing (handles [...] as well as { bookings: [...] })
+                const bookingsList = Array.isArray(rawData) 
+                    ? rawData 
+                    : (rawData.bookings || rawData.data || []);
 
                 // Overlay booked slots
                 therapists.forEach(therapist => {
@@ -277,9 +286,13 @@
 
                         const slotHour = parseHour(defaultTime);
 
-                        // Robust matching by 24-hour hour number
-                        const existingBooking = bookings.find(b => {
-                            if (b.therapist !== therapist || !b.time) return false;
+                        // Case-insensitive therapist and hour matching
+                        const existingBooking = bookingsList.find(b => {
+                            if (!b || !b.therapist || !b.time) return false;
+                            
+                            const sameTherapist = b.therapist.trim().toLowerCase() === therapist.trim().toLowerCase();
+                            if (!sameTherapist) return false;
+
                             const bookingHour = parseHour(b.time);
                             return bookingHour !== -1 && bookingHour === slotHour;
                         });
@@ -289,7 +302,7 @@
                             slotCell.innerHTML = `
                                 <div class="booked-info">
                                     <strong>${existingBooking.time}</strong><br>
-                                    ${existingBooking.patientName}
+                                    ${existingBooking.patientName || existingBooking.patient_name || 'Booked'}
                                 </div>
                             `;
                         }
@@ -315,22 +328,26 @@
 
             const patientPhone = prompt(`Enter WhatsApp number with country code (e.g. +263771234567):`);
 
+            const payload = { 
+                therapist, 
+                time: actualTime, 
+                date, 
+                patientName, 
+                patientPhone: patientPhone ? patientPhone.trim() : "" 
+            };
+
             try {
                 const response = await fetch(API_BASE_URL + "/api/bookings", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        therapist, 
-                        time: actualTime, 
-                        date, 
-                        patientName, 
-                        patientPhone 
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (response.ok) {
                     alert(`Booking saved for ${actualTime}!`);
-                    fetchAndRenderBookings();
+                    
+                    // Force refresh before opening WhatsApp tab
+                    await fetchAndRenderBookings();
 
                     if (patientPhone) {
                         const cleanPhone = patientPhone.replace(/[^0-9]/g, '');
@@ -339,7 +356,7 @@
                     }
                 } else {
                     const errorData = await response.json().catch(() => ({}));
-                    alert(`Booking failed: ${errorData.error || 'Server error'}`);
+                    alert(`Booking failed: ${errorData.error || errorData.message || 'Server error'}`);
                 }
             } catch (error) {
                 console.error("Error saving booking:", error);

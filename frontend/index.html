@@ -86,7 +86,7 @@
 
         th, td {
             border: 1px solid #e0e0e0;
-            padding: 12px;
+            padding: 10px;
             text-align: center;
             vertical-align: middle;
         }
@@ -102,9 +102,26 @@
 
         .time-col {
             background-color: #f8f9fa;
+            width: 22%;
+        }
+
+        /* Editable Time Box Styling */
+        .time-input {
+            width: 100%;
+            padding: 6px;
+            text-align: center;
             font-weight: bold;
             color: #2c3e50;
-            width: 18%;
+            border: 1px dashed #27ae60;
+            border-radius: 4px;
+            background-color: #ffffff;
+            font-size: 0.95rem;
+        }
+
+        .time-input:focus {
+            outline: 2px solid #27ae60;
+            border-style: solid;
+            background-color: #e8f8f5;
         }
 
         .slot-cell {
@@ -152,8 +169,9 @@
         @media (max-width: 768px) {
             body { padding: 10px; }
             .container { padding: 15px; }
-            th, td { padding: 8px; font-size: 0.85rem; }
+            th, td { padding: 6px; font-size: 0.85rem; }
             .book-btn { padding: 6px 10px; font-size: 0.75rem; }
+            .time-input { font-size: 0.85rem; padding: 4px; }
         }
     </style>
 </head>
@@ -175,7 +193,7 @@
         <table>
             <thead>
                 <tr>
-                    <th class="time-col">Time Slot</th>
+                    <th class="time-col">Editable Time</th>
                     <th>Chido</th>
                     <th>Mispar</th>
                     <th>Tinotenda</th>
@@ -190,7 +208,7 @@
     <script>
         const API_BASE_URL = "https://wellness-portal-backend.onrender.com";
         const therapists = ["Chido", "Mispar", "Tinotenda"];
-        const timeSlots = [
+        const defaultTimeSlots = [
             "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", 
             "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"
         ];
@@ -239,14 +257,27 @@
 
         function renderBaseGrid() {
             const tbody = document.getElementById("scheduleBody");
+            
+            // Retain custom typed values across renders
+            const existingTimeInputs = document.querySelectorAll('.time-input');
+            const currentTimes = [];
+            if (existingTimeInputs.length === defaultTimeSlots.length) {
+                existingTimeInputs.forEach(input => currentTimes.push(input.value));
+            } else {
+                currentTimes.push(...defaultTimeSlots);
+            }
+
             tbody.innerHTML = "";
 
-            timeSlots.forEach((slotTime, index) => {
+            currentTimes.forEach((slotTime, index) => {
                 const row = document.createElement("tr");
 
+                // Input box for custom start times
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
-                timeTd.innerText = slotTime;
+                timeTd.innerHTML = `
+                    <input type="text" id="time-input-${index}" class="time-input" value="${slotTime}" title="Click to edit time slot">
+                `;
                 row.appendChild(timeTd);
 
                 therapists.forEach(therapist => {
@@ -254,7 +285,7 @@
                     slotTd.id = `slot-${therapist}-${index}`;
                     slotTd.className = "slot-cell available";
                     slotTd.innerHTML = `
-                        <button class="book-btn" onclick="bookSlot('${therapist}', '${slotTime}')">BOOK</button>
+                        <button class="book-btn" onclick="bookSlot('${therapist}', ${index})">BOOK</button>
                     `;
                     row.appendChild(slotTd);
                 });
@@ -284,11 +315,13 @@
                 updateStatus(`Server connected! Total bookings: ${bookingsList.length}`);
 
                 therapists.forEach(therapist => {
-                    timeSlots.forEach((slotTime, index) => {
+                    defaultTimeSlots.forEach((_, index) => {
+                        const timeInput = document.getElementById(`time-input-${index}`);
+                        const currentSlotTime = timeInput ? timeInput.value : defaultTimeSlots[index];
                         const slotCell = document.getElementById(`slot-${therapist}-${index}`);
                         if (!slotCell) return;
 
-                        const slotHour = parseHour(slotTime);
+                        const slotHour = parseHour(currentSlotTime);
 
                         const existingBooking = bookingsList.find(b => {
                             if (!b || !b.therapist || !b.time) return false;
@@ -320,8 +353,15 @@
             }
         }
 
-        async function bookSlot(therapist, slotTime) {
+        async function bookSlot(therapist, index) {
             const date = document.getElementById("diaryDate").value;
+            const timeInput = document.getElementById(`time-input-${index}`);
+            const slotTime = timeInput ? timeInput.value.trim() : defaultTimeSlots[index];
+
+            if (!slotTime) {
+                alert("Please enter a valid time for this slot.");
+                return;
+            }
 
             const patientName = prompt(`Enter patient name for ${therapist} at ${slotTime}:`);
             if (!patientName) return;

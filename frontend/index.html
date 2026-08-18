@@ -109,29 +109,23 @@
             border-left: 4px solid #27ae60;
         }
 
-        /* Editable Time Text Styling */
+        /* Editable Time Styling */
         .editable-time {
-            display: block;
+            display: inline-block;
             font-weight: bold;
             color: #2c3e50;
             padding: 4px 8px;
             border-radius: 4px;
             cursor: pointer;
             margin-bottom: 6px;
-            width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
-            transition: all 0.2s ease;
-        }
-
-        .editable-time:hover {
-            background-color: #e8f8f5;
-            outline: 1px dashed #27ae60;
+            border: 1px dashed #27ae60;
+            background-color: #fafafa;
         }
 
         .editable-time:focus {
             background-color: #ffffff;
             outline: 2px solid #27ae60;
+            border-style: solid;
         }
 
         .book-btn {
@@ -143,6 +137,8 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 0.85rem;
+            display: block;
+            margin: 0 auto;
             transition: background-color 0.2s;
         }
 
@@ -204,11 +200,14 @@
             "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"
         ];
 
-        // Set default date picker to today on load
         document.addEventListener("DOMContentLoaded", () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById("diaryDate").value = today;
+            
+            // 1. Render base grid immediately so table is never blank
             renderBaseGrid();
+            
+            // 2. Fetch existing bookings from database
             fetchAndRenderBookings();
         });
 
@@ -223,7 +222,7 @@
             timeSlots.forEach((defaultTime, index) => {
                 const row = document.createElement("tr");
 
-                // Time Column
+                // Base Time Column
                 const timeTd = document.createElement("td");
                 timeTd.className = "time-col";
                 timeTd.innerText = defaultTime;
@@ -232,8 +231,14 @@
                 // Therapist Columns
                 therapists.forEach(therapist => {
                     const slotTd = document.createElement("td");
+                    const timeId = `time-text-${therapist}-${index}`;
+                    
                     slotTd.id = `slot-${therapist}-${index}`;
                     slotTd.className = "slot-cell available";
+                    slotTd.innerHTML = `
+                        <span contenteditable="true" id="${timeId}" class="editable-time" title="Click to edit time">${defaultTime}</span>
+                        <button class="book-btn" onclick="bookSlot('${therapist}', '${timeId}')">BOOK</button>
+                    `;
                     row.appendChild(slotTd);
                 });
 
@@ -245,19 +250,26 @@
             const diaryDate = document.getElementById("diaryDate").value;
             const cleanDate = cleanDateString(diaryDate);
 
+            // Re-render clean base grid first
+            renderBaseGrid();
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/bookings?date=${cleanDate}`);
-                const bookings = await response.json();
+                if (!response.ok) return;
 
-                // Reset cells to default open layout
+                const bookings = await response.json();
+                if (!Array.isArray(bookings)) return;
+
+                // Overlay booked slots
                 therapists.forEach(therapist => {
                     timeSlots.forEach((defaultTime, index) => {
                         const slotCell = document.getElementById(`slot-${therapist}-${index}`);
                         if (!slotCell) return;
 
-                        // Check if an appointment exists matching this slot hour window
+                        // Match booking to the base hour slot
                         const existingBooking = bookings.find(b => 
                             b.therapist === therapist && 
+                            b.time && 
                             b.time.substring(0, 2) === defaultTime.substring(0, 2)
                         );
 
@@ -269,13 +281,6 @@
                                     ${existingBooking.patientName}
                                 </div>
                             `;
-                        } else {
-                            slotCell.className = "slot-cell available";
-                            const timeId = `time-text-${therapist}-${index}`;
-                            slotCell.innerHTML = `
-                                <span contenteditable="true" id="${timeId}" class="editable-time" title="Click to edit time">${defaultTime}</span>
-                                <button class="book-btn" onclick="bookSlot('${therapist}', '${timeId}')">BOOK</button>
-                            `;
                         }
                     });
                 });
@@ -286,8 +291,6 @@
 
         async function bookSlot(therapist, timeId) {
             const date = cleanDateString(document.getElementById("diaryDate").value);
-            
-            // Read edited text directly from the span element
             const timeSpan = document.getElementById(timeId);
             const actualTime = timeSpan ? timeSpan.innerText.trim() : "";
 
@@ -333,7 +336,7 @@
             }
         }
 
-        // PWA Service Worker Registration
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
             .then(() => console.log("Service Worker Registered Successfully"))

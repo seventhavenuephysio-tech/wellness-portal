@@ -6,126 +6,263 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Wellness Booking Portal</title>
+    <title>Seventh Avenue Physio - Booking Portal</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#27ae60">
+    <meta name="theme-color" content="#059669">
+
+    <!-- Modern Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --primary: #059669;
+            --primary-hover: #047857;
+            --primary-light: #ecfdf5;
+            --primary-border: #a7f3d0;
+            --bg-body: #f8fafc;
+            --surface: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --shadow-subtle: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            background-color: #f4f7f6;
-            color: #333;
-            padding: 20px;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            padding: 30px 15px;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1050px;
             margin: 0 auto;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: var(--surface);
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-subtle);
+            border: 1px solid rgba(226, 232, 240, 0.8);
         }
 
+        /* --- Header Section --- */
         header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            border: 1px solid var(--primary-border);
         }
 
         h1 {
-            color: #27ae60;
-            margin-bottom: 5px;
+            color: var(--text-dark);
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
         }
 
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* --- Live Status Banner --- */
         .status-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             text-align: center;
-            font-size: 0.85rem;
-            color: #555;
-            background: #f0f0f0;
-            padding: 6px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
         }
 
-        .date-picker-container {
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* --- Date Controls --- */
+        .date-picker-card {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            background: #e8f8f5;
-            padding: 12px;
-            border-radius: 8px;
+            gap: 12px;
+            margin-bottom: 28px;
+            background: #f8fafc;
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
         }
 
-        .date-picker-container label {
-            font-weight: bold;
-            color: #2c3e50;
+        .date-picker-card label {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 0.9rem;
         }
 
-        .date-picker-container input {
-            padding: 8px 12px;
-            border: 1px solid #27ae60;
-            border-radius: 6px;
-            font-size: 1rem;
+        .date-picker-card input[type="date"] {
+            padding: 9px 14px;
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            background: var(--surface);
             outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .date-picker-card input[type="date"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+        }
+
+        /* --- Table Styling --- */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--surface);
         }
 
-        th, td {
-            border: 1px solid #e0e0e0;
+        th {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.8px;
+            padding: 16px 12px;
+            text-align: center;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .therapist-header-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .therapist-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-light);
             padding: 10px;
             text-align: center;
             vertical-align: middle;
         }
 
-        th {
-            background-color: #27ae60;
-            color: white;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
+        td:last-child {
+            border-right: none;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
         }
 
         .time-col {
-            background-color: #f8f9fa;
+            background-color: #f8fafc;
             width: 22%;
         }
 
+        /* Editable Time Box Styling */
         .time-input {
             width: 100%;
-            padding: 6px;
+            padding: 8px 6px;
             text-align: center;
-            font-weight: bold;
-            color: #2c3e50;
-            border: 1px dashed #27ae60;
-            border-radius: 4px;
-            background-color: #ffffff;
-            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            border: 1.5px dashed var(--primary-border);
+            border-radius: var(--radius-sm);
+            background-color: var(--surface);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .time-input:hover {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
         }
 
         .time-input:focus {
-            outline: 2px solid #27ae60;
+            outline: none;
             border-style: solid;
-            background-color: #e8f8f5;
+            border-color: var(--primary);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
         }
 
+        /* Booking Cells */
         .slot-cell {
-            height: 75px;
-            transition: background-color 0.2s;
+            height: 72px;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
         .slot-cell.available {
@@ -133,40 +270,71 @@
         }
 
         .slot-cell.booked {
-            background-color: #e8f8f5;
-            border-left: 4px solid #27ae60;
+            background-color: var(--primary-light);
+            border-left: 4px solid var(--primary);
         }
 
+        /* Booking Action Button */
         .book-btn {
-            background-color: #27ae60;
+            background-color: var(--primary);
             color: white;
             border: none;
-            padding: 8px 18px;
-            border-radius: 4px;
+            padding: 9px 20px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: block;
-            margin: 0 auto;
-            transition: background-color 0.2s;
+            font-weight: 700;
+            font-size: 0.82rem;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-card);
         }
 
         .book-btn:hover {
-            background-color: #219150;
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
         }
 
+        .book-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Booked Slot Card */
         .booked-info {
-            color: #2c3e50;
-            font-size: 0.95rem;
-            font-weight: bold;
+            color: #065f46;
+            font-size: 0.92rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 4px;
         }
 
+        .booked-info::before {
+            content: "✓";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            color: #ffffff;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 900;
+        }
+
+        /* Mobile Responsiveness */
         @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 15px; }
-            th, td { padding: 6px; font-size: 0.85rem; }
-            .book-btn { padding: 6px 10px; font-size: 0.75rem; }
-            .time-input { font-size: 0.85rem; padding: 4px; }
+            body { padding: 12px 8px; }
+            .container { padding: 18px 12px; border-radius: var(--radius-md); }
+            h1 { font-size: 1.4rem; }
+            th, td { padding: 8px 4px; font-size: 0.8rem; }
+            .book-btn { padding: 7px 12px; font-size: 0.75rem; }
+            .time-input { font-size: 0.8rem; padding: 6px 2px; }
+            .booked-info { font-size: 0.82rem; }
         }
     </style>
 </head>
@@ -174,30 +342,48 @@
 
     <div class="container">
         <header>
-            <h1>Seventh Avenue Physio</h1>
-            <p>Wellness Booking Portal</p>
+            <div class="brand-badge">Seventh Avenue Physio</div>
+            <h1>Wellness Booking Portal</h1>
+            <p class="subtitle">Select date & therapist to manage appointment schedule</p>
         </header>
 
-        <div id="statusBanner" class="status-banner">Connecting to server...</div>
+        <div id="statusBanner" class="status-banner">
+            <span class="status-dot"></span>
+            <span id="statusText">Connecting to server...</span>
+        </div>
 
-        <div class="date-picker-container">
-            <label for="diaryDate">Select Date:</label>
+        <div class="date-picker-card">
+            <label for="diaryDate">Schedule Date:</label>
             <input type="date" id="diaryDate" onchange="fetchAndRenderBookings()">
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th class="time-col">Editable Time</th>
-                    <th>Chido</th>
-                    <th>Mispar</th>
-                    <th>Tinotenda</th>
-                </tr>
-            </thead>
-            <tbody id="scheduleBody">
-                <!-- Grid renders dynamically via JS -->
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="time-col">Editable Time</th>
+                        <th>
+                            <div class="therapist-header-cell">
+                                <span class="therapist-avatar">C</span> Chido
+                            </div>
+                        </th>
+                        <th>
+                            <div class="therapist-header-cell">
+                                <span class="therapist-avatar">M</span> Mispar
+                            </div>
+                        </th>
+                        <th>
+                            <div class="therapist-header-cell">
+                                <span class="therapist-avatar">T</span> Tinotenda
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody">
+                    <!-- Dynamic rendering via JavaScript -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -221,8 +407,8 @@
         });
 
         function updateStatus(msg) {
-            const banner = document.getElementById("statusBanner");
-            if (banner) banner.innerText = msg;
+            const bannerText = document.getElementById("statusText");
+            if (bannerText) bannerText.innerText = msg;
         }
 
         function datesMatch(d1, d2) {
@@ -234,7 +420,7 @@
             const parts1 = s1.split('-');
             const parts2 = s2.split('-');
             if (parts1.length === 3 && parts2.length === 3) {
-                if (parts1[0] === parts2[2] && parts1[1] === parts2[1] && parts1[2] === parts2[0]) return true;
+                if (parts1[0] === parts2[2] && parts1[1] === parts2[1] && parts1[2] === parts0[0]) return true;
             }
             return false;
         }
@@ -305,7 +491,7 @@
                     ? rawData 
                     : (rawData.bookings || rawData.data || []);
 
-                updateStatus(`Server connected! Total bookings: ${bookingsList.length}`);
+                updateStatus(`Connected | ${bookingsList.length} total bookings recorded`);
 
                 therapists.forEach(therapist => {
                     defaultTimeSlots.forEach((_, index) => {
@@ -333,7 +519,7 @@
                             slotCell.className = "slot-cell booked";
                             slotCell.innerHTML = `
                                 <div class="booked-info">
-                                    ${name}
+                                    <span>${name}</span>
                                 </div>
                             `;
                         }

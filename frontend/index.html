@@ -518,6 +518,29 @@
             font-weight: 400;
         }
 
+        /* Phonebook Pick Button */
+        .btn-contact-picker {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+            color: var(--primary);
+            border: 1px dashed var(--primary);
+            border-radius: var(--radius-button);
+            font-weight: 700;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-contact-picker:hover {
+            background: var(--primary-light);
+        }
+
         .modal-actions {
             display: flex;
             gap: 10px;
@@ -683,15 +706,19 @@
                     <span class="banner-value" id="modalSlotSummary">Therapist at Time</span>
                 </div>
 
+                <button type="button" class="btn-contact-picker" id="contactPickerBtn" onclick="selectFromPhonebook()">
+                    🎛️ Pick Patient from Phone Contacts
+                </button>
+
                 <form id="bookingForm" onsubmit="handleBookingSubmit(event)">
                     <div class="form-group">
                         <label for="patientNameInput">Patient Full Name *</label>
-                        <input type="text" id="patientNameInput" class="form-control" placeholder="e.g. Sarah Jenkins" required autocomplete="off">
+                        <input type="text" id="patientNameInput" class="form-control" placeholder="e.g. Sarah Jenkins" required autocomplete="name">
                     </div>
 
                     <div class="form-group">
                         <label for="patientPhoneInput">WhatsApp Number (Optional)</label>
-                        <input type="tel" id="patientPhoneInput" class="form-control" placeholder="e.g. +263771234567" autocomplete="off">
+                        <input type="tel" id="patientPhoneInput" class="form-control" placeholder="e.g. +263771234567" autocomplete="tel">
                     </div>
 
                     <div class="modal-actions">
@@ -760,6 +787,12 @@
             
             renderBaseGrid();
             fetchAndRenderBookings();
+
+            // Hide contact picker button if Web Contact API isn't supported on device
+            if (!('contacts' in navigator && 'ContactsManager' in window)) {
+                const btn = document.getElementById("contactPickerBtn");
+                if (btn) btn.style.display = "none";
+            }
         });
 
         window.addEventListener("focus", () => {
@@ -901,6 +934,29 @@
             } catch (error) {
                 console.error("Error fetching bookings:", error);
                 updateStatus("Connection error.");
+            }
+        }
+
+        /* --- Native Phonebook Selection --- */
+        async function selectFromPhonebook() {
+            if (!('contacts' in navigator && 'ContactsManager' in window)) {
+                alert("Phonebook picker is only available on supported mobile browsers (e.g. Chrome on Android).");
+                return;
+            }
+
+            try {
+                const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+                if (contacts && contacts.length > 0) {
+                    const contact = contacts[0];
+                    if (contact.name && contact.name[0]) {
+                        document.getElementById("patientNameInput").value = contact.name[0];
+                    }
+                    if (contact.tel && contact.tel[0]) {
+                        document.getElementById("patientPhoneInput").value = contact.tel[0];
+                    }
+                }
+            } catch (err) {
+                console.warn("Contact selection cancelled or unavailable:", err);
             }
         }
 

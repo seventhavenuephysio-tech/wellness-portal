@@ -7,8 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Twilio Client
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Initialize Twilio safely (prevents startup crash if keys are missing)
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    try {
+        twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    } catch (e) {
+        console.error("Twilio Init Warning:", e.message);
+    }
+}
 
 // Connect to MongoDB Atlas
 const mongoURI = process.env.MONGO_URI || process.env.MONGO_PASSWORD;
@@ -27,35 +34,48 @@ const bookingSchema = new mongoose.Schema({
 
 const Booking = mongoose.model('Booking', bookingSchema);
 
-// CREATE BOOKING + SEND WHATSAPP
+// CREATE BOOKING
 app.post('/api/bookings', async (req, res) => {
     try {
-        const { therapist, time, date, patientName, patientPhone } = req.body;
+        const { therapist, time, date, patientName, patientPhone, patient_name, name } = req.body;
+        const finalPatientName = patientName || patient_name || name || 'Patient';
 
-        // Save booking to MongoDB
-        const newBooking = new Booking({ therapist, time, date, patientName, patientPhone });
+        // 1. Always save booking to MongoDB first
+        const newBooking = new Booking({ 
+            therapist, 
+            time, 
+            date, 
+            patientName: finalPatientName, 
+            patientPhone 
+        });
         await newBooking.save();
 
-        // Send WhatsApp notification
-        if (patientPhone) {
-            await twilioClient.messages.create({
-                body: `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
-                from: process.env.TWILIO_WHATSAPP_NUMBER,
-                to: `whatsapp:${patientPhone}`
-            });
+        // 2. Optional: Attempt Twilio without letting errors block the response
+        if (patientPhone && twilioClient && process.env.TWILIO_WHATSAPP_NUMBER) {
+            try {
+                await twilioClient.messages.create({
+                    body: `Hello ${finalPatientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
+                    from: process.env.TWILIO_WHATSAPP_NUMBER,
+                    to: `whatsapp:${patientPhone}`
+                });
+            } catch (twilioErr) {
+                console.error("Twilio Notification Warning (Booking was saved anyway):", twilioErr.message);
+            }
         }
 
-        res.status(201).json({ message: "Booking created and WhatsApp reminder sent!", booking: newBooking });
+        res.status(201).json({ message: "Booking created successfully!", booking: newBooking });
     } catch (error) {
         console.error("Booking Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// GET ALL BOOKINGS
+// GET BOOKINGS (Supports date filtering or returns all)
 app.get('/api/bookings', async (req, res) => {
     try {
-        const bookings = await Booking.find();
+        const { date } = req.query;
+        const query = date ? { date: date } : {};
+        const bookings = await Booking.find(query);
         res.json(bookings);
     } catch (error) {
         res.status(500).json({ error: error.message });

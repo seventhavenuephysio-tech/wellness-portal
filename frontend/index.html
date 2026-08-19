@@ -23,7 +23,7 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -37,10 +37,10 @@
             margin-bottom: 5px;
         }
 
-        /* Physiotherapist Column Grid */
+        /* 3-Column Physiotherapist Grid */
         .practitioners-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 20px;
             align-items: start;
         }
@@ -214,7 +214,7 @@
 
         <h2>Physiotherapist Schedules</h2>
         <div class="practitioners-grid" id="practitionersContainer">
-            <!-- Physiotherapist columns render dynamically -->
+            <!-- Dynamic 3-therapist columns -->
         </div>
     </div>
 
@@ -260,7 +260,7 @@
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
 
-        // Default Physiotherapist schedules
+        // Explicit 3 Physiotherapists Default Data
         const defaultData = [
             {
                 name: "Chido",
@@ -268,9 +268,14 @@
                 slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
             },
             {
-                name: "Physiotherapist 2",
+                name: "Mispar",
                 title: "Physiotherapist",
-                slots: ["08:30 AM", "10:00 AM", "11:30 AM", "02:30 PM", "04:00 PM"]
+                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
+            },
+            {
+                name: "Tinotenda",
+                title: "Physiotherapist",
+                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
             }
         ];
 
@@ -301,7 +306,7 @@
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering default physiotherapist columns.");
+                console.log("API offline, loading default 3 therapist schedules.");
             }
             renderPractitionerColumns(defaultData);
         }
@@ -311,7 +316,7 @@
             container.innerHTML = "";
 
             if (Array.isArray(practitioners) && practitioners.length > 0 && typeof practitioners[0] === 'string') {
-                practitioners = [{ name: "Chido", title: "Physiotherapist", slots: practitioners }];
+                practitioners = defaultData;
             }
 
             practitioners.forEach(p => {

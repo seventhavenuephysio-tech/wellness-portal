@@ -49,7 +49,7 @@
             text-align: center;
         }
 
-        /* Modern Vector Header Banner */
+        /* Original Logo Header Banner */
         .brand-card {
             display: flex;
             align-items: center;
@@ -62,7 +62,6 @@
             max-width: 820px;
             margin: 0 auto 16px auto;
             box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.08);
-            position: relative;
         }
 
         .brand-logo-left {
@@ -70,6 +69,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .brand-logo-img {
+            max-height: 85px;
+            width: auto;
+            object-fit: contain;
+            border-radius: 8px;
         }
 
         .brand-content-right {
@@ -475,21 +481,7 @@
         <div class="header-container">
             <div class="brand-card">
                 <div class="brand-logo-left">
-                    <svg width="72" height="72" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Green Wellness Leaves -->
-                        <circle cx="28" cy="28" r="9" fill="#16a34a" />
-                        <circle cx="48" cy="18" r="10" fill="#22c55e" />
-                        <circle cx="68" cy="22" r="9" fill="#15803d" />
-                        <circle cx="82" cy="36" r="8" fill="#22c55e" />
-                        <circle cx="20" cy="46" r="8" fill="#16a34a" />
-                        <circle cx="84" cy="54" r="7" fill="#15803d" />
-                        <circle cx="36" cy="36" r="7" fill="#4ade80" />
-                        <circle cx="62" cy="34" r="7" fill="#4ade80" />
-                        <!-- Blue Figure Body / Tree Branches -->
-                        <path d="M50 48 C40 38 30 36 22 42 M50 48 C60 38 70 36 78 42" stroke="#0284c7" stroke-width="6" stroke-linecap="round" />
-                        <circle cx="50" cy="40" r="7" fill="#0284c7" />
-                        <path d="M50 48 L50 78 M50 78 L38 94 M50 78 L62 94" stroke="#0284c7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <img src="logo.jpg" alt="The Wellness Centre Original Logo" class="brand-logo-img" onerror="this.src='logo.png'">
                 </div>
                 <div class="brand-content-right">
                     <h1 class="brand-title">THE WELLNESS CENTRE</h1>

@@ -260,24 +260,13 @@
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
 
-        // Explicit 3 Physiotherapists Default Data
-        const defaultData = [
-            {
-                name: "Chido",
-                title: "Senior Physio",
-                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
-            },
-            {
-                name: "Mispar",
-                title: "Physiotherapist",
-                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
-            },
-            {
-                name: "Tinotenda",
-                title: "Physiotherapist",
-                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
-            }
+        const defaultTherapists = [
+            { name: "Chido", title: "Senior Physio" },
+            { name: "Mispar", title: "Physiotherapist" },
+            { name: "Tinotenda", title: "Physiotherapist" }
         ];
+
+        const fallbackSlots = ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"];
 
         document.addEventListener("DOMContentLoaded", () => {
             loadSlots();
@@ -306,20 +295,39 @@
                     }
                 }
             } catch (err) {
-                console.log("API offline, loading default 3 therapist schedules.");
+                console.log("API offline, rendering default schedules.");
             }
-            renderPractitionerColumns(defaultData);
+            renderPractitionerColumns(fallbackSlots);
         }
 
-        function renderPractitionerColumns(practitioners) {
+        function renderPractitionerColumns(data) {
             const container = document.getElementById("practitionersContainer");
             container.innerHTML = "";
 
-            if (Array.isArray(practitioners) && practitioners.length > 0 && typeof practitioners[0] === 'string') {
-                practitioners = defaultData;
+            let therapistsData = [];
+
+            // Case A: API returns flat list of flexible time strings -> assign to all 3 therapists
+            if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+                therapistsData = defaultTherapists.map(t => ({
+                    name: t.name,
+                    title: t.title,
+                    slots: data 
+                }));
+            } 
+            // Case B: API returns structured therapist objects with custom slots per therapist
+            else if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+                therapistsData = data;
+            } 
+            // Case C: Fallback to default therapists and static slots
+            else {
+                therapistsData = defaultTherapists.map(t => ({
+                    name: t.name,
+                    title: t.title,
+                    slots: fallbackSlots
+                }));
             }
 
-            practitioners.forEach(p => {
+            therapistsData.forEach(p => {
                 const col = document.createElement("div");
                 col.className = "practitioner-column";
 
@@ -329,7 +337,7 @@
 
                 let slotsHTML = "";
                 pSlots.forEach(slot => {
-                    const timeStr = typeof slot === 'string' ? slot : slot.time;
+                    const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
                     slotsHTML += `
                         <div class="slot-card">
                             <div>

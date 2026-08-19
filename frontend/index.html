@@ -37,7 +37,6 @@
             margin-bottom: 5px;
         }
 
-        /* 3-Column Grid */
         .practitioners-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -142,7 +141,6 @@
             background-color: #1557b0;
         }
 
-        /* Modal Overlay */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -168,6 +166,8 @@
             max-width: 450px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -255,9 +255,7 @@
         </header>
 
         <h2>Physiotherapist Schedules</h2>
-        <div class="practitioners-grid" id="practitionersContainer">
-            <!-- 3 Physiotherapist columns render here -->
-        </div>
+        <div class="practitioners-grid" id="practitionersContainer"></div>
     </div>
 
     <!-- Booking Modal -->
@@ -317,10 +315,23 @@
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
         let activeTherapistToEdit = "";
 
+        // Standard hourly slots from 8 AM to 4 PM
+        const defaultSlots8To4 = [
+            "08:00 AM",
+            "09:00 AM",
+            "10:00 AM",
+            "11:00 AM",
+            "12:00 PM",
+            "01:00 PM",
+            "02:00 PM",
+            "03:00 PM",
+            "04:00 PM"
+        ];
+
         const defaultTherapists = [
-            { name: "Chido", title: "Senior Physio", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] },
-            { name: "Mispar", title: "Physiotherapist", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] },
-            { name: "Tinotenda", title: "Physiotherapist", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] }
+            { name: "Chido", title: "Senior Physio", slots: defaultSlots8To4 },
+            { name: "Mispar", title: "Physiotherapist", slots: defaultSlots8To4 },
+            { name: "Tinotenda", title: "Physiotherapist", slots: defaultSlots8To4 }
         ];
 
         let currentTherapistsData = [];
@@ -342,7 +353,6 @@
         });
 
         async function loadSlots() {
-            // Check LocalStorage first for custom user edits
             const localSaved = localStorage.getItem("saved_therapist_schedules");
             if (localSaved) {
                 try {
@@ -354,7 +364,6 @@
                 }
             }
 
-            // Fallback to Backend API
             try {
                 const res = await fetch("/api/slots");
                 if (res.ok) {
@@ -370,7 +379,7 @@
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering default schedule.");
+                console.log("API offline, rendering 8 AM - 4 PM default schedule.");
             }
 
             currentTherapistsData = defaultTherapists;
@@ -419,7 +428,6 @@
             });
         }
 
-        // Time Slot Editing Logic
         function openEditSlotsModal(practitionerName) {
             activeTherapistToEdit = practitionerName;
             document.getElementById("editingTherapistName").innerText = practitionerName;
@@ -469,10 +477,8 @@
                 therapist.slots = newSlots;
             }
 
-            // Save locally
             localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
 
-            // Sync with backend API
             try {
                 await fetch('/api/slots', {
                     method: 'POST',
@@ -487,7 +493,6 @@
             closeEditSlotsModal();
         }
 
-        // Contacts & Booking Logic
         function refreshContactsDatalist() {
             const datalist = document.getElementById("contactsDatalist");
             if (!datalist) return;

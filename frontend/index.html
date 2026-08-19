@@ -174,7 +174,7 @@
 
         <h2>Available Slots</h2>
         <div class="schedule-grid" id="slotsContainer">
-            <!-- Loaded dynamically from server or default fallback -->
+            <!-- Slots load dynamically or fall back to defaults -->
         </div>
     </div>
 
@@ -218,6 +218,7 @@
     </div>
 
     <script>
+        // Load contact list from localStorage
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
         const defaultSlots = ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"];
 
@@ -228,9 +229,11 @@
             const nameInput = document.getElementById("patientName");
             if (nameInput) {
                 nameInput.addEventListener("input", (e) => {
-                    const val = e.target.value.trim();
-                    if (contactsMap[val]) {
-                        document.getElementById("patientPhone").value = contactsMap[val];
+                    const typedVal = e.target.value.trim().toLowerCase();
+                    // Case-insensitive lookup
+                    const foundKey = Object.keys(contactsMap).find(k => k.toLowerCase() === typedVal);
+                    if (foundKey && contactsMap[foundKey]) {
+                        document.getElementById("patientPhone").value = contactsMap[foundKey];
                     }
                 });
             }
@@ -247,7 +250,7 @@
                     }
                 }
             } catch (err) {
-                console.log("API unavailable, loading local default slots.");
+                console.log("API offline, rendering default slot list.");
             }
             renderSlots(defaultSlots.map(time => ({ time, status: 'available' })));
         }
@@ -296,79 +299,112 @@
             reader.readAsText(file);
         }
 
+        // Full character-by-character CSV state machine (handles multiline notes & custom delimiters)
+        function parseCSVToMatrix(text) {
+            const firstLine = text.split('\n')[0];
+            const commaCount = (firstLine.match(/,/g) || []).length;
+            const semiCount = (firstLine.match(/;/g) || []).length;
+            const delim = semiCount > commaCount ? ';' : ',';
+
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let insideQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (insideQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === delim && !insideQuotes) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+                    if (char === '\r' && nextChar === '\n') {
+                        i++;
+                    }
+                    currentRow.push(currentCell.trim());
+                    if (currentRow.some(c => c !== '')) {
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell !== '' || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(c => c !== '')) {
+                    rows.push(currentRow);
+                }
+            }
+            return rows;
+        }
+
         function parseGoogleCSV(csvText) {
-            const lines = csvText.split(/\r\n|\n/);
-            if (lines.length < 2) {
-                alert("The CSV file appears to be empty.");
+            const rows = parseCSVToMatrix(csvText);
+            if (rows.length < 2) {
+                alert("The CSV file is empty or could not be read.");
                 return;
             }
 
-            function parseCSVLine(line) {
-                const result = [];
-                let cur = '';
-                let inQuotes = false;
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        result.push(cur.trim());
-                        cur = '';
-                    } else {
-                        cur += char;
-                    }
-                }
-                result.push(cur.trim());
-                return result.map(val => val.replace(/^"|"$/g, '').trim());
-            }
+            const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, ''));
 
-            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+            // Column location indexes
+            const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
+            const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
+            const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
 
-            let nameIdx = headers.findIndex(h => h === 'name');
-            let givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
-            let familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
-
-            let phoneIndices = [];
+            // Find all potential phone columns
+            const phoneIndices = [];
             headers.forEach((h, idx) => {
-                if (h.includes('phone') && (h.includes('value') || h.includes('number') || h === 'phone 1' || h === 'phone')) {
+                if (h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) {
                     phoneIndices.push(idx);
                 }
             });
 
             let addedCount = 0;
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                const row = parseCSVLine(lines[i]);
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
 
-                // Fallback name parsing (Given + Family if Name is incomplete or missing)
+                // Assemble Name
                 let fullName = "";
                 if (nameIdx !== -1 && row[nameIdx]) {
                     fullName = row[nameIdx];
                 } else {
-                    const g = givenIdx !== -1 ? row[givenIdx] : "";
-                    const f = familyIdx !== -1 ? row[familyIdx] : "";
+                    const g = givenIdx !== -1 && row[givenIdx] ? row[givenIdx] : "";
+                    const f = familyIdx !== -1 && row[familyIdx] ? row[familyIdx] : "";
                     fullName = `${g} ${f}`.trim();
                 }
 
-                // Phone number selection
+                // Extract Phone Number across detected phone headers
                 let phone = "";
                 for (let idx of phoneIndices) {
-                    if (row[idx]) {
+                    if (row[idx] && row[idx].trim() !== '') {
                         phone = row[idx];
                         break;
                     }
                 }
 
+                // Fallback scan across all row values if missing from phone headers
                 if (!phone) {
                     for (let c = 0; c < row.length; c++) {
-                        if (headers[c] && headers[c].includes('phone') && row[c]) {
+                        const val = row[c] ? row[c].replace(/[^\d+]/g, '') : '';
+                        if (val.length >= 7) {
                             phone = row[c];
                             break;
                         }
                     }
                 }
 
-                if (fullName) {
+                if (fullName && phone) {
                     let cleanPhone = phone.replace(/[^\d+]/g, '');
                     contactsMap[fullName] = cleanPhone;
                     addedCount++;
@@ -378,11 +414,11 @@
             try {
                 localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
             } catch (e) {
-                console.error("LocalStorage save error:", e);
+                console.error("Failed to save to localStorage:", e);
             }
 
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts with phone numbers!`);
+            alert(`Successfully imported ${addedCount} contacts! You can now start typing names to auto-fill numbers.`);
         }
 
         function openBookingModal(timeSlot) {
@@ -404,7 +440,6 @@
             const cleanPhone = rawPhone.replace(/[^\d]/g, '');
             const todayDate = new Date().toISOString().split('T')[0];
 
-            // Post booking data to backend service if configured
             try {
                 await fetch('/api/bookings', {
                     method: 'POST',

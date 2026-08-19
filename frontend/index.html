@@ -91,15 +91,11 @@
             align-items: center;
         }
 
-        /* Clickable Time Slot Styling */
         .slot-time {
             font-weight: bold;
             color: var(--primary-dark);
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 2px 6px;
+            padding: 4px 8px;
             border-radius: 4px;
             transition: background 0.2s, color 0.2s;
         }
@@ -107,11 +103,6 @@
         .slot-time:hover {
             background: #e0f2f1;
             color: #1a73e8;
-        }
-
-        .slot-time-icon {
-            font-size: 11px;
-            opacity: 0.6;
         }
 
         .btn-add-slot {
@@ -395,7 +386,7 @@
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering default 8 AM - 4 PM schedule.");
+                console.log("API offline, rendering default schedule.");
             }
 
             currentTherapistsData = defaultTherapists;
@@ -419,11 +410,8 @@
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
                     slotsHTML += `
                         <div class="slot-card">
-                            <div>
-                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
-                                    ${timeStr} <span class="slot-time-icon">✏️</span>
-                                </div>
-                                <small>Today</small>
+                            <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
+                                ${timeStr}
                             </div>
                             <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
                         </div>
@@ -444,7 +432,6 @@
             });
         }
 
-        // Direct Time Slot Editing
         function openEditSingleSlotModal(therapistName, slotIdx) {
             activeTherapistName = therapistName;
             activeSlotIndex = slotIdx;
@@ -513,7 +500,6 @@
             renderPractitionerColumns(currentTherapistsData);
         }
 
-        // Contact Import & Booking Logic
         function refreshContactsDatalist() {
             const datalist = document.getElementById("contactsDatalist");
             if (!datalist) return;

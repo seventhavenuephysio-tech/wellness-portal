@@ -360,7 +360,7 @@
                 if (document.visibilityState === "visible") loadSlots();
             });
 
-            setInterval(loadSlots, 10000);
+            setInterval(loadSlots, 5000);
 
             const nameInput = document.getElementById("patientName");
             if (nameInput) {
@@ -381,10 +381,22 @@
 
         async function loadSlots() {
             try {
+                const cRes = await fetch("/api/contacts");
+                if (cRes.ok) {
+                    const cloudContacts = await cRes.json();
+                    if (Object.keys(cloudContacts).length > 0) {
+                        contactsMap = cloudContacts;
+                        localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
+                        refreshContactsDatalist();
+                    }
+                }
+            } catch (e) {}
+
+            try {
                 const bRes = await fetch("/api/bookings");
                 if (bRes.ok) {
                     const bData = await bRes.json();
-                    if (Array.isArray(bData) && bData.length > 0) {
+                    if (Array.isArray(bData)) {
                         bookingsList = bData;
                         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
                     }
@@ -433,8 +445,8 @@
                     
                     const existingBooking = bookingsList.find(b => 
                         (b.practitioner === pName || b.therapist === pName) && 
-                        (b.slot === timeStr || b.time === timeStr) && 
-                        (b.date === todayDate || !b.date)
+                        (b.slot === timeStr || b.time === timeStr) &&
+                        (!b.date || b.date === todayDate)
                     );
 
                     if (existingBooking) {
@@ -491,7 +503,7 @@
             }
 
             const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
-            window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+            window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`, '_blank');
         }
 
         async function cancelBooking(practitioner, timeSlot) {
@@ -509,7 +521,8 @@
                 await fetch('/api/bookings/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
+                    body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate }),
+                    keepalive: true
                 });
             } catch (err) {}
         }
@@ -577,7 +590,8 @@
                     await fetch('/api/slots', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: activeTherapistName, title: therapist.title, slots: therapist.slots })
+                        body: JSON.stringify({ name: activeTherapistName, title: therapist.title, slots: therapist.slots }),
+                        keepalive: true
                     });
                 }
             } catch (e) {}
@@ -718,7 +732,15 @@
 
             localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts with valid phone numbers!`);
+
+            fetch('/api/contacts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contacts: contactsMap }),
+                keepalive: true
+            }).catch(e => console.warn("Cloud contact sync warning:", e));
+
+            alert(`Successfully imported ${addedCount} contacts!`);
         }
 
         function openBookingModal(timeSlot, practitionerName = "Chido") {
@@ -731,7 +753,7 @@
             document.getElementById("bookingModal").classList.remove("active");
         }
 
-        async function confirmBooking(event) {
+        function confirmBooking(event) {
             event.preventDefault();
             const slot = document.getElementById("slotTime").value;
             const name = document.getElementById("patientName").value.trim();
@@ -747,31 +769,28 @@
             const todayDate = getTodayDateString();
             const newBooking = { practitioner, slot, name, phone: cleanPhone, date: todayDate };
 
-            // 1. Immediately store in local state & re-render UI (guarantees local save)
             bookingsList = bookingsList.filter(b => !(
                 (b.practitioner === practitioner || b.therapist === practitioner) && 
-                (b.slot === slot || b.time === slot) && 
-                (b.date === todayDate || !b.date)
+                (b.slot === slot || b.time === slot) &&
+                (b.date === todayDate)
             ));
             bookingsList.push(newBooking);
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
             renderPractitionerColumns(currentTherapistsData);
             closeBookingModal();
 
-            // 2. Persist to MongoDB backend in background
-            try {
-                await fetch('/api/bookings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newBooking)
-                });
-            } catch (err) {
-                console.warn("Backend save failed, saved in local browser storage:", err);
-            }
+            // 1. keepalive flag ensures browser finishes DB save even after WhatsApp opens
+            fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBooking),
+                keepalive: true
+            }).catch(err => console.warn("Background save error:", err));
 
-            // 3. Open WhatsApp link
+            // 2. Open WhatsApp in new tab so live portal session remains active on screen
             const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
-            window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
         }
     </script>
 </body>

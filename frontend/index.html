@@ -6,7 +6,7 @@
     <title>The Wellness Centre</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0f766e;
@@ -18,6 +18,8 @@
             --text-dark: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --brand-blue: #0284c7;
+            --brand-blue-dark: #1e3a8a;
         }
 
         * {
@@ -36,46 +38,87 @@
         .header-wrapper {
             background-color: #ffffff;
             border-bottom: 1px solid var(--border);
-            padding: 24px 20px 20px 20px;
+            padding: 28px 20px 22px 20px;
             box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
             margin-bottom: 35px;
-            text-align: center;
         }
 
         .header-container {
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
+            text-align: center;
         }
 
-        /* Option 1: CSS Viewfinder Cropping */
-        .portal-logo-wrapper {
-            width: 100%;
-            max-width: 780px;
-            height: 125px; /* Clips out lower contact info and bottom borders */
-            margin: 0 auto 14px auto;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-            background: #ffffff;
+        /* Modern Vector Header Banner */
+        .brand-card {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            background: #ffffff;
+            border: 2px solid #0284c7;
+            border-radius: 20px;
+            padding: 20px 28px;
+            max-width: 820px;
+            margin: 0 auto 16px auto;
+            box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.08);
+            position: relative;
+        }
+
+        .brand-logo-left {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
             justify-content: center;
         }
 
-        .portal-logo {
-            width: 100%;
-            height: auto;
-            object-fit: cover;
-            object-position: top center;
-            display: block;
+        .brand-content-right {
+            text-align: left;
+            flex-grow: 1;
+        }
+
+        .brand-title {
+            margin: 0 0 6px 0;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--brand-blue-dark);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .brand-info-line {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .brand-info-line a {
+            color: var(--brand-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.15s ease;
+        }
+
+        .brand-info-line a:hover {
+            color: var(--brand-blue-dark);
+            text-decoration: underline;
+        }
+
+        .info-divider {
+            color: #cbd5e1;
+            font-size: 12px;
         }
 
         .portal-subtitle {
-            margin: 0;
+            margin: 12px 0 0 0;
             color: var(--text-muted);
             font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.06em;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
@@ -403,14 +446,64 @@
         #csvFileInput {
             display: none;
         }
+
+        @media (max-width: 680px) {
+            .brand-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px 16px;
+                gap: 12px;
+            }
+            .brand-content-right {
+                text-align: center;
+            }
+            .brand-title {
+                font-size: 22px;
+            }
+            .brand-info-line {
+                justify-content: center;
+            }
+            .info-divider {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div class="header-wrapper">
         <div class="header-container">
-            <div class="portal-logo-wrapper">
-                <img src="logo.jpg" alt="The Wellness Centre Logo" class="portal-logo">
+            <div class="brand-card">
+                <div class="brand-logo-left">
+                    <svg width="72" height="72" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Green Wellness Leaves -->
+                        <circle cx="28" cy="28" r="9" fill="#16a34a" />
+                        <circle cx="48" cy="18" r="10" fill="#22c55e" />
+                        <circle cx="68" cy="22" r="9" fill="#15803d" />
+                        <circle cx="82" cy="36" r="8" fill="#22c55e" />
+                        <circle cx="20" cy="46" r="8" fill="#16a34a" />
+                        <circle cx="84" cy="54" r="7" fill="#15803d" />
+                        <circle cx="36" cy="36" r="7" fill="#4ade80" />
+                        <circle cx="62" cy="34" r="7" fill="#4ade80" />
+                        <!-- Blue Figure Body / Tree Branches -->
+                        <path d="M50 48 C40 38 30 36 22 42 M50 48 C60 38 70 36 78 42" stroke="#0284c7" stroke-width="6" stroke-linecap="round" />
+                        <circle cx="50" cy="40" r="7" fill="#0284c7" />
+                        <path d="M50 48 L50 78 M50 78 L38 94 M50 78 L62 94" stroke="#0284c7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div class="brand-content-right">
+                    <h1 class="brand-title">THE WELLNESS CENTRE</h1>
+                    <div class="brand-info-line">
+                        <span>📍 115 Upper Third Street, Mutare, Zimbabwe</span>
+                    </div>
+                    <div class="brand-info-line">
+                        <span><a href="tel:+263777002494">📱 +263 777 002 494</a></span>
+                        <span class="info-divider">•</span>
+                        <span><a href="tel:+263202061113">☎️ (+263) 2020 61113</a></span>
+                        <span class="info-divider">•</span>
+                        <span><a href="mailto:seventhavenuephysio@gmail.com">✉️ seventhavenuephysio@gmail.com</a></span>
+                    </div>
+                </div>
             </div>
             <p class="portal-subtitle">Appointment & Wellness Portal</p>
         </div>

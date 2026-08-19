@@ -349,13 +349,18 @@
 
             const nameInput = document.getElementById("patientName");
             if (nameInput) {
-                nameInput.addEventListener("input", (e) => {
+                const autoFillPhone = (e) => {
                     const typedVal = e.target.value.trim().toLowerCase();
-                    const foundKey = Object.keys(contactsMap).find(k => k.toLowerCase() === typedVal);
+                    if (!typedVal) return;
+
+                    const foundKey = Object.keys(contactsMap).find(k => k.trim().toLowerCase() === typedVal);
                     if (foundKey && contactsMap[foundKey]) {
                         document.getElementById("patientPhone").value = contactsMap[foundKey];
                     }
-                });
+                };
+
+                nameInput.addEventListener("input", autoFillPhone);
+                nameInput.addEventListener("change", autoFillPhone);
             }
         });
 
@@ -589,10 +594,20 @@
 
             const phoneIndices = [];
             headers.forEach((h, idx) => {
-                if (h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) {
+                // Ensure header relates to phone and is NOT just a "Type" header
+                if ((h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) && !h.includes('type')) {
                     phoneIndices.push(idx);
                 }
             });
+
+            // Fallback: if no non-type phone headers matched, allow all phone-related columns
+            if (phoneIndices.length === 0) {
+                headers.forEach((h, idx) => {
+                    if (h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) {
+                        phoneIndices.push(idx);
+                    }
+                });
+            }
 
             let addedCount = 0;
             for (let i = 1; i < rows.length; i++) {
@@ -608,13 +623,15 @@
                 }
 
                 let phone = "";
+                // Search matching columns for actual numeric content
                 for (let idx of phoneIndices) {
-                    if (row[idx] && row[idx].trim() !== '') {
+                    if (row[idx] && /\d/.test(row[idx])) {
                         phone = row[idx];
                         break;
                     }
                 }
 
+                // Generic fallback across all columns if no match found
                 if (!phone) {
                     for (let c = 0; c < row.length; c++) {
                         const val = row[c] ? row[c].replace(/[^\d+]/g, '') : '';
@@ -627,8 +644,10 @@
 
                 if (fullName && phone) {
                     let cleanPhone = phone.replace(/[^\d+]/g, '');
-                    contactsMap[fullName] = cleanPhone;
-                    addedCount++;
+                    if (cleanPhone.length >= 7) {
+                        contactsMap[fullName] = cleanPhone;
+                        addedCount++;
+                    }
                 }
             }
 
@@ -639,7 +658,7 @@
             }
 
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts!`);
+            alert(`Successfully imported ${addedCount} contacts with phone numbers!`);
         }
 
         function openBookingModal(timeSlot, practitionerName = "Chido") {

@@ -10,7 +10,7 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// MongoDB connection string with string guard
+// MongoDB connection string with string type check
 const mongoURI = process.env.MONGO_URI || process.env.MONGO;
 
 if (typeof mongoURI === 'string' && mongoURI.trim().length > 0) {
@@ -152,8 +152,8 @@ app.post('/api/contacts', async (req, res) => {
   }
 });
 
-// SPA Fallback (Express 5 Compatible Wildcard)
-app.get('(.*)', (req, res) => {
+// Universal SPA Fallback (compatible across all Express versions)
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 

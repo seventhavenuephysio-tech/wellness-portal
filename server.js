@@ -1,91 +1,129 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const twilio = require('twilio');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Twilio safely (prevents startup crash if keys are missing)
-let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    try {
-        twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    } catch (e) {
-        console.error("Twilio Init Warning:", e.message);
-    }
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, 'frontend')));
+
+// MongoDB Atlas connection with fallback handling
+const mongoURI = process.env.MONGO_URI || 
+  (process.env.MONGO_PASSWORD ? `mongodb+srv://admin:${process.env.MONGO_PASSWORD}@cluster0.mongodb.net/wellness?retryWrites=true&w=majority` : null);
+
+if (mongoURI) {
+  mongoose.connect(mongoURI)
+    .then(() => console.log('MongoDB Connected Successfully'))
+    .catch(err => console.error('MongoDB Connection Error:', err.message));
+} else {
+  console.warn("WARNING: MONGO_URI or MONGO_PASSWORD environment variable is missing.");
 }
 
-// Connect to MongoDB Atlas
-const mongoURI = process.env.MONGO_URI || process.env.MONGO_PASSWORD;
-mongoose.connect(mongoURI)
-    .then(() => console.log('MongoDB Connected Successfully'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
-
-// Booking Schema & Model
+// Schemas & Models
 const bookingSchema = new mongoose.Schema({
-    therapist: String,
-    time: String,
-    date: String,
-    patientName: String,
-    patientPhone: String
+  therapist: String,
+  time: String,
+  date: String,
+  patientName: String,
+  patientPhone: String
 });
-
 const Booking = mongoose.model('Booking', bookingSchema);
 
-// CREATE BOOKING
-app.post('/api/bookings', async (req, res) => {
-    try {
-        const { therapist, time, date, patientName, patientPhone, patient_name, name } = req.body;
-        const finalPatientName = patientName || patient_name || name || 'Patient';
-
-        // 1. Always save booking to MongoDB first
-        const newBooking = new Booking({ 
-            therapist, 
-            time, 
-            date, 
-            patientName: finalPatientName, 
-            patientPhone 
-        });
-        await newBooking.save();
-
-        // 2. Optional: Attempt Twilio without letting errors block the response
-        if (patientPhone && twilioClient && process.env.TWILIO_WHATSAPP_NUMBER) {
-            try {
-                await twilioClient.messages.create({
-                    body: `Hello ${finalPatientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
-                    from: process.env.TWILIO_WHATSAPP_NUMBER,
-                    to: `whatsapp:${patientPhone}`
-                });
-            } catch (twilioErr) {
-                console.error("Twilio Notification Warning (Booking was saved anyway):", twilioErr.message);
-            }
-        }
-
-        res.status(201).json({ message: "Booking created successfully!", booking: newBooking });
-    } catch (error) {
-        console.error("Booking Error:", error);
-        res.status(500).json({ error: error.message });
-    }
+const slotSchema = new mongoose.Schema({
+  name: String,
+  title: String,
+  slots: [String]
 });
+const Slot = mongoose.model('Slot', slotSchema);
 
-// GET BOOKINGS (Supports date filtering or returns all)
+// API Endpoints
 app.get('/api/bookings', async (req, res) => {
-    try {
-        const { date } = req.query;
-        const query = date ? { date: date } : {};
-        const bookings = await Booking.find(query);
-        res.json(bookings);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  try {
+    const bookings = await Booking.find({});
+    res.json(bookings.map(b => ({
+      practitioner: b.therapist,
+      slot: b.time,
+      name: b.patientName,
+      phone: b.patientPhone,
+      date: b.date
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// ROOT STATUS CHECK
-app.get('/', (req, res) => {
-    res.json({ status: "online", dbConnected: mongoose.connection.readyState === 1 });
+app.post('/api/bookings', async (req, res) => {
+  try {
+    const { practitioner, therapist, slot, time, name, patientName, phone, patientPhone, date } = req.body;
+    
+    // Remove duplicate existing booking for same therapist and slot
+    await Booking.deleteOne({
+      therapist: practitioner || therapist,
+      time: slot || time,
+      date: date || new Date().toISOString().split('T')[0]
+    });
+
+    const newBooking = new Booking({
+      therapist: practitioner || therapist,
+      time: slot || time,
+      date: date || new Date().toISOString().split('T')[0],
+      patientName: name || patientName,
+      patientPhone: phone || patientPhone
+    });
+
+    await newBooking.save();
+    res.status(201).json({ success: true, booking: newBooking });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.post('/api/bookings/cancel', async (req, res) => {
+  try {
+    const { practitioner, therapist, slot, time, date } = req.body;
+    await Booking.deleteOne({
+      therapist: practitioner || therapist,
+      time: slot || time,
+      date: date
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/slots', async (req, res) => {
+  try {
+    const slots = await Slot.find({});
+    res.json(slots);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/slots', async (req, res) => {
+  try {
+    const { name, title, slots } = req.body;
+    await Slot.findOneAndUpdate(
+      { name: name },
+      { name: name, title: title || "Physiotherapist", slots: slots },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Serve frontend SPA fallback
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

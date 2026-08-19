@@ -89,13 +89,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .slot-card.booked-card {
+            background: #e8f5e9;
+            border-color: #a5d6a7;
         }
 
         .slot-time {
             font-weight: bold;
             color: var(--primary-dark);
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 2px 4px;
             border-radius: 4px;
             transition: background 0.2s, color 0.2s;
         }
@@ -103,6 +109,17 @@
         .slot-time:hover {
             background: #e0f2f1;
             color: #1a73e8;
+        }
+
+        .booking-details {
+            font-size: 13px;
+            color: #2e7d32;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+
+        .booking-details strong {
+            color: #1b5e20;
         }
 
         .btn-add-slot {
@@ -135,6 +152,11 @@
 
         .btn:hover {
             background-color: var(--primary-dark);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
         }
 
         .btn-danger {
@@ -320,6 +342,7 @@
 
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
+        let bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
         let activeTherapistName = "";
         let activeSlotIndex = -1;
 
@@ -366,6 +389,20 @@
         });
 
         async function loadSlots() {
+            // Load backend bookings if available
+            try {
+                const bRes = await fetch("/api/bookings");
+                if (bRes.ok) {
+                    const bData = await bRes.json();
+                    if (Array.isArray(bData) && bData.length > 0) {
+                        bookingsList = bData;
+                        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+                    }
+                }
+            } catch (e) {
+                console.log("Using locally stored bookings.");
+            }
+
             const localSaved = localStorage.getItem("saved_therapist_schedules");
             if (localSaved) {
                 try {
@@ -402,6 +439,7 @@
         function renderPractitionerColumns(practitioners) {
             const container = document.getElementById("practitionersContainer");
             container.innerHTML = "";
+            const todayDate = new Date().toISOString().split('T')[0];
 
             practitioners.forEach(p => {
                 const col = document.createElement("div");
@@ -414,14 +452,39 @@
                 let slotsHTML = "";
                 pSlots.forEach((slot, idx) => {
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
-                    slotsHTML += `
-                        <div class="slot-card">
-                            <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
-                                ${timeStr}
+                    
+                    // Match booking for therapist, time slot, and today's date
+                    const existingBooking = bookingsList.find(b => 
+                        b.practitioner === pName && 
+                        (b.slot === timeStr || b.time === timeStr) && 
+                        (b.date === todayDate || !b.date)
+                    );
+
+                    if (existingBooking) {
+                        slotsHTML += `
+                            <div class="slot-card booked-card">
+                                <div>
+                                    <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
+                                        ${timeStr}
+                                    </div>
+                                    <div class="booking-details">
+                                        👤 <strong>${existingBooking.name}</strong><br>
+                                        <small>📱 ${existingBooking.phone}</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
                             </div>
-                            <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        slotsHTML += `
+                            <div class="slot-card">
+                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
+                                    ${timeStr}
+                                </div>
+                                <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
+                            </div>
+                        `;
+                    }
                 });
 
                 col.innerHTML = `
@@ -436,6 +499,26 @@
                 `;
                 container.appendChild(col);
             });
+        }
+
+        async function cancelBooking(practitioner, timeSlot) {
+            if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
+
+            const todayDate = new Date().toISOString().split('T')[0];
+            bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === timeSlot || b.time === timeSlot)));
+            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+
+            try {
+                await fetch('/api/bookings/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
+                });
+            } catch (err) {
+                console.log("Cleared booking locally.");
+            }
+
+            renderPractitionerColumns(currentTherapistsData);
         }
 
         function openEditSingleSlotModal(therapistName, slotIdx) {
@@ -593,7 +676,6 @@
             const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
             const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
 
-            // Clear old invalid/empty entries from local memory
             Object.keys(contactsMap).forEach(key => {
                 if (!contactsMap[key] || contactsMap[key].replace(/[^\d]/g, '').length < 7) {
                     delete contactsMap[key];
@@ -619,7 +701,6 @@
 
                 let extractedPhone = "";
 
-                // Strategy 1: Check phone header columns while strictly ignoring 'type' and 'label' columns
                 for (let c = 0; c < row.length; c++) {
                     const header = headers[c] || "";
                     const isPhoneHeader = (header.includes("phone") || header.includes("mobile") || header.includes("cell") || header.includes("tel")) 
@@ -634,7 +715,6 @@
                     }
                 }
 
-                // Strategy 2: Scan row for any cell containing 7 to 15 digits
                 if (!extractedPhone) {
                     for (let c = 0; c < row.length; c++) {
                         if (row[c]) {
@@ -690,17 +770,27 @@
             }
 
             const todayDate = new Date().toISOString().split('T')[0];
+            const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
+
+            // Save booking locally
+            bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === slot || b.time === slot)));
+            bookingsList.push(newBooking);
+            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
 
             try {
                 await fetch('/api/bookings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ slot, name, phone: cleanPhone, practitioner, date: todayDate })
+                    body: JSON.stringify(newBooking)
                 });
             } catch (err) {
                 console.log("Logged booking locally.");
             }
 
+            // Update UI with new booking
+            renderPractitionerColumns(currentTherapistsData);
+
+            // Trigger WhatsApp confirmation
             const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
             const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 

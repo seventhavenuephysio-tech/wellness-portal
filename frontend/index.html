@@ -361,6 +361,7 @@
 
                 nameInput.addEventListener("input", autoFillPhone);
                 nameInput.addEventListener("change", autoFillPhone);
+                nameInput.addEventListener("blur", autoFillPhone);
             }
         });
 
@@ -586,64 +587,68 @@
                 return;
             }
 
-            const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, ''));
+            const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, '').trim());
 
             const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
             const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
             const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
 
-            const phoneIndices = [];
-            headers.forEach((h, idx) => {
-                // Ensure header relates to phone and is NOT just a "Type" header
-                if ((h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) && !h.includes('type')) {
-                    phoneIndices.push(idx);
+            // Clear old invalid/empty entries from local memory
+            Object.keys(contactsMap).forEach(key => {
+                if (!contactsMap[key] || contactsMap[key].replace(/[^\d]/g, '').length < 7) {
+                    delete contactsMap[key];
                 }
             });
 
-            // Fallback: if no non-type phone headers matched, allow all phone-related columns
-            if (phoneIndices.length === 0) {
-                headers.forEach((h, idx) => {
-                    if (h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) {
-                        phoneIndices.push(idx);
-                    }
-                });
-            }
-
             let addedCount = 0;
+
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
+                if (!row || row.length === 0) continue;
 
                 let fullName = "";
-                if (nameIdx !== -1 && row[nameIdx]) {
-                    fullName = row[nameIdx];
+                if (nameIdx !== -1 && row[nameIdx] && row[nameIdx].trim()) {
+                    fullName = row[nameIdx].trim();
                 } else {
-                    const g = givenIdx !== -1 && row[givenIdx] ? row[givenIdx] : "";
-                    const f = familyIdx !== -1 && row[familyIdx] ? row[familyIdx] : "";
+                    const g = (givenIdx !== -1 && row[givenIdx]) ? row[givenIdx].trim() : "";
+                    const f = (familyIdx !== -1 && row[familyIdx]) ? row[familyIdx].trim() : "";
                     fullName = `${g} ${f}`.trim();
                 }
 
-                let phone = "";
-                // Search matching columns for actual numeric content
-                for (let idx of phoneIndices) {
-                    if (row[idx] && /\d/.test(row[idx])) {
-                        phone = row[idx];
-                        break;
-                    }
-                }
+                if (!fullName) continue;
 
-                // Generic fallback across all columns if no match found
-                if (!phone) {
-                    for (let c = 0; c < row.length; c++) {
-                        const val = row[c] ? row[c].replace(/[^\d+]/g, '') : '';
-                        if (val.length >= 7) {
-                            phone = row[c];
+                let extractedPhone = "";
+
+                // Strategy 1: Check phone header columns while strictly ignoring 'type' and 'label' columns
+                for (let c = 0; c < row.length; c++) {
+                    const header = headers[c] || "";
+                    const isPhoneHeader = (header.includes("phone") || header.includes("mobile") || header.includes("cell") || header.includes("tel")) 
+                                          && !header.includes("type") && !header.includes("label");
+
+                    if (isPhoneHeader && row[c]) {
+                        const digitsOnly = row[c].replace(/[^\d]/g, '');
+                        if (digitsOnly.length >= 7) {
+                            extractedPhone = row[c];
                             break;
                         }
                     }
                 }
 
-                if (fullName && phone) {
-                    let cleanPhone = phone.replace(/[^\d+]/g, '');
+                // Strategy 2: Scan row for any cell containing 7 to 15 digits
+                if (!extractedPhone) {
+                    for (let c = 0; c < row.length; c++) {
+                        if (row[c]) {
+                            const digitsOnly = row[c].replace(/[^\d]/g, '');
+                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                                extractedPhone = row[c];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (fullName && extractedPhone) {
+                    let cleanPhone = extractedPhone.replace(/[^\d]/g, '');
                     if (cleanPhone.length >= 7) {
                         contactsMap[fullName] = cleanPhone;
                         addedCount++;
@@ -658,7 +663,7 @@
             }
 
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts with phone numbers!`);
+            alert(`Successfully imported ${addedCount} contacts with valid phone numbers!`);
         }
 
         function openBookingModal(timeSlot, practitionerName = "Chido") {
@@ -679,6 +684,11 @@
             const practitioner = document.getElementById("practitionerName").value.trim();
 
             const cleanPhone = rawPhone.replace(/[^\d]/g, '');
+            if (!cleanPhone || cleanPhone.length < 7) {
+                alert("Please enter a valid phone number with digits.");
+                return;
+            }
+
             const todayDate = new Date().toISOString().split('T')[0];
 
             try {

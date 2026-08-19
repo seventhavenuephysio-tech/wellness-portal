@@ -23,7 +23,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
@@ -37,17 +37,57 @@
             margin-bottom: 5px;
         }
 
-        .schedule-grid {
+        /* Physiotherapist Column Grid */
+        .practitioners-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .practitioner-column {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            border-top: 5px solid var(--primary);
+        }
+
+        .practitioner-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .practitioner-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .practitioner-title {
+            font-size: 12px;
+            color: #666;
+            background: #e0f2f1;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .slots-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .slot-card {
-            background: var(--card-bg);
+            background: #f9fbfb;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -172,9 +212,9 @@
             <p>Appointment & Wellness Portal</p>
         </header>
 
-        <h2>Available Slots</h2>
-        <div class="schedule-grid" id="slotsContainer">
-            <!-- Slots load dynamically or fall back to defaults -->
+        <h2>Physiotherapist Schedules</h2>
+        <div class="practitioners-grid" id="practitionersContainer">
+            <!-- Physiotherapist columns render dynamically -->
         </div>
     </div>
 
@@ -208,8 +248,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="practitionerName">Practitioner</label>
-                    <input type="text" id="practitionerName" value="Chido" required>
+                    <label for="practitionerName">Physiotherapist</label>
+                    <input type="text" id="practitionerName" required>
                 </div>
 
                 <button type="submit" class="btn btn-whatsapp">Send WhatsApp Confirmation</button>
@@ -218,9 +258,21 @@
     </div>
 
     <script>
-        // Load contact list from localStorage
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
-        const defaultSlots = ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"];
+
+        // Default Physiotherapist schedules
+        const defaultData = [
+            {
+                name: "Chido",
+                title: "Senior Physio",
+                slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"]
+            },
+            {
+                name: "Physiotherapist 2",
+                title: "Physiotherapist",
+                slots: ["08:30 AM", "10:00 AM", "11:30 AM", "02:30 PM", "04:00 PM"]
+            }
+        ];
 
         document.addEventListener("DOMContentLoaded", () => {
             loadSlots();
@@ -230,7 +282,6 @@
             if (nameInput) {
                 nameInput.addEventListener("input", (e) => {
                     const typedVal = e.target.value.trim().toLowerCase();
-                    // Case-insensitive lookup
                     const foundKey = Object.keys(contactsMap).find(k => k.toLowerCase() === typedVal);
                     if (foundKey && contactsMap[foundKey]) {
                         document.getElementById("patientPhone").value = contactsMap[foundKey];
@@ -243,33 +294,58 @@
             try {
                 const res = await fetch("/api/slots");
                 if (res.ok) {
-                    const slots = await res.json();
-                    if (Array.isArray(slots) && slots.length > 0) {
-                        renderSlots(slots);
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        renderPractitionerColumns(data);
                         return;
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering default slot list.");
+                console.log("API offline, rendering default physiotherapist columns.");
             }
-            renderSlots(defaultSlots.map(time => ({ time, status: 'available' })));
+            renderPractitionerColumns(defaultData);
         }
 
-        function renderSlots(slots) {
-            const container = document.getElementById("slotsContainer");
+        function renderPractitionerColumns(practitioners) {
+            const container = document.getElementById("practitionersContainer");
             container.innerHTML = "";
-            slots.forEach(slot => {
-                const timeStr = typeof slot === 'string' ? slot : slot.time;
-                const card = document.createElement("div");
-                card.className = "slot-card";
-                card.innerHTML = `
-                    <div>
-                        <div class="slot-time">${timeStr}</div>
-                        <small>Today</small>
+
+            if (Array.isArray(practitioners) && practitioners.length > 0 && typeof practitioners[0] === 'string') {
+                practitioners = [{ name: "Chido", title: "Physiotherapist", slots: practitioners }];
+            }
+
+            practitioners.forEach(p => {
+                const col = document.createElement("div");
+                col.className = "practitioner-column";
+
+                const pName = p.name || "Physiotherapist";
+                const pTitle = p.title || "Physiotherapist";
+                const pSlots = p.slots || p.available_slots || [];
+
+                let slotsHTML = "";
+                pSlots.forEach(slot => {
+                    const timeStr = typeof slot === 'string' ? slot : slot.time;
+                    slotsHTML += `
+                        <div class="slot-card">
+                            <div>
+                                <div class="slot-time">${timeStr}</div>
+                                <small>Today</small>
+                            </div>
+                            <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
+                        </div>
+                    `;
+                });
+
+                col.innerHTML = `
+                    <div class="practitioner-header">
+                        <h3 class="practitioner-name">${pName}</h3>
+                        <span class="practitioner-title">${pTitle}</span>
                     </div>
-                    <button class="btn" onclick="openBookingModal('${timeStr}')">+ Book</button>
+                    <div class="slots-list">
+                        ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
+                    </div>
                 `;
-                container.appendChild(card);
+                container.appendChild(col);
             });
         }
 
@@ -299,7 +375,6 @@
             reader.readAsText(file);
         }
 
-        // Full character-by-character CSV state machine (handles multiline notes & custom delimiters)
         function parseCSVToMatrix(text) {
             const firstLine = text.split('\n')[0];
             const commaCount = (firstLine.match(/,/g) || []).length;
@@ -357,12 +432,10 @@
 
             const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, ''));
 
-            // Column location indexes
             const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
             const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
             const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
 
-            // Find all potential phone columns
             const phoneIndices = [];
             headers.forEach((h, idx) => {
                 if (h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel')) {
@@ -374,7 +447,6 @@
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
 
-                // Assemble Name
                 let fullName = "";
                 if (nameIdx !== -1 && row[nameIdx]) {
                     fullName = row[nameIdx];
@@ -384,7 +456,6 @@
                     fullName = `${g} ${f}`.trim();
                 }
 
-                // Extract Phone Number across detected phone headers
                 let phone = "";
                 for (let idx of phoneIndices) {
                     if (row[idx] && row[idx].trim() !== '') {
@@ -393,7 +464,6 @@
                     }
                 }
 
-                // Fallback scan across all row values if missing from phone headers
                 if (!phone) {
                     for (let c = 0; c < row.length; c++) {
                         const val = row[c] ? row[c].replace(/[^\d+]/g, '') : '';
@@ -414,15 +484,16 @@
             try {
                 localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
             } catch (e) {
-                console.error("Failed to save to localStorage:", e);
+                console.error("LocalStorage error:", e);
             }
 
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts! You can now start typing names to auto-fill numbers.`);
+            alert(`Successfully imported ${addedCount} contacts! You can now start typing names to auto-fill phone numbers.`);
         }
 
-        function openBookingModal(timeSlot) {
+        function openBookingModal(timeSlot, practitionerName = "Chido") {
             document.getElementById("slotTime").value = timeSlot;
+            document.getElementById("practitionerName").value = practitionerName;
             document.getElementById("bookingModal").classList.add("active");
         }
 

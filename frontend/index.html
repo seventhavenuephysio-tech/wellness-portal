@@ -122,6 +122,13 @@
             color: #1b5e20;
         }
 
+        .booking-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+
         .btn-add-slot {
             background: transparent;
             border: 1px dashed var(--primary);
@@ -157,6 +164,15 @@
         .btn-sm {
             padding: 5px 10px;
             font-size: 12px;
+        }
+
+        .btn-success {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1da851;
         }
 
         .btn-danger {
@@ -389,7 +405,6 @@
         });
 
         async function loadSlots() {
-            // Load backend bookings if available
             try {
                 const bRes = await fetch("/api/bookings");
                 if (bRes.ok) {
@@ -453,7 +468,6 @@
                 pSlots.forEach((slot, idx) => {
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
                     
-                    // Match booking for therapist, time slot, and today's date
                     const existingBooking = bookingsList.find(b => 
                         b.practitioner === pName && 
                         (b.slot === timeStr || b.time === timeStr) && 
@@ -472,7 +486,10 @@
                                         <small>📱 ${existingBooking.phone}</small>
                                     </div>
                                 </div>
-                                <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
+                                <div class="booking-actions">
+                                    <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${existingBooking.name}', '${existingBooking.phone}', '${pName}', '${timeStr}')">💬 Remind</button>
+                                    <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
+                                </div>
                             </div>
                         `;
                     } else {
@@ -499,6 +516,20 @@
                 `;
                 container.appendChild(col);
             });
+        }
+
+        function sendWhatsAppReminder(name, rawPhone, practitioner, slot) {
+            const cleanPhone = rawPhone.replace(/[^\d]/g, '');
+            if (!cleanPhone || cleanPhone.length < 7) {
+                alert("No valid phone number found for this booking.");
+                return;
+            }
+
+            const todayDate = new Date().toISOString().split('T')[0];
+            const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
+            const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+
+            window.open(waUrl, '_blank');
         }
 
         async function cancelBooking(practitioner, timeSlot) {
@@ -772,7 +803,6 @@
             const todayDate = new Date().toISOString().split('T')[0];
             const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
 
-            // Save booking locally
             bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === slot || b.time === slot)));
             bookingsList.push(newBooking);
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
@@ -787,10 +817,8 @@
                 console.log("Logged booking locally.");
             }
 
-            // Update UI with new booking
             renderPractitionerColumns(currentTherapistsData);
 
-            // Trigger WhatsApp confirmation
             const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
             const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 

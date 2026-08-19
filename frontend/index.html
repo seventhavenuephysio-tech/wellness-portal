@@ -33,7 +33,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Full width header wrapper with subtle elevation */
         .header-wrapper {
             background-color: #ffffff;
             border-bottom: 1px solid var(--border);
@@ -48,23 +47,35 @@
             margin: 0 auto;
         }
 
+        /* Option 1: CSS Viewfinder Cropping */
+        .portal-logo-wrapper {
+            width: 100%;
+            max-width: 780px;
+            height: 125px; /* Clips out lower contact info and bottom borders */
+            margin: 0 auto 14px auto;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            background: #ffffff;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
         .portal-logo {
             width: 100%;
-            max-width: 850px;
             height: auto;
-            max-height: 200px;
-            object-fit: contain;
+            object-fit: cover;
+            object-position: top center;
             display: block;
-            margin: 0 auto 12px auto;
-            border-radius: 8px;
         }
 
         .portal-subtitle {
             margin: 0;
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
         }
 
@@ -273,7 +284,6 @@
             background-color: #1d4ed8;
         }
 
-        /* Glassmorphism modal overlay */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -399,7 +409,9 @@
 
     <div class="header-wrapper">
         <div class="header-container">
-            <img src="logo.jpg" alt="The Wellness Centre Logo" class="portal-logo">
+            <div class="portal-logo-wrapper">
+                <img src="logo.jpg" alt="The Wellness Centre Logo" class="portal-logo">
+            </div>
             <p class="portal-subtitle">Appointment & Wellness Portal</p>
         </div>
     </div>

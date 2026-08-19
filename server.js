@@ -10,8 +10,8 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// MongoDB Atlas connection with fallback handling
-const mongoURI = process.env.MONGO_URI || 
+// MongoDB connection string resolution
+const mongoURI = process.env.MONGO_URI || process.env.MONGO || 
   (process.env.MONGO_PASSWORD ? `mongodb+srv://admin:${process.env.MONGO_PASSWORD}@cluster0.mongodb.net/wellness?retryWrites=true&w=majority` : null);
 
 if (mongoURI) {
@@ -19,7 +19,7 @@ if (mongoURI) {
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.error('MongoDB Connection Error:', err.message));
 } else {
-  console.warn("WARNING: MONGO_URI or MONGO_PASSWORD environment variable is missing.");
+  console.warn("WARNING: Neither MONGO_URI nor MONGO environment variable is defined.");
 }
 
 // Schemas & Models
@@ -59,7 +59,6 @@ app.post('/api/bookings', async (req, res) => {
   try {
     const { practitioner, therapist, slot, time, name, patientName, phone, patientPhone, date } = req.body;
     
-    // Remove duplicate existing booking for same therapist and slot
     await Booking.deleteOne({
       therapist: practitioner || therapist,
       time: slot || time,
@@ -118,7 +117,7 @@ app.post('/api/slots', async (req, res) => {
   }
 });
 
-// Serve frontend SPA fallback
+// SPA Fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });

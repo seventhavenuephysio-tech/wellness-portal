@@ -155,6 +155,7 @@
             cursor: pointer;
             font-weight: bold;
             transition: background 0.2s;
+            touch-action: manipulation;
         }
 
         .btn:hover {
@@ -162,7 +163,7 @@
         }
 
         .btn-sm {
-            padding: 5px 10px;
+            padding: 6px 12px;
             font-size: 12px;
         }
 
@@ -213,12 +214,13 @@
 
         .modal-content {
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 10px;
-            width: 100%;
+            width: 90%;
             max-width: 420px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
+            box-sizing: border-box;
         }
 
         .modal-header {
@@ -233,7 +235,7 @@
         .close-btn {
             background: none;
             border: none;
-            font-size: 22px;
+            font-size: 24px;
             cursor: pointer;
             color: #888;
         }
@@ -251,11 +253,11 @@
 
         .form-group input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 5px;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: 16px;
         }
 
         .modal-actions {
@@ -271,7 +273,7 @@
         .btn-whatsapp {
             background-color: var(--accent);
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             font-size: 16px;
         }
 
@@ -281,6 +283,19 @@
 
         #csvFileInput {
             display: none;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .slot-card {
+                flex-direction: row;
+                align-items: center;
+            }
+            .booking-actions {
+                flex-direction: flex-end;
+            }
         }
     </style>
 </head>
@@ -525,11 +540,11 @@
                 return;
             }
 
-            const todayDate = new Date().toISOString().split('T')[0];
             const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
-            const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
-            window.open(waUrl, '_blank');
+            // Direct window navigation natively opens WhatsApp app on iOS and Android
+            window.location.href = waUrl;
         }
 
         async function cancelBooking(practitioner, timeSlot) {
@@ -540,7 +555,7 @@
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
 
             try {
-                await fetch('/api/bookings/cancel', {
+                fetch('/api/bookings/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
@@ -608,7 +623,7 @@
             localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
 
             try {
-                await fetch('/api/slots', {
+                fetch('/api/slots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: activeTherapistName, slots: currentTherapistsData.find(t => t.name === activeTherapistName)?.slots })
@@ -787,7 +802,7 @@
             document.getElementById("bookingModal").classList.remove("active");
         }
 
-        async function confirmBooking(event) {
+        function confirmBooking(event) {
             event.preventDefault();
             const slot = document.getElementById("slotTime").value;
             const name = document.getElementById("patientName").value.trim();
@@ -803,27 +818,26 @@
             const todayDate = new Date().toISOString().split('T')[0];
             const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
 
+            // Update UI state immediately before navigation
             bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === slot || b.time === slot)));
             bookingsList.push(newBooking);
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
 
-            try {
-                await fetch('/api/bookings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newBooking)
-                });
-            } catch (err) {
-                console.log("Logged booking locally.");
-            }
-
             renderPractitionerColumns(currentTherapistsData);
-
-            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
-            const waUrl = `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
-
-            window.open(waUrl, '_blank');
             closeBookingModal();
+
+            // Background API save
+            fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBooking)
+            }).catch(err => console.log("Logged booking locally."));
+
+            // Native mobile deep link execution without window.open popup block
+            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
+            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+            window.location.href = waUrl;
         }
     </script>
 </body>

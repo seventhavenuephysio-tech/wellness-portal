@@ -53,9 +53,6 @@
         }
 
         .practitioner-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
@@ -78,22 +75,6 @@
             margin-top: 4px;
         }
 
-        .btn-edit-slots {
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary-dark);
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-
-        .btn-edit-slots:hover {
-            background: #e0f2f1;
-        }
-
         .slots-list {
             display: flex;
             flex-direction: column;
@@ -110,9 +91,44 @@
             align-items: center;
         }
 
+        /* Clickable Time Slot Styling */
         .slot-time {
             font-weight: bold;
             color: var(--primary-dark);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .slot-time:hover {
+            background: #e0f2f1;
+            color: #1a73e8;
+        }
+
+        .slot-time-icon {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .btn-add-slot {
+            background: transparent;
+            border: 1px dashed var(--primary);
+            color: var(--primary-dark);
+            padding: 10px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn-add-slot:hover {
+            background: #e0f2f1;
         }
 
         .btn {
@@ -128,6 +144,14 @@
 
         .btn:hover {
             background-color: var(--primary-dark);
+        }
+
+        .btn-danger {
+            background-color: #d32f2f;
+        }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
         }
 
         .btn-import {
@@ -163,11 +187,9 @@
             padding: 25px;
             border-radius: 10px;
             width: 100%;
-            max-width: 450px;
+            max-width: 420px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
         }
 
         .modal-header {
@@ -207,27 +229,14 @@
             font-size: 15px;
         }
 
-        .slot-edit-row {
+        .modal-actions {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-top: 15px;
         }
 
-        .slot-edit-row input {
+        .modal-actions button {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .btn-remove-slot {
-            background: #d32f2f;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 0 12px;
-            cursor: pointer;
-            font-weight: bold;
         }
 
         .btn-whatsapp {
@@ -296,26 +305,33 @@
         </div>
     </div>
 
-    <!-- Edit Slots Modal -->
-    <div class="modal-overlay" id="editSlotsModal">
+    <!-- Direct Time Slot Editor Modal -->
+    <div class="modal-overlay" id="editSingleSlotModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Edit Time Slots (<span id="editingTherapistName"></span>)</h3>
-                <button class="close-btn" onclick="closeEditSlotsModal()">&times;</button>
+                <h3>Edit Time Slot</h3>
+                <button class="close-btn" onclick="closeEditSingleSlotModal()">&times;</button>
             </div>
 
-            <div id="editSlotsList"></div>
+            <p style="font-size: 14px; color: #666; margin-top: 0;">Therapist: <strong id="editSlotTherapistName"></strong></p>
 
-            <button class="btn" style="background-color: #666; width: 100%; margin-bottom: 12px;" onclick="addSlotInput()">+ Add New Slot</button>
-            <button class="btn" style="width: 100%;" onclick="saveEditedSlots()">Save Schedule</button>
+            <div class="form-group">
+                <label for="singleSlotInput">Time Slot</label>
+                <input type="text" id="singleSlotInput" placeholder="e.g. 08:00 AM">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="deleteCurrentSingleSlot()">Delete Slot</button>
+                <button class="btn" onclick="saveCurrentSingleSlot()">Save Changes</button>
+            </div>
         </div>
     </div>
 
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
-        let activeTherapistToEdit = "";
+        let activeTherapistName = "";
+        let activeSlotIndex = -1;
 
-        // Standard hourly slots from 8 AM to 4 PM
         const defaultSlots8To4 = [
             "08:00 AM",
             "09:00 AM",
@@ -329,9 +345,9 @@
         ];
 
         const defaultTherapists = [
-            { name: "Chido", title: "Senior Physio", slots: defaultSlots8To4 },
-            { name: "Mispar", title: "Physiotherapist", slots: defaultSlots8To4 },
-            { name: "Tinotenda", title: "Physiotherapist", slots: defaultSlots8To4 }
+            { name: "Chido", title: "Senior Physio", slots: [...defaultSlots8To4] },
+            { name: "Mispar", title: "Physiotherapist", slots: [...defaultSlots8To4] },
+            { name: "Tinotenda", title: "Physiotherapist", slots: [...defaultSlots8To4] }
         ];
 
         let currentTherapistsData = [];
@@ -379,7 +395,7 @@
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering 8 AM - 4 PM default schedule.");
+                console.log("API offline, rendering default 8 AM - 4 PM schedule.");
             }
 
             currentTherapistsData = defaultTherapists;
@@ -399,12 +415,14 @@
                 const pSlots = p.slots || [];
 
                 let slotsHTML = "";
-                pSlots.forEach(slot => {
+                pSlots.forEach((slot, idx) => {
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
                     slotsHTML += `
                         <div class="slot-card">
                             <div>
-                                <div class="slot-time">${timeStr}</div>
+                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
+                                    ${timeStr} <span class="slot-time-icon">✏️</span>
+                                </div>
                                 <small>Today</small>
                             </div>
                             <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
@@ -414,85 +432,88 @@
 
                 col.innerHTML = `
                     <div class="practitioner-header">
-                        <div>
-                            <h3 class="practitioner-name">${pName}</h3>
-                            <span class="practitioner-title">${pTitle}</span>
-                        </div>
-                        <button class="btn-edit-slots" onclick="openEditSlotsModal('${pName}')">✏️ Edit Times</button>
+                        <h3 class="practitioner-name">${pName}</h3>
+                        <span class="practitioner-title">${pTitle}</span>
                     </div>
                     <div class="slots-list">
                         ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
                     </div>
+                    <button class="btn-add-slot" onclick="addNewSlot('${pName}')">+ Add Time Slot</button>
                 `;
                 container.appendChild(col);
             });
         }
 
-        function openEditSlotsModal(practitionerName) {
-            activeTherapistToEdit = practitionerName;
-            document.getElementById("editingTherapistName").innerText = practitionerName;
+        // Direct Time Slot Editing
+        function openEditSingleSlotModal(therapistName, slotIdx) {
+            activeTherapistName = therapistName;
+            activeSlotIndex = slotIdx;
 
-            const therapist = currentTherapistsData.find(t => t.name === practitionerName);
-            const slots = therapist ? therapist.slots : [];
+            const therapist = currentTherapistsData.find(t => t.name === therapistName);
+            if (!therapist || !therapist.slots[slotIdx]) return;
 
-            const listContainer = document.getElementById("editSlotsList");
-            listContainer.innerHTML = "";
+            const currentVal = typeof therapist.slots[slotIdx] === 'string' 
+                ? therapist.slots[slotIdx] 
+                : therapist.slots[slotIdx].time;
 
-            slots.forEach(slot => {
-                addSlotInput(typeof slot === 'string' ? slot : slot.time);
-            });
+            document.getElementById("editSlotTherapistName").innerText = therapistName;
+            document.getElementById("singleSlotInput").value = currentVal;
+            document.getElementById("editSingleSlotModal").classList.add("active");
+        }
 
-            if (slots.length === 0) {
-                addSlotInput();
+        function closeEditSingleSlotModal() {
+            document.getElementById("editSingleSlotModal").classList.remove("active");
+        }
+
+        async function saveCurrentSingleSlot() {
+            const newVal = document.getElementById("singleSlotInput").value.trim();
+            if (!newVal) return;
+
+            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
+            if (therapist && activeSlotIndex !== -1) {
+                therapist.slots[activeSlotIndex] = newVal;
+                persistSchedules();
             }
-
-            document.getElementById("editSlotsModal").classList.add("active");
+            closeEditSingleSlotModal();
         }
 
-        function addSlotInput(val = "") {
-            const listContainer = document.getElementById("editSlotsList");
-            const div = document.createElement("div");
-            div.className = "slot-edit-row";
-            div.innerHTML = `
-                <input type="text" value="${val}" placeholder="e.g. 08:00 AM">
-                <button type="button" class="btn-remove-slot" onclick="this.parentElement.remove()">✕</button>
-            `;
-            listContainer.appendChild(div);
+        async function deleteCurrentSingleSlot() {
+            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
+            if (therapist && activeSlotIndex !== -1) {
+                therapist.slots.splice(activeSlotIndex, 1);
+                persistSchedules();
+            }
+            closeEditSingleSlotModal();
         }
 
-        function closeEditSlotsModal() {
-            document.getElementById("editSlotsModal").classList.remove("active");
-        }
-
-        async function saveEditedSlots() {
-            const inputs = document.querySelectorAll("#editSlotsList input");
-            const newSlots = [];
-            inputs.forEach(input => {
-                const val = input.value.trim();
-                if (val) newSlots.push(val);
-            });
-
-            const therapist = currentTherapistsData.find(t => t.name === activeTherapistToEdit);
+        function addNewSlot(therapistName) {
+            const therapist = currentTherapistsData.find(t => t.name === therapistName);
             if (therapist) {
-                therapist.slots = newSlots;
+                const newSlot = prompt(`Add a new time slot for ${therapistName}:`, "05:00 PM");
+                if (newSlot && newSlot.trim()) {
+                    therapist.slots.push(newSlot.trim());
+                    persistSchedules();
+                }
             }
+        }
 
+        async function persistSchedules() {
             localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
 
             try {
                 await fetch('/api/slots', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: activeTherapistToEdit, slots: newSlots })
+                    body: JSON.stringify({ name: activeTherapistName, slots: currentTherapistsData.find(t => t.name === activeTherapistName)?.slots })
                 });
             } catch (e) {
-                console.log("Saved schedule changes locally.");
+                console.log("Saved schedule locally.");
             }
 
             renderPractitionerColumns(currentTherapistsData);
-            closeEditSlotsModal();
         }
 
+        // Contact Import & Booking Logic
         function refreshContactsDatalist() {
             const datalist = document.getElementById("contactsDatalist");
             if (!datalist) return;

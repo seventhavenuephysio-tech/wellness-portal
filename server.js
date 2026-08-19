@@ -9,15 +9,14 @@ app.use(express.json());
 
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-const mongoURI = process.env.MONGO_URI || process.env.MONGO || 
-  (process.env.MONGO_PASSWORD ? `mongodb+srv://admin:${process.env.MONGO_PASSWORD}@cluster0.mongodb.net/wellness?retryWrites=true&w=majority` : null);
+const mongoURI = process.env.MONGO_URI || process.env.MONGO;
 
-if (mongoURI) {
+if (typeof mongoURI === 'string' && mongoURI.trim().length > 0) {
   mongoose.connect(mongoURI)
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.error('MongoDB Connection Error:', err.message));
 } else {
-  console.warn("WARNING: MONGO_URI or MONGO variable is missing.");
+  console.warn("WARNING: MONGO_URI environment variable is missing in Render settings!");
 }
 
 // Schemas

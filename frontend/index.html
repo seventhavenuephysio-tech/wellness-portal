@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seventh Avenue Physio - Wellness Portal</title>
+    <title>The Wellness Centre</title>
     <style>
         :root {
             --primary: #00796b;
@@ -32,9 +32,14 @@
             margin-bottom: 30px;
         }
 
-        header h1 {
-            color: var(--primary-dark);
-            margin-bottom: 5px;
+        .portal-logo {
+            max-width: 280px;
+            max-height: 100px;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            object-fit: contain;
         }
 
         .practitioners-grid {
@@ -260,7 +265,7 @@
 
     <div class="container">
         <header>
-            <h1>Seventh Avenue Physio</h1>
+            <img src="logo.jpg" alt="The Wellness Centre Logo" class="portal-logo">
             <p>Appointment & Wellness Portal</p>
         </header>
 
@@ -360,7 +365,7 @@
                 if (document.visibilityState === "visible") loadSlots();
             });
 
-            setInterval(loadSlots, 5000);
+            setInterval(loadSlots, 3000);
 
             const nameInput = document.getElementById("patientName");
             if (nameInput) {
@@ -384,7 +389,7 @@
                 const cRes = await fetch("/api/contacts");
                 if (cRes.ok) {
                     const cloudContacts = await cRes.json();
-                    if (Object.keys(cloudContacts).length > 0) {
+                    if (cloudContacts && Object.keys(cloudContacts).length > 0) {
                         contactsMap = cloudContacts;
                         localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
                         refreshContactsDatalist();
@@ -396,7 +401,7 @@
                 const bRes = await fetch("/api/bookings");
                 if (bRes.ok) {
                     const bData = await bRes.json();
-                    if (Array.isArray(bData)) {
+                    if (Array.isArray(bData) && bData.length > 0) {
                         bookingsList = bData;
                         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
                     }
@@ -412,16 +417,10 @@
                             ? defaultTherapists.map(t => ({ ...t, slots: data }))
                             : data;
                         localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
-                        renderPractitionerColumns(currentTherapistsData);
-                        return;
                     }
                 }
             } catch (err) {}
 
-            const localSaved = localStorage.getItem("saved_therapist_schedules");
-            if (localSaved) {
-                try { currentTherapistsData = JSON.parse(localSaved); } catch (e) {}
-            }
             renderPractitionerColumns(currentTherapistsData);
         }
 
@@ -429,7 +428,6 @@
             const container = document.getElementById("practitionersContainer");
             if (!container) return;
             container.innerHTML = "";
-            const todayDate = getTodayDateString();
 
             practitioners.forEach(p => {
                 const col = document.createElement("div");
@@ -445,8 +443,7 @@
                     
                     const existingBooking = bookingsList.find(b => 
                         (b.practitioner === pName || b.therapist === pName) && 
-                        (b.slot === timeStr || b.time === timeStr) &&
-                        (!b.date || b.date === todayDate)
+                        (b.slot === timeStr || b.time === timeStr)
                     );
 
                     if (existingBooking) {
@@ -502,7 +499,7 @@
                 return;
             }
 
-            const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
+            const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - The Wellness Centre`;
             window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`, '_blank');
         }
 
@@ -771,15 +768,13 @@
 
             bookingsList = bookingsList.filter(b => !(
                 (b.practitioner === practitioner || b.therapist === practitioner) && 
-                (b.slot === slot || b.time === slot) &&
-                (b.date === todayDate)
+                (b.slot === slot || b.time === slot)
             ));
             bookingsList.push(newBooking);
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
             renderPractitionerColumns(currentTherapistsData);
             closeBookingModal();
 
-            // 1. keepalive flag ensures browser finishes DB save even after WhatsApp opens
             fetch('/api/bookings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -787,8 +782,7 @@
                 keepalive: true
             }).catch(err => console.warn("Background save error:", err));
 
-            // 2. Open WhatsApp in new tab so live portal session remains active on screen
-            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
+            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - The Wellness Centre`;
             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
         }

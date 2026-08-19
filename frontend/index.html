@@ -1,450 +1,764 @@
-<script>
-    let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
-    let bookingsList = [];
-    let activeTherapistName = "";
-    let activeSlotIndex = -1;
-
-    const defaultSlots8To4 = [
-        "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
-        "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"
-    ];
-
-    const defaultTherapists = [
-        { name: "Chido", title: "Senior Physio", slots: [...defaultSlots8To4] },
-        { name: "Mispar", title: "Physiotherapist", slots: [...defaultSlots8To4] },
-        { name: "Tinotenda", title: "Physiotherapist", slots: [...defaultSlots8To4] }
-    ];
-
-    let currentTherapistsData = defaultTherapists;
-
-    // Helper for consistent local YYYY-MM-DD date matching across timezones
-    function getTodayDateString() {
-        const d = new Date();
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        loadSlots();
-        refreshContactsDatalist();
-
-        // Auto-refresh when switching back to the tab or app
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible") loadSlots();
-        });
-
-        // Background poll every 15 seconds to keep PC & Mobile in sync
-        setInterval(loadSlots, 15000);
-
-        const nameInput = document.getElementById("patientName");
-        if (nameInput) {
-            const autoFillPhone = (e) => {
-                const typedVal = e.target.value.trim().toLowerCase();
-                if (!typedVal) return;
-                const foundKey = Object.keys(contactsMap).find(k => k.trim().toLowerCase() === typedVal);
-                if (foundKey && contactsMap[foundKey]) {
-                    document.getElementById("patientPhone").value = contactsMap[foundKey];
-                }
-            };
-
-            nameInput.addEventListener("input", autoFillPhone);
-            nameInput.addEventListener("change", autoFillPhone);
-            nameInput.addEventListener("blur", autoFillPhone);
-        }
-    });
-
-    async function loadSlots() {
-        // 1. Always fetch server bookings first
-        try {
-            const bRes = await fetch("/api/bookings");
-            if (bRes.ok) {
-                const bData = await bRes.json();
-                if (Array.isArray(bData)) {
-                    bookingsList = bData;
-                    localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-                }
-            }
-        } catch (e) {
-            console.log("Offline: Using local bookings cache.");
-            bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seventh Avenue Physio - Wellness Portal</title>
+    <style>
+        :root {
+            --primary: #00796b;
+            --primary-dark: #004d40;
+            --accent: #25d366;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333333;
         }
 
-        // 2. Always fetch server slots first before falling back to local storage
-        try {
-            const res = await fetch("/api/slots");
-            if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    currentTherapistsData = typeof data[0] === 'string'
-                        ? defaultTherapists.map(t => ({ ...t, slots: data }))
-                        : data;
-                    localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
-                    renderPractitionerColumns(currentTherapistsData);
-                    return;
-                }
-            }
-        } catch (err) {
-            console.log("Offline: Using local schedules cache.");
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
         }
 
-        // Fallback to local storage only if network request fails
-        const localSaved = localStorage.getItem("saved_therapist_schedules");
-        if (localSaved) {
-            try { currentTherapistsData = JSON.parse(localSaved); } catch (e) {}
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        renderPractitionerColumns(currentTherapistsData);
-    }
 
-    function renderPractitionerColumns(practitioners) {
-        const container = document.getElementById("practitionersContainer");
-        if (!container) return;
-        container.innerHTML = "";
-        const todayDate = getTodayDateString();
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-        practitioners.forEach(p => {
-            const col = document.createElement("div");
-            col.className = "practitioner-column";
+        header h1 {
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
 
-            const pName = p.name || "Physiotherapist";
-            const pTitle = p.title || "Physiotherapist";
-            const pSlots = p.slots || [];
+        .practitioners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
 
-            let slotsHTML = "";
-            pSlots.forEach((slot, idx) => {
-                const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
-                
-                const existingBooking = bookingsList.find(b => 
-                    b.practitioner === pName && 
-                    (b.slot === timeStr || b.time === timeStr) && 
-                    (b.date === todayDate || !b.date)
-                );
+        .practitioner-column {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            border-top: 5px solid var(--primary);
+        }
 
-                if (existingBooking) {
-                    slotsHTML += `
-                        <div class="slot-card booked-card">
-                            <div>
-                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
-                                    ${timeStr}
-                                </div>
-                                <div class="booking-details">
-                                    👤 <strong>${existingBooking.name}</strong><br>
-                                    <small>📱 ${existingBooking.phone}</small>
-                                </div>
-                            </div>
-                            <div class="booking-actions">
-                                <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${existingBooking.name}', '${existingBooking.phone}', '${pName}', '${timeStr}')">💬 Remind</button>
-                                <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    slotsHTML += `
-                        <div class="slot-card">
-                            <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})" title="Click to edit time">
-                                ${timeStr}
-                            </div>
-                            <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
-                        </div>
-                    `;
-                }
-            });
+        .practitioner-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
 
-            col.innerHTML = `
-                <div class="practitioner-header">
-                    <h3 class="practitioner-name">${pName}</h3>
-                    <span class="practitioner-title">${pTitle}</span>
+        .practitioner-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+
+        .practitioner-title {
+            font-size: 12px;
+            color: #666;
+            background: #e0f2f1;
+            padding: 3px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .slots-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slot-card {
+            background: #f9fbfb;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .slot-card.booked-card {
+            background: #e8f5e9;
+            border-color: #a5d6a7;
+        }
+
+        .slot-time {
+            font-weight: bold;
+            color: var(--primary-dark);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .slot-time:hover {
+            background: #e0f2f1;
+            color: #1a73e8;
+        }
+
+        .booking-details {
+            font-size: 13px;
+            color: #2e7d32;
+            margin-top: 4px;
+            line-height: 1.2;
+        }
+
+        .booking-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+
+        .btn-add-slot {
+            background: transparent;
+            border: 1px dashed var(--primary);
+            color: var(--primary-dark);
+            padding: 10px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .btn-add-slot:hover {
+            background: #e0f2f1;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-success {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #d32f2f;
+        }
+
+        .btn-import {
+            background-color: #1a73e8;
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 420px;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .btn-whatsapp {
+            background-color: var(--accent);
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+        }
+
+        #csvFileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Seventh Avenue Physio</h1>
+            <p>Appointment & Wellness Portal</p>
+        </header>
+
+        <h2>Physiotherapist Schedules</h2>
+        <div class="practitioners-grid" id="practitionersContainer"></div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Book Appointment</h3>
+                <button class="close-btn" onclick="closeBookingModal()">&times;</button>
+            </div>
+
+            <button class="btn btn-import" onclick="triggerCSVUpload()">📥 Import Google Contacts CSV</button>
+            <input type="file" id="csvFileInput" accept=".csv" onchange="handleCSVFileSelect(event)">
+
+            <form id="bookingForm" onsubmit="confirmBooking(event)">
+                <div class="form-group">
+                    <label for="slotTime">Selected Slot</label>
+                    <input type="text" id="slotTime" readonly>
                 </div>
-                <div class="slots-list">
-                    ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
+
+                <div class="form-group">
+                    <label for="patientName">Patient Full Name</label>
+                    <input type="text" id="patientName" list="contactsDatalist" placeholder="Start typing patient name..." required autocomplete="off">
+                    <datalist id="contactsDatalist"></datalist>
                 </div>
-                <button class="btn-add-slot" onclick="addNewSlot('${pName}')">+ Add Time Slot</button>
-            `;
-            container.appendChild(col);
-        });
-    }
 
-    function sendWhatsAppReminder(name, rawPhone, practitioner, slot) {
-        const cleanPhone = rawPhone.replace(/[^\d]/g, '');
-        if (!cleanPhone || cleanPhone.length < 7) {
-            alert("No valid phone number found for this booking.");
-            return;
+                <div class="form-group">
+                    <label for="patientPhone">WhatsApp Number</label>
+                    <input type="tel" id="patientPhone" placeholder="e.g. 263777203606" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="practitionerName">Physiotherapist</label>
+                    <input type="text" id="practitionerName" required>
+                </div>
+
+                <button type="submit" class="btn btn-whatsapp">Send WhatsApp Confirmation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Single Slot Editor Modal -->
+    <div class="modal-overlay" id="editSingleSlotModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Time Slot</h3>
+                <button class="close-btn" onclick="closeEditSingleSlotModal()">&times;</button>
+            </div>
+
+            <p style="font-size: 14px; color: #666; margin-top: 0;">Therapist: <strong id="editSlotTherapistName"></strong></p>
+
+            <div class="form-group">
+                <label for="singleSlotInput">Time Slot</label>
+                <input type="text" id="singleSlotInput" placeholder="e.g. 08:00 AM">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="deleteCurrentSingleSlot()">Delete Slot</button>
+                <button class="btn" onclick="saveCurrentSingleSlot()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
+        let bookingsList = [];
+        let activeTherapistName = "";
+        let activeSlotIndex = -1;
+
+        const defaultSlots8To4 = [
+            "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
+            "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"
+        ];
+
+        const defaultTherapists = [
+            { name: "Chido", title: "Senior Physio", slots: [...defaultSlots8To4] },
+            { name: "Mispar", title: "Physiotherapist", slots: [...defaultSlots8To4] },
+            { name: "Tinotenda", title: "Physiotherapist", slots: [...defaultSlots8To4] }
+        ];
+
+        let currentTherapistsData = defaultTherapists;
+
+        function getTodayDateString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
-        const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
-        window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    }
-
-    async function cancelBooking(practitioner, timeSlot) {
-        if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
-
-        const todayDate = getTodayDateString();
-        bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === timeSlot || b.time === timeSlot)));
-        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-        renderPractitionerColumns(currentTherapistsData);
-
-        try {
-            await fetch('/api/bookings/cancel', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
-            });
+        document.addEventListener("DOMContentLoaded", () => {
             loadSlots();
-        } catch (err) {
-            console.log("Server cancel request failed.");
-        }
-    }
+            refreshContactsDatalist();
 
-    function openEditSingleSlotModal(therapistName, slotIdx) {
-        activeTherapistName = therapistName;
-        activeSlotIndex = slotIdx;
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") loadSlots();
+            });
 
-        const therapist = currentTherapistsData.find(t => t.name === therapistName);
-        if (!therapist || !therapist.slots[slotIdx]) return;
+            setInterval(loadSlots, 10000);
 
-        const currentVal = typeof therapist.slots[slotIdx] === 'string' 
-            ? therapist.slots[slotIdx] 
-            : therapist.slots[slotIdx].time;
+            const nameInput = document.getElementById("patientName");
+            if (nameInput) {
+                const autoFillPhone = (e) => {
+                    const typedVal = e.target.value.trim().toLowerCase();
+                    if (!typedVal) return;
+                    const foundKey = Object.keys(contactsMap).find(k => k.trim().toLowerCase() === typedVal);
+                    if (foundKey && contactsMap[foundKey]) {
+                        document.getElementById("patientPhone").value = contactsMap[foundKey];
+                    }
+                };
 
-        document.getElementById("editSlotTherapistName").innerText = therapistName;
-        document.getElementById("singleSlotInput").value = currentVal;
-        document.getElementById("editSingleSlotModal").classList.add("active");
-    }
-
-    function closeEditSingleSlotModal() {
-        document.getElementById("editSingleSlotModal").classList.remove("active");
-    }
-
-    async function saveCurrentSingleSlot() {
-        const newVal = document.getElementById("singleSlotInput").value.trim();
-        if (!newVal) return;
-
-        const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-        if (therapist && activeSlotIndex !== -1) {
-            therapist.slots[activeSlotIndex] = newVal;
-            await persistSchedules();
-        }
-        closeEditSingleSlotModal();
-    }
-
-    async function deleteCurrentSingleSlot() {
-        const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-        if (therapist && activeSlotIndex !== -1) {
-            therapist.slots.splice(activeSlotIndex, 1);
-            await persistSchedules();
-        }
-        closeEditSingleSlotModal();
-    }
-
-    function addNewSlot(therapistName) {
-        const therapist = currentTherapistsData.find(t => t.name === therapistName);
-        if (therapist) {
-            const newSlot = prompt(`Add a new time slot for ${therapistName}:`, "05:00 PM");
-            if (newSlot && newSlot.trim()) {
-                therapist.slots.push(newSlot.trim());
-                persistSchedules();
+                nameInput.addEventListener("input", autoFillPhone);
+                nameInput.addEventListener("change", autoFillPhone);
+                nameInput.addEventListener("blur", autoFillPhone);
             }
-        }
-    }
-
-    async function persistSchedules() {
-        localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
-        renderPractitionerColumns(currentTherapistsData);
-
-        try {
-            await fetch('/api/slots', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: activeTherapistName, slots: currentTherapistsData.find(t => t.name === activeTherapistName)?.slots })
-            });
-            loadSlots();
-        } catch (e) {
-            console.log("Saved schedule locally.");
-        }
-    }
-
-    function refreshContactsDatalist() {
-        const datalist = document.getElementById("contactsDatalist");
-        if (!datalist) return;
-        datalist.innerHTML = "";
-        Object.keys(contactsMap).forEach(name => {
-            const option = document.createElement("option");
-            option.value = name;
-            datalist.appendChild(option);
         });
-    }
 
-    function triggerCSVUpload() {
-        document.getElementById("csvFileInput").click();
-    }
-
-    function handleCSVFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            parseGoogleCSV(e.target.result);
-        };
-        reader.readAsText(file);
-    }
-
-    function parseCSVToMatrix(text) {
-        const firstLine = text.split('\n')[0];
-        const commaCount = (firstLine.match(/,/g) || []).length;
-        const semiCount = (firstLine.match(/;/g) || []).length;
-        const delim = semiCount > commaCount ? ';' : ',';
-
-        const rows = [];
-        let currentRow = [];
-        let currentCell = '';
-        let insideQuotes = false;
-
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-            const nextChar = text[i + 1];
-
-            if (char === '"') {
-                if (insideQuotes && nextChar === '"') {
-                    currentCell += '"';
-                    i++;
+        async function loadSlots() {
+            try {
+                const bRes = await fetch("/api/bookings");
+                if (bRes.ok) {
+                    const bData = await bRes.json();
+                    if (Array.isArray(bData)) {
+                        bookingsList = bData;
+                        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+                    }
                 } else {
-                    insideQuotes = !insideQuotes;
+                    bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
                 }
-            } else if (char === delim && !insideQuotes) {
-                currentRow.push(currentCell.trim());
-                currentCell = '';
-            } else if ((char === '\r' || char === '\n') && !insideQuotes) {
-                if (char === '\r' && nextChar === '\n') i++;
-                currentRow.push(currentCell.trim());
-                if (currentRow.some(c => c !== '')) rows.push(currentRow);
-                currentRow = [];
-                currentCell = '';
-            } else {
-                currentCell += char;
-            }
-        }
-        if (currentCell !== '' || currentRow.length > 0) {
-            currentRow.push(currentCell.trim());
-            if (currentRow.some(c => c !== '')) rows.push(currentRow);
-        }
-        return rows;
-    }
-
-    function parseGoogleCSV(csvText) {
-        const rows = parseCSVToMatrix(csvText);
-        if (rows.length < 2) {
-            alert("The CSV file is empty or could not be read.");
-            return;
-        }
-
-        const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, '').trim());
-        const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
-        const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
-        const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
-
-        let addedCount = 0;
-
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (!row || row.length === 0) continue;
-
-            let fullName = "";
-            if (nameIdx !== -1 && row[nameIdx] && row[nameIdx].trim()) {
-                fullName = row[nameIdx].trim();
-            } else {
-                const g = (givenIdx !== -1 && row[givenIdx]) ? row[givenIdx].trim() : "";
-                const f = (familyIdx !== -1 && row[familyIdx]) ? row[familyIdx].trim() : "";
-                fullName = `${g} ${f}`.trim();
+            } catch (e) {
+                bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
             }
 
-            if (!fullName) continue;
-
-            let extractedPhone = "";
-            for (let c = 0; c < row.length; c++) {
-                const header = headers[c] || "";
-                const isPhoneHeader = (header.includes("phone") || header.includes("mobile") || header.includes("cell") || header.includes("tel")) 
-                                      && !header.includes("type") && !header.includes("label");
-
-                if (isPhoneHeader && row[c]) {
-                    const digitsOnly = row[c].replace(/[^\d]/g, '');
-                    if (digitsOnly.length >= 7) {
-                        extractedPhone = row[c];
-                        break;
+            try {
+                const res = await fetch("/api/slots");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        currentTherapistsData = typeof data[0] === 'string'
+                            ? defaultTherapists.map(t => ({ ...t, slots: data }))
+                            : data;
+                        localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
+                        renderPractitionerColumns(currentTherapistsData);
+                        return;
                     }
                 }
+            } catch (err) {}
+
+            const localSaved = localStorage.getItem("saved_therapist_schedules");
+            if (localSaved) {
+                try { currentTherapistsData = JSON.parse(localSaved); } catch (e) {}
+            }
+            renderPractitionerColumns(currentTherapistsData);
+        }
+
+        function renderPractitionerColumns(practitioners) {
+            const container = document.getElementById("practitionersContainer");
+            if (!container) return;
+            container.innerHTML = "";
+            const todayDate = getTodayDateString();
+
+            practitioners.forEach(p => {
+                const col = document.createElement("div");
+                col.className = "practitioner-column";
+
+                const pName = p.name || "Physiotherapist";
+                const pTitle = p.title || "Physiotherapist";
+                const pSlots = p.slots || [];
+
+                let slotsHTML = "";
+                pSlots.forEach((slot, idx) => {
+                    const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
+                    
+                    const existingBooking = bookingsList.find(b => 
+                        b.practitioner === pName && 
+                        (b.slot === timeStr || b.time === timeStr) && 
+                        (b.date === todayDate || !b.date)
+                    );
+
+                    if (existingBooking) {
+                        slotsHTML += `
+                            <div class="slot-card booked-card">
+                                <div>
+                                    <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})">
+                                        ${timeStr}
+                                    </div>
+                                    <div class="booking-details">
+                                        👤 <strong>${existingBooking.name}</strong><br>
+                                        <small>📱 ${existingBooking.phone}</small>
+                                    </div>
+                                </div>
+                                <div class="booking-actions">
+                                    <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${existingBooking.name}', '${existingBooking.phone}', '${pName}', '${timeStr}')">💬 Remind</button>
+                                    <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        slotsHTML += `
+                            <div class="slot-card">
+                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})">
+                                    ${timeStr}
+                                </div>
+                                <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
+                            </div>
+                        `;
+                    }
+                });
+
+                col.innerHTML = `
+                    <div class="practitioner-header">
+                        <h3 class="practitioner-name">${pName}</h3>
+                        <span class="practitioner-title">${pTitle}</span>
+                    </div>
+                    <div class="slots-list">
+                        ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
+                    </div>
+                    <button class="btn-add-slot" onclick="addNewSlot('${pName}')">+ Add Time Slot</button>
+                `;
+                container.appendChild(col);
+            });
+        }
+
+        function sendWhatsAppReminder(name, rawPhone, practitioner, slot) {
+            const cleanPhone = rawPhone.replace(/[^\d]/g, '');
+            if (!cleanPhone || cleanPhone.length < 7) {
+                alert("Valid phone number required to send WhatsApp reminder.");
+                return;
             }
 
-            if (!extractedPhone) {
+            const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - Seventh Avenue Physio`;
+            window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        }
+
+        async function cancelBooking(practitioner, timeSlot) {
+            if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
+
+            const todayDate = getTodayDateString();
+            bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === timeSlot || b.time === timeSlot)));
+            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+            renderPractitionerColumns(currentTherapistsData);
+
+            try {
+                await fetch('/api/bookings/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
+                });
+                loadSlots();
+            } catch (err) {}
+        }
+
+        function openEditSingleSlotModal(therapistName, slotIdx) {
+            activeTherapistName = therapistName;
+            activeSlotIndex = slotIdx;
+
+            const therapist = currentTherapistsData.find(t => t.name === therapistName);
+            if (!therapist || !therapist.slots[slotIdx]) return;
+
+            const currentVal = typeof therapist.slots[slotIdx] === 'string' 
+                ? therapist.slots[slotIdx] 
+                : therapist.slots[slotIdx].time;
+
+            document.getElementById("editSlotTherapistName").innerText = therapistName;
+            document.getElementById("singleSlotInput").value = currentVal;
+            document.getElementById("editSingleSlotModal").classList.add("active");
+        }
+
+        function closeEditSingleSlotModal() {
+            document.getElementById("editSingleSlotModal").classList.remove("active");
+        }
+
+        async function saveCurrentSingleSlot() {
+            const newVal = document.getElementById("singleSlotInput").value.trim();
+            if (!newVal) return;
+
+            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
+            if (therapist && activeSlotIndex !== -1) {
+                therapist.slots[activeSlotIndex] = newVal;
+                await persistSchedules();
+            }
+            closeEditSingleSlotModal();
+        }
+
+        async function deleteCurrentSingleSlot() {
+            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
+            if (therapist && activeSlotIndex !== -1) {
+                therapist.slots.splice(activeSlotIndex, 1);
+                await persistSchedules();
+            }
+            closeEditSingleSlotModal();
+        }
+
+        function addNewSlot(therapistName) {
+            const therapist = currentTherapistsData.find(t => t.name === therapistName);
+            if (therapist) {
+                const newSlot = prompt(`Add a new time slot for ${therapistName}:`, "05:00 PM");
+                if (newSlot && newSlot.trim()) {
+                    therapist.slots.push(newSlot.trim());
+                    persistSchedules();
+                }
+            }
+        }
+
+        async function persistSchedules() {
+            localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
+            renderPractitionerColumns(currentTherapistsData);
+
+            try {
+                const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
+                await fetch('/api/slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: activeTherapistName, title: therapist?.title, slots: therapist?.slots })
+                });
+                loadSlots();
+            } catch (e) {}
+        }
+
+        function refreshContactsDatalist() {
+            const datalist = document.getElementById("contactsDatalist");
+            if (!datalist) return;
+            datalist.innerHTML = "";
+            Object.keys(contactsMap).forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                datalist.appendChild(option);
+            });
+        }
+
+        function triggerCSVUpload() {
+            document.getElementById("csvFileInput").click();
+        }
+
+        function handleCSVFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseGoogleCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSVToMatrix(text) {
+            const firstLine = text.split('\n')[0];
+            const commaCount = (firstLine.match(/,/g) || []).length;
+            const semiCount = (firstLine.match(/;/g) || []).length;
+            const delim = semiCount > commaCount ? ';' : ',';
+
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let insideQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (insideQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === delim && !insideQuotes) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(currentCell.trim());
+                    if (currentRow.some(c => c !== '')) rows.push(currentRow);
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell !== '' || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(c => c !== '')) rows.push(currentRow);
+            }
+            return rows;
+        }
+
+        function parseGoogleCSV(csvText) {
+            const rows = parseCSVToMatrix(csvText);
+            if (rows.length < 2) {
+                alert("The CSV file is empty or could not be read.");
+                return;
+            }
+
+            const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, '').trim());
+            const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
+            const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
+            const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
+
+            let addedCount = 0;
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                let fullName = "";
+                if (nameIdx !== -1 && row[nameIdx] && row[nameIdx].trim()) {
+                    fullName = row[nameIdx].trim();
+                } else {
+                    const g = (givenIdx !== -1 && row[givenIdx]) ? row[givenIdx].trim() : "";
+                    const f = (familyIdx !== -1 && row[familyIdx]) ? row[familyIdx].trim() : "";
+                    fullName = `${g} ${f}`.trim();
+                }
+
+                if (!fullName) continue;
+
+                let extractedPhone = "";
                 for (let c = 0; c < row.length; c++) {
-                    if (row[c]) {
+                    const header = headers[c] || "";
+                    const isPhoneHeader = (header.includes("phone") || header.includes("mobile") || header.includes("cell") || header.includes("tel")) 
+                                          && !header.includes("type") && !header.includes("label");
+
+                    if (isPhoneHeader && row[c]) {
                         const digitsOnly = row[c].replace(/[^\d]/g, '');
-                        if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                        if (digitsOnly.length >= 7) {
                             extractedPhone = row[c];
                             break;
                         }
                     }
                 }
-            }
 
-            if (fullName && extractedPhone) {
-                let cleanPhone = extractedPhone.replace(/[^\d]/g, '');
-                if (cleanPhone.length >= 7) {
-                    contactsMap[fullName] = cleanPhone;
-                    addedCount++;
+                if (!extractedPhone) {
+                    for (let c = 0; c < row.length; c++) {
+                        if (row[c]) {
+                            const digitsOnly = row[c].replace(/[^\d]/g, '');
+                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
+                                extractedPhone = row[c];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (fullName && extractedPhone) {
+                    let cleanPhone = extractedPhone.replace(/[^\d]/g, '');
+                    if (cleanPhone.length >= 7) {
+                        contactsMap[fullName] = cleanPhone;
+                        addedCount++;
+                    }
                 }
             }
+
+            localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
+            refreshContactsDatalist();
+            alert(`Successfully imported ${addedCount} contacts with valid phone numbers!`);
         }
 
-        localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
-        refreshContactsDatalist();
-        alert(`Successfully imported ${addedCount} contacts with valid phone numbers!`);
-    }
-
-    function openBookingModal(timeSlot, practitionerName = "Chido") {
-        document.getElementById("slotTime").value = timeSlot;
-        document.getElementById("practitionerName").value = practitionerName;
-        document.getElementById("bookingModal").classList.add("active");
-    }
-
-    function closeBookingModal() {
-        document.getElementById("bookingModal").classList.remove("active");
-    }
-
-    async function confirmBooking(event) {
-        event.preventDefault();
-        const slot = document.getElementById("slotTime").value;
-        const name = document.getElementById("patientName").value.trim();
-        const rawPhone = document.getElementById("patientPhone").value.trim();
-        const practitioner = document.getElementById("practitionerName").value.trim();
-
-        const cleanPhone = rawPhone.replace(/[^\d]/g, '');
-        if (!cleanPhone || cleanPhone.length < 7) {
-            alert("Please enter a valid phone number with digits.");
-            return;
+        function openBookingModal(timeSlot, practitionerName = "Chido") {
+            document.getElementById("slotTime").value = timeSlot;
+            document.getElementById("practitionerName").value = practitionerName;
+            document.getElementById("bookingModal").classList.add("active");
         }
 
-        const todayDate = getTodayDateString();
-        const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
-
-        // Save to backend first
-        try {
-            await fetch('/api/bookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newBooking)
-            });
-        } catch (err) {
-            console.log("Saved booking locally offline.");
+        function closeBookingModal() {
+            document.getElementById("bookingModal").classList.remove("active");
         }
 
-        // Re-sync UI from server state
-        await loadSlots();
-        closeBookingModal();
+        async function confirmBooking(event) {
+            event.preventDefault();
+            const slot = document.getElementById("slotTime").value;
+            const name = document.getElementById("patientName").value.trim();
+            const rawPhone = document.getElementById("patientPhone").value.trim();
+            const practitioner = document.getElementById("practitionerName").value.trim();
 
-        // Redirect to WhatsApp
-        const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
-        window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    }
-</script>
+            const cleanPhone = rawPhone.replace(/[^\d]/g, '');
+            if (!cleanPhone || cleanPhone.length < 7) {
+                alert("Please enter a valid phone number with digits before sending.");
+                return;
+            }
+
+            const todayDate = getTodayDateString();
+            const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
+
+            try {
+                await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newBooking)
+                });
+            } catch (err) {}
+
+            await loadSlots();
+            closeBookingModal();
+
+            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
+            window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        }
+    </script>
+</body>
+</html>

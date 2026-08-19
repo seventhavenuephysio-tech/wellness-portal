@@ -4,106 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wellness Centre</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #00796b;
-            --primary-dark: #004d40;
-            --accent: #25d366;
-            --bg: #f2f5f4;
+            --primary: #0f766e;
+            --primary-hover: #0d9488;
+            --primary-light: #ccfbf1;
+            --accent: #10b981;
+            --bg: #f8fafc;
             --card-bg: #ffffff;
-            --text: #333333;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
-            color: var(--text);
+            color: var(--text-dark);
             margin: 0;
-            padding: 0 0 40px 0;
+            padding: 0 0 60px 0;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Top full-width header wrapper to seamlessly integrate logo background */
+        /* Full width header wrapper with subtle elevation */
         .header-wrapper {
             background-color: #ffffff;
-            border-bottom: 2px solid #e0e6e4;
-            padding: 20px 15px 15px 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding: 24px 20px 20px 20px;
+            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
+            margin-bottom: 35px;
             text-align: center;
         }
 
         .header-container {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
         .portal-logo {
             width: 100%;
-            max-width: 950px;
+            max-width: 850px;
             height: auto;
-            max-height: 220px;
+            max-height: 200px;
             object-fit: contain;
             display: block;
-            margin: 0 auto 10px auto;
+            margin: 0 auto 12px auto;
+            border-radius: 8px;
         }
 
         .portal-subtitle {
             margin: 0;
-            color: #555555;
-            font-size: 15px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1240px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
         }
 
         .section-title {
             margin-top: 0;
-            margin-bottom: 20px;
-            color: var(--primary-dark);
-            font-size: 24px;
+            margin-bottom: 24px;
+            color: var(--text-dark);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 22px;
+            background: var(--primary);
+            border-radius: 4px;
         }
 
         .practitioners-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
             align-items: start;
         }
 
         .practitioner-column {
             background: var(--card-bg);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-            border-top: 5px solid var(--primary);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .practitioner-column:hover {
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.07);
         }
 
         .practitioner-header {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .practitioner-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-dark);
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-dark);
             margin: 0;
+            letter-spacing: -0.01em;
         }
 
         .practitioner-title {
             font-size: 12px;
-            color: #666;
-            background: #e0f2f1;
-            padding: 3px 8px;
-            border-radius: 12px;
-            display: inline-block;
-            margin-top: 4px;
+            font-weight: 600;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 4px 10px;
+            border-radius: 20px;
         }
 
         .slots-list {
@@ -113,39 +148,47 @@
         }
 
         .slot-card {
-            background: #f9fbfb;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 12px 15px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             transition: all 0.2s ease;
         }
 
+        .slot-card:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
         .slot-card.booked-card {
-            background: #e8f5e9;
-            border-color: #a5d6a7;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
         }
 
         .slot-time {
-            font-weight: bold;
-            color: var(--primary-dark);
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-dark);
             cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.15s ease;
         }
 
         .slot-time:hover {
-            background: #e0f2f1;
-            color: #1a73e8;
+            background: var(--primary-light);
+            color: var(--primary);
         }
 
         .booking-details {
             font-size: 13px;
-            color: #2e7d32;
+            color: #166534;
             margin-top: 4px;
-            line-height: 1.2;
+            line-height: 1.3;
         }
 
         .booking-actions {
@@ -156,19 +199,23 @@
         }
 
         .btn-add-slot {
-            background: transparent;
-            border: 1px dashed var(--primary);
-            color: var(--primary-dark);
-            padding: 10px;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            color: var(--text-dark);
+            padding: 12px;
             width: 100%;
-            border-radius: 6px;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            margin-top: 10px;
+            font-size: 13px;
+            margin-top: 14px;
+            transition: all 0.2s ease;
         }
 
         .btn-add-slot:hover {
-            background: #e0f2f1;
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
         }
 
         .btn {
@@ -176,33 +223,57 @@
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-            touch-action: manipulation;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 4px rgba(15, 118, 110, 0.15);
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
         }
 
         .btn-sm {
             padding: 6px 12px;
             font-size: 12px;
+            border-radius: 6px;
         }
 
         .btn-success {
-            background-color: var(--accent);
+            background-color: #10b981;
             color: white;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
         }
 
         .btn-danger {
-            background-color: #d32f2f;
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
         }
 
         .btn-import {
-            background-color: #1a73e8;
+            background-color: #2563eb;
             width: 100%;
-            margin-bottom: 15px;
-            padding: 10px;
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 8px;
         }
 
+        .btn-import:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* Glassmorphism modal overlay */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -210,7 +281,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(6px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -222,64 +294,100 @@
 
         .modal-content {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 28px;
+            border-radius: 16px;
             width: 90%;
-            max-width: 420px;
+            max-width: 440px;
             position: relative;
             box-sizing: border-box;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-dark);
         }
 
         .close-btn {
-            background: none;
+            background: #f1f5f9;
             border: none;
-            font-size: 24px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
             cursor: pointer;
-            color: #888;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .close-btn:hover {
+            background: #e2e8f0;
+            color: var(--text-dark);
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
 
         .form-group label {
             display: block;
             font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: var(--text-dark);
         }
 
         .form-group input {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
             box-sizing: border-box;
-            font-size: 16px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
         .modal-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
         }
 
         .modal-actions button {
             flex: 1;
+            padding: 12px;
         }
 
         .btn-whatsapp {
-            background-color: var(--accent);
+            background-color: #25d366;
             width: 100%;
             padding: 14px;
-            font-size: 16px;
+            font-size: 15px;
+            border-radius: 8px;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #1ebc57;
         }
 
         #csvFileInput {
@@ -315,7 +423,7 @@
             <form id="bookingForm" onsubmit="confirmBooking(event)">
                 <div class="form-group">
                     <label for="slotTime">Selected Slot</label>
-                    <input type="text" id="slotTime" readonly>
+                    <input type="text" id="slotTime" readonly style="background:#f8fafc;">
                 </div>
 
                 <div class="form-group">
@@ -347,7 +455,7 @@
                 <button class="close-btn" onclick="closeEditSingleSlotModal()">&times;</button>
             </div>
 
-            <p style="font-size: 14px; color: #666; margin-top: 0;">Therapist: <strong id="editSlotTherapistName"></strong></p>
+            <p style="font-size: 14px; color: var(--text-muted); margin-top: 0;">Therapist: <strong id="editSlotTherapistName" style="color:var(--text-dark);"></strong></p>
 
             <div class="form-group">
                 <label for="singleSlotInput">Time Slot</label>
@@ -512,7 +620,7 @@
                         <span class="practitioner-title">${pTitle}</span>
                     </div>
                     <div class="slots-list">
-                        ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
+                        ${slotsHTML || '<p style="color:var(--text-muted);font-size:14px;">No available slots today</p>'}
                     </div>
                     <button class="btn-add-slot" onclick="addNewSlot('${pName}')">+ Add Time Slot</button>
                 `;

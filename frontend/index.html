@@ -330,7 +330,7 @@
 
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
-        let bookingsList = [];
+        let bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
         let activeTherapistName = "";
         let activeSlotIndex = -1;
 
@@ -384,16 +384,12 @@
                 const bRes = await fetch("/api/bookings");
                 if (bRes.ok) {
                     const bData = await bRes.json();
-                    if (Array.isArray(bData)) {
+                    if (Array.isArray(bData) && bData.length > 0) {
                         bookingsList = bData;
                         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
                     }
-                } else {
-                    bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
                 }
-            } catch (e) {
-                bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
-            }
+            } catch (e) {}
 
             try {
                 const res = await fetch("/api/slots");
@@ -436,12 +432,14 @@
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
                     
                     const existingBooking = bookingsList.find(b => 
-                        b.practitioner === pName && 
+                        (b.practitioner === pName || b.therapist === pName) && 
                         (b.slot === timeStr || b.time === timeStr) && 
                         (b.date === todayDate || !b.date)
                     );
 
                     if (existingBooking) {
+                        const bName = existingBooking.name || existingBooking.patientName || "Booked";
+                        const bPhone = existingBooking.phone || existingBooking.patientPhone || "";
                         slotsHTML += `
                             <div class="slot-card booked-card">
                                 <div>
@@ -449,12 +447,12 @@
                                         ${timeStr}
                                     </div>
                                     <div class="booking-details">
-                                        👤 <strong>${existingBooking.name}</strong><br>
-                                        <small>📱 ${existingBooking.phone}</small>
+                                        👤 <strong>${bName}</strong><br>
+                                        <small>📱 ${bPhone}</small>
                                     </div>
                                 </div>
                                 <div class="booking-actions">
-                                    <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${existingBooking.name}', '${existingBooking.phone}', '${pName}', '${timeStr}')">💬 Remind</button>
+                                    <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${bName}', '${bPhone}', '${pName}', '${timeStr}')">💬 Remind</button>
                                     <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
                                 </div>
                             </div>
@@ -500,7 +498,10 @@
             if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
 
             const todayDate = getTodayDateString();
-            bookingsList = bookingsList.filter(b => !(b.practitioner === practitioner && (b.slot === timeSlot || b.time === timeSlot)));
+            bookingsList = bookingsList.filter(b => !(
+                (b.practitioner === practitioner || b.therapist === practitioner) && 
+                (b.slot === timeSlot || b.time === timeSlot)
+            ));
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
             renderPractitionerColumns(currentTherapistsData);
 
@@ -510,7 +511,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate })
                 });
-                loadSlots();
             } catch (err) {}
         }
 
@@ -556,6 +556,7 @@
         }
 
         function addNewSlot(therapistName) {
+            activeTherapistName = therapistName;
             const therapist = currentTherapistsData.find(t => t.name === therapistName);
             if (therapist) {
                 const newSlot = prompt(`Add a new time slot for ${therapistName}:`, "05:00 PM");
@@ -572,12 +573,13 @@
 
             try {
                 const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-                await fetch('/api/slots', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: activeTherapistName, title: therapist?.title, slots: therapist?.slots })
-                });
-                loadSlots();
+                if (therapist) {
+                    await fetch('/api/slots', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: activeTherapistName, title: therapist.title, slots: therapist.slots })
+                    });
+                }
             } catch (e) {}
         }
 
@@ -743,19 +745,31 @@
             }
 
             const todayDate = getTodayDateString();
-            const newBooking = { slot, name, phone: cleanPhone, practitioner, date: todayDate };
+            const newBooking = { practitioner, slot, name, phone: cleanPhone, date: todayDate };
 
+            // 1. Immediately store in local state & re-render UI (guarantees local save)
+            bookingsList = bookingsList.filter(b => !(
+                (b.practitioner === practitioner || b.therapist === practitioner) && 
+                (b.slot === slot || b.time === slot) && 
+                (b.date === todayDate || !b.date)
+            ));
+            bookingsList.push(newBooking);
+            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+            renderPractitionerColumns(currentTherapistsData);
+            closeBookingModal();
+
+            // 2. Persist to MongoDB backend in background
             try {
                 await fetch('/api/bookings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newBooking)
                 });
-            } catch (err) {}
+            } catch (err) {
+                console.warn("Backend save failed, saved in local browser storage:", err);
+            }
 
-            await loadSlots();
-            closeBookingModal();
-
+            // 3. Open WhatsApp link
             const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - Seventh Avenue Physio`;
             window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
         }

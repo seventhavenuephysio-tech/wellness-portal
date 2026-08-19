@@ -37,10 +37,10 @@
             margin-bottom: 5px;
         }
 
-        /* 3-Column Physiotherapist Grid */
+        /* 3-Column Grid */
         .practitioners-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             align-items: start;
         }
@@ -75,6 +75,24 @@
             background: #e0f2f1;
             padding: 3px 8px;
             border-radius: 12px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .btn-edit-slots {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary-dark);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-edit-slots:hover {
+            background: #e0f2f1;
         }
 
         .slots-list {
@@ -158,12 +176,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 15px;
         }
 
         .close-btn {
             background: none;
             border: none;
-            font-size: 20px;
+            font-size: 22px;
             cursor: pointer;
             color: #888;
         }
@@ -186,6 +205,29 @@
             border-radius: 5px;
             box-sizing: border-box;
             font-size: 15px;
+        }
+
+        .slot-edit-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .slot-edit-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .btn-remove-slot {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 0 12px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         .btn-whatsapp {
@@ -214,7 +256,7 @@
 
         <h2>Physiotherapist Schedules</h2>
         <div class="practitioners-grid" id="practitionersContainer">
-            <!-- Dynamic 3-therapist columns -->
+            <!-- 3 Physiotherapist columns render here -->
         </div>
     </div>
 
@@ -226,7 +268,6 @@
                 <button class="close-btn" onclick="closeBookingModal()">&times;</button>
             </div>
 
-            <!-- Import Google Contacts CSV Button -->
             <button class="btn btn-import" onclick="triggerCSVUpload()">📥 Import Google Contacts CSV</button>
             <input type="file" id="csvFileInput" accept=".csv" onchange="handleCSVFileSelect(event)">
 
@@ -257,16 +298,32 @@
         </div>
     </div>
 
+    <!-- Edit Slots Modal -->
+    <div class="modal-overlay" id="editSlotsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Time Slots (<span id="editingTherapistName"></span>)</h3>
+                <button class="close-btn" onclick="closeEditSlotsModal()">&times;</button>
+            </div>
+
+            <div id="editSlotsList"></div>
+
+            <button class="btn" style="background-color: #666; width: 100%; margin-bottom: 12px;" onclick="addSlotInput()">+ Add New Slot</button>
+            <button class="btn" style="width: 100%;" onclick="saveEditedSlots()">Save Schedule</button>
+        </div>
+    </div>
+
     <script>
         let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
+        let activeTherapistToEdit = "";
 
         const defaultTherapists = [
-            { name: "Chido", title: "Senior Physio" },
-            { name: "Mispar", title: "Physiotherapist" },
-            { name: "Tinotenda", title: "Physiotherapist" }
+            { name: "Chido", title: "Senior Physio", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] },
+            { name: "Mispar", title: "Physiotherapist", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] },
+            { name: "Tinotenda", title: "Physiotherapist", slots: ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"] }
         ];
 
-        const fallbackSlots = ["08:00 AM", "09:30 AM", "11:00 AM", "02:00 PM", "03:30 PM"];
+        let currentTherapistsData = [];
 
         document.addEventListener("DOMContentLoaded", () => {
             loadSlots();
@@ -285,55 +342,52 @@
         });
 
         async function loadSlots() {
+            // Check LocalStorage first for custom user edits
+            const localSaved = localStorage.getItem("saved_therapist_schedules");
+            if (localSaved) {
+                try {
+                    currentTherapistsData = JSON.parse(localSaved);
+                    renderPractitionerColumns(currentTherapistsData);
+                    return;
+                } catch (e) {
+                    console.error("Error parsing stored schedules");
+                }
+            }
+
+            // Fallback to Backend API
             try {
                 const res = await fetch("/api/slots");
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data) && data.length > 0) {
-                        renderPractitionerColumns(data);
+                        if (typeof data[0] === 'string') {
+                            currentTherapistsData = defaultTherapists.map(t => ({ ...t, slots: data }));
+                        } else {
+                            currentTherapistsData = data;
+                        }
+                        renderPractitionerColumns(currentTherapistsData);
                         return;
                     }
                 }
             } catch (err) {
-                console.log("API offline, rendering default schedules.");
+                console.log("API offline, rendering default schedule.");
             }
-            renderPractitionerColumns(fallbackSlots);
+
+            currentTherapistsData = defaultTherapists;
+            renderPractitionerColumns(currentTherapistsData);
         }
 
-        function renderPractitionerColumns(data) {
+        function renderPractitionerColumns(practitioners) {
             const container = document.getElementById("practitionersContainer");
             container.innerHTML = "";
 
-            let therapistsData = [];
-
-            // Case A: API returns flat list of flexible time strings -> assign to all 3 therapists
-            if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-                therapistsData = defaultTherapists.map(t => ({
-                    name: t.name,
-                    title: t.title,
-                    slots: data 
-                }));
-            } 
-            // Case B: API returns structured therapist objects with custom slots per therapist
-            else if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
-                therapistsData = data;
-            } 
-            // Case C: Fallback to default therapists and static slots
-            else {
-                therapistsData = defaultTherapists.map(t => ({
-                    name: t.name,
-                    title: t.title,
-                    slots: fallbackSlots
-                }));
-            }
-
-            therapistsData.forEach(p => {
+            practitioners.forEach(p => {
                 const col = document.createElement("div");
                 col.className = "practitioner-column";
 
                 const pName = p.name || "Physiotherapist";
                 const pTitle = p.title || "Physiotherapist";
-                const pSlots = p.slots || p.available_slots || [];
+                const pSlots = p.slots || [];
 
                 let slotsHTML = "";
                 pSlots.forEach(slot => {
@@ -351,8 +405,11 @@
 
                 col.innerHTML = `
                     <div class="practitioner-header">
-                        <h3 class="practitioner-name">${pName}</h3>
-                        <span class="practitioner-title">${pTitle}</span>
+                        <div>
+                            <h3 class="practitioner-name">${pName}</h3>
+                            <span class="practitioner-title">${pTitle}</span>
+                        </div>
+                        <button class="btn-edit-slots" onclick="openEditSlotsModal('${pName}')">✏️ Edit Times</button>
                     </div>
                     <div class="slots-list">
                         ${slotsHTML || '<p style="color:#888;font-size:14px;">No available slots today</p>'}
@@ -362,6 +419,75 @@
             });
         }
 
+        // Time Slot Editing Logic
+        function openEditSlotsModal(practitionerName) {
+            activeTherapistToEdit = practitionerName;
+            document.getElementById("editingTherapistName").innerText = practitionerName;
+
+            const therapist = currentTherapistsData.find(t => t.name === practitionerName);
+            const slots = therapist ? therapist.slots : [];
+
+            const listContainer = document.getElementById("editSlotsList");
+            listContainer.innerHTML = "";
+
+            slots.forEach(slot => {
+                addSlotInput(typeof slot === 'string' ? slot : slot.time);
+            });
+
+            if (slots.length === 0) {
+                addSlotInput();
+            }
+
+            document.getElementById("editSlotsModal").classList.add("active");
+        }
+
+        function addSlotInput(val = "") {
+            const listContainer = document.getElementById("editSlotsList");
+            const div = document.createElement("div");
+            div.className = "slot-edit-row";
+            div.innerHTML = `
+                <input type="text" value="${val}" placeholder="e.g. 08:00 AM">
+                <button type="button" class="btn-remove-slot" onclick="this.parentElement.remove()">✕</button>
+            `;
+            listContainer.appendChild(div);
+        }
+
+        function closeEditSlotsModal() {
+            document.getElementById("editSlotsModal").classList.remove("active");
+        }
+
+        async function saveEditedSlots() {
+            const inputs = document.querySelectorAll("#editSlotsList input");
+            const newSlots = [];
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val) newSlots.push(val);
+            });
+
+            const therapist = currentTherapistsData.find(t => t.name === activeTherapistToEdit);
+            if (therapist) {
+                therapist.slots = newSlots;
+            }
+
+            // Save locally
+            localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
+
+            // Sync with backend API
+            try {
+                await fetch('/api/slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: activeTherapistToEdit, slots: newSlots })
+                });
+            } catch (e) {
+                console.log("Saved schedule changes locally.");
+            }
+
+            renderPractitionerColumns(currentTherapistsData);
+            closeEditSlotsModal();
+        }
+
+        // Contacts & Booking Logic
         function refreshContactsDatalist() {
             const datalist = document.getElementById("contactsDatalist");
             if (!datalist) return;
@@ -501,7 +627,7 @@
             }
 
             refreshContactsDatalist();
-            alert(`Successfully imported ${addedCount} contacts! You can now start typing names to auto-fill phone numbers.`);
+            alert(`Successfully imported ${addedCount} contacts!`);
         }
 
         function openBookingModal(timeSlot, practitionerName = "Chido") {

@@ -63,12 +63,12 @@ app.post('/api/slots', (req, res) => {
     res.json({ success: true, slots: slotsData });
 });
 
-// Wildcard fallback route for single page app
-app.get('*', (req, res) => {
+// Wildcard fallback route for single-page application (Express 5 safe)
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-// --- Server Startup (Bind to 0.0.0.0 for Render) ---
+// --- Server Startup ---
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 

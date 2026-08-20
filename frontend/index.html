@@ -51,10 +51,9 @@
 </div>
 
 <script>
-    // Clear legacy therapist cached data from browser memory
     localStorage.removeItem("saved_therapist_schedules");
 
-    const defaultTherapists = [
+    const therapists = [
         { 
             name: "Chido", 
             role: "Physiotherapist", 
@@ -72,10 +71,8 @@
         }
     ];
 
-    let currentTherapistsData = defaultTherapists;
     let bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
     let cancelledBookings = JSON.parse(localStorage.getItem("cancelled_bookings") || "[]");
-    let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
 
     function getTodayDateString() {
         return new Date().toISOString().split('T')[0];
@@ -89,17 +86,6 @@
     }
 
     async function loadSlots() {
-        try {
-            const cRes = await fetch("/api/contacts");
-            if (cRes.ok) {
-                const cloudContacts = await cRes.json();
-                if (cloudContacts && Object.keys(cloudContacts).length > 0) {
-                    contactsMap = cloudContacts;
-                    localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
-                }
-            }
-        } catch (e) {}
-
         try {
             const bRes = await fetch("/api/bookings");
             if (bRes.ok) {
@@ -115,7 +101,7 @@
             }
         } catch (e) {}
 
-        renderPractitionerColumns(currentTherapistsData);
+        renderPractitionerColumns(therapists);
     }
 
     async function bookSlot(practitioner, slot) {
@@ -136,7 +122,7 @@
         ));
         bookingsList.push(newBooking);
         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-        renderPractitionerColumns(currentTherapistsData);
+        renderPractitionerColumns(therapists);
 
         try {
             await fetch('/api/bookings', {
@@ -164,7 +150,7 @@
             (b.slot === timeSlot || b.time === timeSlot)
         ));
         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-        renderPractitionerColumns(currentTherapistsData);
+        renderPractitionerColumns(therapists);
 
         try {
             await fetch('/api/bookings/cancel', {

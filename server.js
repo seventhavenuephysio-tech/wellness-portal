@@ -1,77 +1,59 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
-
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
 app.use(express.json());
-
-// Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// In-memory data structures
-let bookings = [];
-let contacts = {};
-let slotsData = [];
+let therapists = [
+    { 
+        name: "Chido", 
+        role: "Physiotherapist", 
+        slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+    },
+    { 
+        name: "Mispar", 
+        role: "Physiotherapist", 
+        slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+    },
+    { 
+        name: "Tinotenda", 
+        role: "Physiotherapist", 
+        slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+    }
+];
 
-// --- API Endpoints ---
+let bookings = [];
+
+app.get('/api/slots', (req, res) => {
+    res.json(therapists);
+});
+
 app.get('/api/bookings', (req, res) => {
     res.json(bookings);
 });
 
 app.post('/api/bookings', (req, res) => {
-    const newBooking = req.body;
-    bookings = bookings.filter(b => !(
-        (b.practitioner === newBooking.practitioner || b.therapist === newBooking.practitioner) &&
-        (b.slot === newBooking.slot || b.time === newBooking.slot)
-    ));
-    bookings.push(newBooking);
-    res.json({ success: true, bookings });
+    const booking = req.body;
+    bookings.push(booking);
+    res.json({ success: true, booking });
 });
 
 app.post('/api/bookings/cancel', (req, res) => {
-    const { practitioner, therapist, slot, time } = req.body;
-    const targetTherapist = practitioner || therapist;
+    const { practitioner, slot, time } = req.body;
     const targetSlot = slot || time;
-
     bookings = bookings.filter(b => !(
-        (b.practitioner === targetTherapist || b.therapist === targetTherapist) &&
+        (b.practitioner === practitioner || b.therapist === practitioner) &&
         (b.slot === targetSlot || b.time === targetSlot)
     ));
-
-    res.json({ success: true, bookings });
+    res.json({ success: true });
 });
 
-app.get('/api/contacts', (req, res) => {
-    res.json(contacts);
-});
-
-app.post('/api/contacts', (req, res) => {
-    if (req.body.contacts) {
-        contacts = { ...contacts, ...req.body.contacts };
-    }
-    res.json({ success: true, contacts });
-});
-
-app.get('/api/slots', (req, res) => {
-    res.json(slotsData);
-});
-
-app.post('/api/slots', (req, res) => {
-    slotsData = req.body;
-    res.json({ success: true, slots: slotsData });
-});
-
-// Wildcard fallback route for single-page application (Express 5 safe)
-app.use((req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-// --- Server Startup ---
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0';
-
-app.listen(PORT, HOST, () => {
-    console.log(`Server running on http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

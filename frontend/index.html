@@ -49,12 +49,12 @@
             text-align: center;
         }
 
-        /* Frameless Brand Header */
+        /* Frameless Brand Header (Without Logo) */
         .brand-header-unboxed {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 24px;
             background: transparent;
             border: none;
             box-shadow: none;
@@ -63,15 +63,8 @@
             margin: 0 auto 12px auto;
         }
 
-        .stickman-logo-wrapper {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
         .brand-text-content {
-            text-align: left;
+            text-align: center;
             flex-grow: 1;
         }
 
@@ -88,6 +81,7 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
+            justify-content: center;
             gap: 8px 12px;
             font-size: 13.5px;
             color: var(--text-muted);
@@ -447,8 +441,6 @@
 
         @media (max-width: 680px) {
             .brand-header-unboxed {
-                flex-direction: column;
-                text-align: center;
                 padding: 10px;
                 gap: 12px;
             }
@@ -472,31 +464,7 @@
     <div class="header-wrapper">
         <div class="header-container">
             <div class="brand-header-unboxed">
-                <!-- Blue-Green Physio Stickman Logo (Frameless SVG) -->
-                <div class="stickman-logo-wrapper">
-                    <svg width="90" height="90" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Green Leaf Crown -->
-                        <path d="M50 8 C44 18 50 28 50 28 C50 28 56 18 50 8 Z" fill="#16a34a"/>
-                        <path d="M38 14 C30 22 38 32 38 32 C38 32 46 24 38 14 Z" fill="#22c55e"/>
-                        <path d="M62 14 C54 24 62 32 62 32 C62 32 70 22 62 14 Z" fill="#15803d"/>
-                        <path d="M26 24 C18 30 25 40 25 40 C25 40 33 34 26 24 Z" fill="#16a34a"/>
-                        <path d="M74 24 C67 34 75 40 75 40 C75 40 82 30 74 24 Z" fill="#22c55e"/>
-                        <path d="M18 36 C10 40 16 50 16 50 C16 50 24 46 18 36 Z" fill="#15803d"/>
-                        <path d="M82 36 C76 46 84 50 84 50 C84 50 90 40 82 36 Z" fill="#16a34a"/>
-                        
-                        <!-- Blue Active Body -->
-                        <circle cx="50" cy="38" r="5.5" fill="#0284c7"/>
-                        <path d="M 50 44 L 50 66" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round"/>
-                        <path d="M 50 66 L 38 82 M 50 66 L 62 82" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round"/>
-                        <path d="M 50 50 C 40 42 30 38 22 42 M 50 50 C 60 42 70 38 78 42" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round"/>
-                        
-                        <!-- Base Swooshes -->
-                        <path d="M 15 88 Q 50 96 85 88" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M 10 93 Q 50 101 90 93" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
-
-                <!-- Brand Details -->
+                <!-- Brand Details (No Logo) -->
                 <div class="brand-text-content">
                     <h1 class="brand-title">THE WELLNESS CENTRE</h1>
                     <div class="brand-info-line">

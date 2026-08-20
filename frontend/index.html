@@ -51,6 +51,9 @@
 </div>
 
 <script>
+    // Clear legacy therapist cached data from browser memory
+    localStorage.removeItem("saved_therapist_schedules");
+
     const defaultTherapists = [
         { 
             name: "Chido", 
@@ -111,18 +114,6 @@
                 }
             }
         } catch (e) {}
-
-        try {
-            const res = await fetch("/api/slots");
-            if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    currentTherapistsData = typeof data[0] === 'string'
-                        ? defaultTherapists.map(t => ({ ...t, slots: data }))
-                        : data;
-                }
-            }
-        } catch (err) {}
 
         renderPractitionerColumns(currentTherapistsData);
     }

@@ -9,11 +9,20 @@
         body { background-color: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 16px; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; padding: 0 4px; }
-        .header h2 { margin: 0; font-size: 1.4rem; color: #0f172a; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
+        .header h2 { margin: 0; font-size: 1.5rem; color: #0f172a; }
         .booked-badge { background: #e0f2fe; color: #0369a1; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
 
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%; }
+        .app-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, minmax(0, 1fr)); 
+            gap: 16px; 
+            width: 100%; 
+        }
+
+        @media (max-width: 900px) {
+            .app-grid { grid-template-columns: 1fr; }
+        }
 
         .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .practitioner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -43,10 +52,21 @@
 
 <script>
     const defaultTherapists = [
-        { name: "Ignatius Mundondo", role: "Physiotherapist", slots: ["12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM"] },
-        { name: "Tino", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
+        { 
+            name: "Chido", 
+            role: "Physiotherapist", 
+            slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+        },
+        { 
+            name: "Mispar", 
+            role: "Physiotherapist", 
+            slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+        },
+        { 
+            name: "Tinotenda", 
+            role: "Physiotherapist", 
+            slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] 
+        }
     ];
 
     let currentTherapistsData = defaultTherapists;
@@ -100,7 +120,6 @@
                     currentTherapistsData = typeof data[0] === 'string'
                         ? defaultTherapists.map(t => ({ ...t, slots: data }))
                         : data;
-                    localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
                 }
             }
         } catch (err) {}

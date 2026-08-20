@@ -49,7 +49,6 @@
             text-align: center;
         }
 
-        /* Frameless Brand Header (Without Logo) */
         .brand-header-unboxed {
             display: flex;
             flex-direction: column;
@@ -464,7 +463,6 @@
     <div class="header-wrapper">
         <div class="header-container">
             <div class="brand-header-unboxed">
-                <!-- Brand Details (No Logo) -->
                 <div class="brand-text-content">
                     <h1 class="brand-title">THE WELLNESS CENTRE</h1>
                     <div class="brand-info-line">
@@ -616,7 +614,8 @@
                 const bRes = await fetch("/api/bookings");
                 if (bRes.ok) {
                     const bData = await bRes.json();
-                    if (Array.isArray(bData) && bData.length > 0) {
+                    // Accepts empty array responses so cancellations aren't restored from local cache
+                    if (Array.isArray(bData)) {
                         bookingsList = bData;
                         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
                     }
@@ -655,7 +654,7 @@
                 let slotsHTML = "";
                 pSlots.forEach((slot, idx) => {
                     const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
-                    
+
                     const existingBooking = bookingsList.find(b => 
                         (b.practitioner === pName || b.therapist === pName) && 
                         (b.slot === timeStr || b.time === timeStr)
@@ -722,6 +721,8 @@
             if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
 
             const todayDate = getTodayDateString();
+
+            // Optimistically update memory and localStorage
             bookingsList = bookingsList.filter(b => !(
                 (b.practitioner === practitioner || b.therapist === practitioner) && 
                 (b.slot === timeSlot || b.time === timeSlot)
@@ -729,14 +730,23 @@
             localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
             renderPractitionerColumns(currentTherapistsData);
 
+            // Await backend deletion so background refresh doesn't bring back stale state
             try {
                 await fetch('/api/bookings/cancel', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ practitioner, slot: timeSlot, date: todayDate }),
+                    body: JSON.stringify({ 
+                        practitioner, 
+                        therapist: practitioner, 
+                        slot: timeSlot, 
+                        time: timeSlot, 
+                        date: todayDate 
+                    }),
                     keepalive: true
                 });
-            } catch (err) {}
+            } catch (err) {
+                console.error("Cancellation server sync failed:", err);
+            }
         }
 
         function openEditSingleSlotModal(therapistName, slotIdx) {

@@ -4,1013 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wellness Centre</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #0f766e;
-            --primary-hover: #0d9488;
-            --primary-light: #ccfbf1;
-            --accent: #10b981;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --brand-blue: #0284c7;
-            --brand-blue-dark: #1e3a8a;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 0 0 60px 0;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .header-wrapper {
-            background-color: #ffffff;
-            border-bottom: 1px solid var(--border);
-            padding: 28px 20px 22px 20px;
-            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
-            margin-bottom: 35px;
-        }
-
-        .header-container {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .brand-header-unboxed {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            padding: 10px 0;
-            max-width: 850px;
-            margin: 0 auto 12px auto;
-        }
-
-        .brand-text-content {
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        .brand-title {
-            margin: 0 0 6px 0;
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--brand-blue-dark);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-        }
-
-        .brand-info-line {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            gap: 8px 12px;
-            font-size: 13.5px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .brand-info-line a {
-            color: var(--brand-blue);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.15s ease;
-        }
-
-        .brand-info-line a:hover {
-            color: var(--brand-blue-dark);
-            text-decoration: underline;
-        }
-
-        .info-divider {
-            color: #cbd5e1;
-            font-size: 12px;
-        }
-
-        .portal-subtitle {
-            margin: 12px 0 0 0;
-            color: var(--text-muted);
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .container {
-            max-width: 1240px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        .section-title {
-            margin-top: 0;
-            margin-bottom: 24px;
-            color: var(--text-dark);
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-title::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 22px;
-            background: var(--primary);
-            border-radius: 4px;
-        }
-
-        .practitioners-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            align-items: start;
-        }
-
-        .practitioner-column {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            border: 1px solid var(--border);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .practitioner-column:hover {
-            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.07);
-        }
-
-        .practitioner-header {
-            margin-bottom: 20px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .practitioner-name {
-            font-size: 19px;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin: 0;
-            letter-spacing: -0.01em;
-        }
-
-        .practitioner-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--primary);
-            background: var(--primary-light);
-            padding: 4px 10px;
-            border-radius: 20px;
-        }
-
-        .slots-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .slot-card {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-        }
-
-        .slot-card:hover {
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-
-        .slot-card.booked-card {
-            background: #f0fdf4;
-            border-color: #bbf7d0;
-        }
-
-        .slot-time {
-            font-weight: 700;
-            font-size: 14px;
-            color: var(--text-dark);
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.15s ease;
-        }
-
-        .slot-time:hover {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .booking-details {
-            font-size: 13px;
-            color: #166534;
-            margin-top: 4px;
-            line-height: 1.3;
-        }
-
-        .booking-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            align-items: flex-end;
-        }
-
-        .btn-add-slot {
-            background: #f1f5f9;
-            border: 1px dashed #cbd5e1;
-            color: var(--text-dark);
-            padding: 12px;
-            width: 100%;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            margin-top: 14px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-add-slot:hover {
-            background: var(--primary-light);
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.15s ease;
-            box-shadow: 0 2px 4px rgba(15, 118, 110, 0.15);
-        }
-
-        .btn:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 6px;
-        }
-
-        .btn-success {
-            background-color: #10b981;
-            color: white;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15);
-        }
-
-        .btn-success:hover {
-            background-color: #059669;
-        }
-
-        .btn-danger {
-            background-color: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-import {
-            background-color: #2563eb;
-            width: 100%;
-            margin-bottom: 16px;
-            padding: 12px;
-            border-radius: 8px;
-        }
-
-        .btn-import:hover {
-            background-color: #1d4ed8;
-        }
-
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(6px);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 28px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 440px;
-            position: relative;
-            box-sizing: border-box;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--border);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .close-btn {
-            background: #f1f5f9;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s ease;
-        }
-
-        .close-btn:hover {
-            background: #e2e8f0;
-            color: var(--text-dark);
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 6px;
-            font-size: 13px;
-            color: var(--text-dark);
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 14px;
-            font-family: inherit;
-            transition: border-color 0.15s ease;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-light);
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-            padding: 12px;
-        }
-
-        .btn-whatsapp {
-            background-color: #25d366;
-            width: 100%;
-            padding: 14px;
-            font-size: 15px;
-            border-radius: 8px;
-        }
-
-        .btn-whatsapp:hover {
-            background-color: #1ebc57;
-        }
-
-        #csvFileInput {
-            display: none;
-        }
-
-        @media (max-width: 680px) {
-            .brand-header-unboxed {
-                padding: 10px;
-                gap: 12px;
-            }
-            .brand-text-content {
-                text-align: center;
-            }
-            .brand-title {
-                font-size: 24px;
-            }
-            .brand-info-line {
-                justify-content: center;
-            }
-            .info-divider {
-                display: none;
-            }
-        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .practitioner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .practitioner-name { font-weight: bold; font-size: 1.1rem; color: #0f172a; }
+        .practitioner-role { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .slot-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; background: #fff; }
+        .slot-card.booked { background: #f0fdf4; border-color: #bbf7d0; }
+        .slot-time { font-weight: 600; font-size: 0.95rem; color: #1e293b; }
+        .btn { padding: 6px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .btn-book { background: #047857; color: white; }
+        .btn-cancel { background: #ef4444; color: white; margin-left: 6px; }
+        .btn-remind { background: #10b981; color: white; }
+        .patient-info { font-size: 0.85rem; color: #475569; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
     </style>
 </head>
 <body>
 
-    <div class="header-wrapper">
-        <div class="header-container">
-            <div class="brand-header-unboxed">
-                <div class="brand-text-content">
-                    <h1 class="brand-title">THE WELLNESS CENTRE</h1>
-                    <div class="brand-info-line">
-                        <span>📍 115 Upper Third Street, Mutare, Zimbabwe</span>
-                    </div>
-                    <div class="brand-info-line">
-                        <span><a href="tel:+263777002494">📱 +263 777 002 494</a></span>
-                        <span class="info-divider">•</span>
-                        <span><a href="tel:+263202061113">☎️ (+263) 2020 61113</a></span>
-                        <span class="info-divider">•</span>
-                        <span><a href="mailto:seventhavenuephysio@gmail.com">✉️ seventhavenuephysio@gmail.com</a></span>
-                    </div>
-                </div>
-            </div>
-            <p class="portal-subtitle">Appointment & Wellness Portal</p>
-        </div>
-    </div>
+<div class="container" id="app"></div>
 
-    <div class="container">
-        <h2 class="section-title">Physiotherapist Schedules</h2>
-        <div class="practitioners-grid" id="practitionersContainer"></div>
-    </div>
+<script>
+    const defaultTherapists = [
+        { name: "Ignatius Mundondo", role: "Physiotherapist", slots: ["12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
+        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM"] }
+    ];
 
-    <!-- Booking Modal -->
-    <div class="modal-overlay" id="bookingModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Book Appointment</h3>
-                <button class="close-btn" onclick="closeBookingModal()">&times;</button>
-            </div>
+    let currentTherapistsData = defaultTherapists;
+    let bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
+    let cancelledBookings = JSON.parse(localStorage.getItem("cancelled_bookings") || "[]");
+    let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
 
-            <button class="btn btn-import" onclick="triggerCSVUpload()">📥 Import Google Contacts CSV</button>
-            <input type="file" id="csvFileInput" accept=".csv" onchange="handleCSVFileSelect(event)">
+    function getTodayDateString() {
+        return new Date().toISOString().split('T')[0];
+    }
 
-            <form id="bookingForm" onsubmit="confirmBooking(event)">
-                <div class="form-group">
-                    <label for="slotTime">Selected Slot</label>
-                    <input type="text" id="slotTime" readonly style="background:#f8fafc;">
-                </div>
-
-                <div class="form-group">
-                    <label for="patientName">Patient Full Name</label>
-                    <input type="text" id="patientName" list="contactsDatalist" placeholder="Start typing patient name..." required autocomplete="off">
-                    <datalist id="contactsDatalist"></datalist>
-                </div>
-
-                <div class="form-group">
-                    <label for="patientPhone">WhatsApp Number</label>
-                    <input type="tel" id="patientPhone" placeholder="e.g. 263777203606" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="practitionerName">Physiotherapist</label>
-                    <input type="text" id="practitionerName" required>
-                </div>
-
-                <button type="submit" class="btn btn-whatsapp">Send WhatsApp Confirmation</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Single Slot Editor Modal -->
-    <div class="modal-overlay" id="editSingleSlotModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Time Slot</h3>
-                <button class="close-btn" onclick="closeEditSingleSlotModal()">&times;</button>
-            </div>
-
-            <p style="font-size: 14px; color: var(--text-muted); margin-top: 0;">Therapist: <strong id="editSlotTherapistName" style="color:var(--text-dark);"></strong></p>
-
-            <div class="form-group">
-                <label for="singleSlotInput">Time Slot</label>
-                <input type="text" id="singleSlotInput" placeholder="e.g. 08:00 AM">
-            </div>
-
-            <div class="modal-actions">
-                <button class="btn btn-danger" onclick="deleteCurrentSingleSlot()">Delete Slot</button>
-                <button class="btn" onclick="saveCurrentSingleSlot()">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let contactsMap = JSON.parse(localStorage.getItem("saved_patient_contacts") || "{}");
-        let bookingsList = JSON.parse(localStorage.getItem("saved_bookings") || "[]");
-        let activeTherapistName = "";
-        let activeSlotIndex = -1;
-
-        const defaultSlots8To4 = [
-            "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
-            "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"
-        ];
-
-        const defaultTherapists = [
-            { name: "Chido", title: "Senior Physio", slots: [...defaultSlots8To4] },
-            { name: "Mispar", title: "Physiotherapist", slots: [...defaultSlots8To4] },
-            { name: "Tinotenda", title: "Physiotherapist", slots: [...defaultSlots8To4] }
-        ];
-
-        let currentTherapistsData = defaultTherapists;
-
-        function getTodayDateString() {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            loadSlots();
-            refreshContactsDatalist();
-
-            document.addEventListener("visibilitychange", () => {
-                if (document.visibilityState === "visible") loadSlots();
-            });
-
-            setInterval(loadSlots, 3000);
-
-            const nameInput = document.getElementById("patientName");
-            if (nameInput) {
-                const autoFillPhone = (e) => {
-                    const typedVal = e.target.value.trim().toLowerCase();
-                    if (!typedVal) return;
-                    const foundKey = Object.keys(contactsMap).find(k => k.trim().toLowerCase() === typedVal);
-                    if (foundKey && contactsMap[foundKey]) {
-                        document.getElementById("patientPhone").value = contactsMap[foundKey];
-                    }
-                };
-
-                nameInput.addEventListener("input", autoFillPhone);
-                nameInput.addEventListener("change", autoFillPhone);
-                nameInput.addEventListener("blur", autoFillPhone);
-            }
-        });
-
-        async function loadSlots() {
-            try {
-                const cRes = await fetch("/api/contacts");
-                if (cRes.ok) {
-                    const cloudContacts = await cRes.json();
-                    if (cloudContacts && Object.keys(cloudContacts).length > 0) {
-                        contactsMap = cloudContacts;
-                        localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
-                        refreshContactsDatalist();
-                    }
-                }
-            } catch (e) {}
-
-            try {
-                const bRes = await fetch("/api/bookings");
-                if (bRes.ok) {
-                    const bData = await bRes.json();
-                    // Accepts empty array responses so cancellations aren't restored from local cache
-                    if (Array.isArray(bData)) {
-                        bookingsList = bData;
-                        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-                    }
-                }
-            } catch (e) {}
-
-            try {
-                const res = await fetch("/api/slots");
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data) && data.length > 0) {
-                        currentTherapistsData = typeof data[0] === 'string'
-                            ? defaultTherapists.map(t => ({ ...t, slots: data }))
-                            : data;
-                        localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
-                    }
-                }
-            } catch (err) {}
-
-            renderPractitionerColumns(currentTherapistsData);
-        }
-
-        function renderPractitionerColumns(practitioners) {
-            const container = document.getElementById("practitionersContainer");
-            if (!container) return;
-            container.innerHTML = "";
-
-            practitioners.forEach(p => {
-                const col = document.createElement("div");
-                col.className = "practitioner-column";
-
-                const pName = p.name || "Physiotherapist";
-                const pTitle = p.title || "Physiotherapist";
-                const pSlots = p.slots || [];
-
-                let slotsHTML = "";
-                pSlots.forEach((slot, idx) => {
-                    const timeStr = typeof slot === 'string' ? slot : (slot.time || slot);
-
-                    const existingBooking = bookingsList.find(b => 
-                        (b.practitioner === pName || b.therapist === pName) && 
-                        (b.slot === timeStr || b.time === timeStr)
-                    );
-
-                    if (existingBooking) {
-                        const bName = existingBooking.name || existingBooking.patientName || "Booked";
-                        const bPhone = existingBooking.phone || existingBooking.patientPhone || "";
-                        slotsHTML += `
-                            <div class="slot-card booked-card">
-                                <div>
-                                    <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})">
-                                        ${timeStr}
-                                    </div>
-                                    <div class="booking-details">
-                                        👤 <strong>${bName}</strong><br>
-                                        <small>📱 ${bPhone}</small>
-                                    </div>
-                                </div>
-                                <div class="booking-actions">
-                                    <button class="btn btn-sm btn-success" onclick="sendWhatsAppReminder('${bName}', '${bPhone}', '${pName}', '${timeStr}')">💬 Remind</button>
-                                    <button class="btn btn-danger btn-sm" onclick="cancelBooking('${pName}', '${timeStr}')">Cancel</button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        slotsHTML += `
-                            <div class="slot-card">
-                                <div class="slot-time" onclick="openEditSingleSlotModal('${pName}', ${idx})">
-                                    ${timeStr}
-                                </div>
-                                <button class="btn" onclick="openBookingModal('${timeStr}', '${pName}')">+ Book</button>
-                            </div>
-                        `;
-                    }
-                });
-
-                col.innerHTML = `
-                    <div class="practitioner-header">
-                        <h3 class="practitioner-name">${pName}</h3>
-                        <span class="practitioner-title">${pTitle}</span>
-                    </div>
-                    <div class="slots-list">
-                        ${slotsHTML || '<p style="color:var(--text-muted);font-size:14px;">No available slots today</p>'}
-                    </div>
-                    <button class="btn-add-slot" onclick="addNewSlot('${pName}')">+ Add Time Slot</button>
-                `;
-                container.appendChild(col);
-            });
-        }
-
-        function sendWhatsAppReminder(name, rawPhone, practitioner, slot) {
-            const cleanPhone = rawPhone.replace(/[^\d]/g, '');
-            if (!cleanPhone || cleanPhone.length < 7) {
-                alert("Valid phone number required to send WhatsApp reminder.");
-                return;
-            }
-
-            const message = `Hello ${name}, this is a reminder for your upcoming appointment with ${practitioner} today at ${slot}. - The Wellness Centre`;
-            window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`, '_blank');
-        }
-
-        async function cancelBooking(practitioner, timeSlot) {
-            if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
-
-            const todayDate = getTodayDateString();
-
-            // Optimistically update memory and localStorage
-            bookingsList = bookingsList.filter(b => !(
-                (b.practitioner === practitioner || b.therapist === practitioner) && 
-                (b.slot === timeSlot || b.time === timeSlot)
-            ));
-            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-            renderPractitionerColumns(currentTherapistsData);
-
-            // Await backend deletion so background refresh doesn't bring back stale state
-            try {
-                await fetch('/api/bookings/cancel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        practitioner, 
-                        therapist: practitioner, 
-                        slot: timeSlot, 
-                        time: timeSlot, 
-                        date: todayDate 
-                    }),
-                    keepalive: true
-                });
-            } catch (err) {
-                console.error("Cancellation server sync failed:", err);
-            }
-        }
-
-        function openEditSingleSlotModal(therapistName, slotIdx) {
-            activeTherapistName = therapistName;
-            activeSlotIndex = slotIdx;
-
-            const therapist = currentTherapistsData.find(t => t.name === therapistName);
-            if (!therapist || !therapist.slots[slotIdx]) return;
-
-            const currentVal = typeof therapist.slots[slotIdx] === 'string' 
-                ? therapist.slots[slotIdx] 
-                : therapist.slots[slotIdx].time;
-
-            document.getElementById("editSlotTherapistName").innerText = therapistName;
-            document.getElementById("singleSlotInput").value = currentVal;
-            document.getElementById("editSingleSlotModal").classList.add("active");
-        }
-
-        function closeEditSingleSlotModal() {
-            document.getElementById("editSingleSlotModal").classList.remove("active");
-        }
-
-        async function saveCurrentSingleSlot() {
-            const newVal = document.getElementById("singleSlotInput").value.trim();
-            if (!newVal) return;
-
-            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-            if (therapist && activeSlotIndex !== -1) {
-                therapist.slots[activeSlotIndex] = newVal;
-                await persistSchedules();
-            }
-            closeEditSingleSlotModal();
-        }
-
-        async function deleteCurrentSingleSlot() {
-            const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-            if (therapist && activeSlotIndex !== -1) {
-                therapist.slots.splice(activeSlotIndex, 1);
-                await persistSchedules();
-            }
-            closeEditSingleSlotModal();
-        }
-
-        function addNewSlot(therapistName) {
-            activeTherapistName = therapistName;
-            const therapist = currentTherapistsData.find(t => t.name === therapistName);
-            if (therapist) {
-                const newSlot = prompt(`Add a new time slot for ${therapistName}:`, "05:00 PM");
-                if (newSlot && newSlot.trim()) {
-                    therapist.slots.push(newSlot.trim());
-                    persistSchedules();
+    async function loadSlots() {
+        // Sync Contacts
+        try {
+            const cRes = await fetch("/api/contacts");
+            if (cRes.ok) {
+                const cloudContacts = await cRes.json();
+                if (cloudContacts && Object.keys(cloudContacts).length > 0) {
+                    contactsMap = cloudContacts;
+                    localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
                 }
             }
-        }
+        } catch (e) {}
 
-        async function persistSchedules() {
-            localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
-            renderPractitionerColumns(currentTherapistsData);
-
-            try {
-                const therapist = currentTherapistsData.find(t => t.name === activeTherapistName);
-                if (therapist) {
-                    await fetch('/api/slots', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: activeTherapistName, title: therapist.title, slots: therapist.slots }),
-                        keepalive: true
+        // Sync Bookings & Filter out blacklisted cancelled slots
+        try {
+            const bRes = await fetch("/api/bookings");
+            if (bRes.ok) {
+                const bData = await bRes.json();
+                if (Array.isArray(bData)) {
+                    bookingsList = bData.filter(b => {
+                        const practitioner = b.practitioner || b.therapist || "";
+                        const slot = b.slot || b.time || "";
+                        return !cancelledBookings.includes(`${practitioner}_${slot}`);
                     });
+                    localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
                 }
-            } catch (e) {}
-        }
+            }
+        } catch (e) {}
 
-        function refreshContactsDatalist() {
-            const datalist = document.getElementById("contactsDatalist");
-            if (!datalist) return;
-            datalist.innerHTML = "";
-            Object.keys(contactsMap).forEach(name => {
-                const option = document.createElement("option");
-                option.value = name;
-                datalist.appendChild(option);
+        // Sync Slots
+        try {
+            const res = await fetch("/api/slots");
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    currentTherapistsData = typeof data[0] === 'string'
+                        ? defaultTherapists.map(t => ({ ...t, slots: data }))
+                        : data;
+                    localStorage.setItem("saved_therapist_schedules", JSON.stringify(currentTherapistsData));
+                }
+            }
+        } catch (err) {}
+
+        renderPractitionerColumns(currentTherapistsData);
+    }
+
+    async function bookSlot(practitioner, slot) {
+        const name = prompt("Enter Patient Name:");
+        if (!name) return;
+        const phone = prompt("Enter Phone Number:") || "";
+
+        const key = `${practitioner}_${slot}`;
+        
+        // Remove from cancellation blacklist if re-booked
+        cancelledBookings = cancelledBookings.filter(k => k !== key);
+        localStorage.setItem("cancelled_bookings", JSON.stringify(cancelledBookings));
+
+        const newBooking = { practitioner, therapist: practitioner, slot, time: slot, name, phone, date: getTodayDateString() };
+
+        bookingsList = bookingsList.filter(b => !(
+            (b.practitioner === practitioner || b.therapist === practitioner) &&
+            (b.slot === slot || b.time === slot)
+        ));
+        bookingsList.push(newBooking);
+        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+        renderPractitionerColumns(currentTherapistsData);
+
+        try {
+            await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBooking)
             });
+        } catch (err) {
+            console.error("Booking failed:", err);
+        }
+    }
+
+    async function cancelBooking(practitioner, timeSlot) {
+        if (!confirm(`Are you sure you want to cancel the booking at ${timeSlot} for ${practitioner}?`)) return;
+
+        const key = `${practitioner}_${timeSlot}`;
+
+        // 1. Blacklist slot locally
+        if (!cancelledBookings.includes(key)) {
+            cancelledBookings.push(key);
+            localStorage.setItem("cancelled_bookings", JSON.stringify(cancelledBookings));
         }
 
-        function triggerCSVUpload() {
-            document.getElementById("csvFileInput").click();
-        }
+        // 2. Remove locally and re-render
+        bookingsList = bookingsList.filter(b => !(
+            (b.practitioner === practitioner || b.therapist === practitioner) && 
+            (b.slot === timeSlot || b.time === timeSlot)
+        ));
+        localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
+        renderPractitionerColumns(currentTherapistsData);
 
-        function handleCSVFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseGoogleCSV(e.target.result);
-            };
-            reader.readAsText(file);
-        }
-
-        function parseCSVToMatrix(text) {
-            const firstLine = text.split('\n')[0];
-            const commaCount = (firstLine.match(/,/g) || []).length;
-            const semiCount = (firstLine.match(/;/g) || []).length;
-            const delim = semiCount > commaCount ? ';' : ',';
-
-            const rows = [];
-            let currentRow = [];
-            let currentCell = '';
-            let insideQuotes = false;
-
-            for (let i = 0; i < text.length; i++) {
-                const char = text[i];
-                const nextChar = text[i + 1];
-
-                if (char === '"') {
-                    if (insideQuotes && nextChar === '"') {
-                        currentCell += '"';
-                        i++;
-                    } else {
-                        insideQuotes = !insideQuotes;
-                    }
-                } else if (char === delim && !insideQuotes) {
-                    currentRow.push(currentCell.trim());
-                    currentCell = '';
-                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
-                    if (char === '\r' && nextChar === '\n') i++;
-                    currentRow.push(currentCell.trim());
-                    if (currentRow.some(c => c !== '')) rows.push(currentRow);
-                    currentRow = [];
-                    currentCell = '';
-                } else {
-                    currentCell += char;
-                }
-            }
-            if (currentCell !== '' || currentRow.length > 0) {
-                currentRow.push(currentCell.trim());
-                if (currentRow.some(c => c !== '')) rows.push(currentRow);
-            }
-            return rows;
-        }
-
-        function parseGoogleCSV(csvText) {
-            const rows = parseCSVToMatrix(csvText);
-            if (rows.length < 2) {
-                alert("The CSV file is empty or could not be read.");
-                return;
-            }
-
-            const headers = rows[0].map(h => h.toLowerCase().replace(/^"|"$/g, '').trim());
-            const nameIdx = headers.findIndex(h => h === 'name' || h === 'display name' || h === 'full name');
-            const givenIdx = headers.findIndex(h => h === 'given name' || h === 'first name');
-            const familyIdx = headers.findIndex(h => h === 'family name' || h === 'last name');
-
-            let addedCount = 0;
-
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length === 0) continue;
-
-                let fullName = "";
-                if (nameIdx !== -1 && row[nameIdx] && row[nameIdx].trim()) {
-                    fullName = row[nameIdx].trim();
-                } else {
-                    const g = (givenIdx !== -1 && row[givenIdx]) ? row[givenIdx].trim() : "";
-                    const f = (familyIdx !== -1 && row[familyIdx]) ? row[familyIdx].trim() : "";
-                    fullName = `${g} ${f}`.trim();
-                }
-
-                if (!fullName) continue;
-
-                let extractedPhone = "";
-                for (let c = 0; c < row.length; c++) {
-                    const header = headers[c] || "";
-                    const isPhoneHeader = (header.includes("phone") || header.includes("mobile") || header.includes("cell") || header.includes("tel")) 
-                                          && !header.includes("type") && !header.includes("label");
-
-                    if (isPhoneHeader && row[c]) {
-                        const digitsOnly = row[c].replace(/[^\d]/g, '');
-                        if (digitsOnly.length >= 7) {
-                            extractedPhone = row[c];
-                            break;
-                        }
-                    }
-                }
-
-                if (!extractedPhone) {
-                    for (let c = 0; c < row.length; c++) {
-                        if (row[c]) {
-                            const digitsOnly = row[c].replace(/[^\d]/g, '');
-                            if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
-                                extractedPhone = row[c];
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (fullName && extractedPhone) {
-                    let cleanPhone = extractedPhone.replace(/[^\d]/g, '');
-                    if (cleanPhone.length >= 7) {
-                        contactsMap[fullName] = cleanPhone;
-                        addedCount++;
-                    }
-                }
-            }
-
-            localStorage.setItem("saved_patient_contacts", JSON.stringify(contactsMap));
-            refreshContactsDatalist();
-
-            fetch('/api/contacts', {
+        // 3. Request server cancellation
+        try {
+            await fetch('/api/bookings/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contacts: contactsMap }),
+                body: JSON.stringify({ 
+                    practitioner, 
+                    therapist: practitioner, 
+                    slot: timeSlot, 
+                    time: timeSlot, 
+                    date: getTodayDateString() 
+                }),
                 keepalive: true
-            }).catch(e => console.warn("Cloud contact sync warning:", e));
-
-            alert(`Successfully imported ${addedCount} contacts!`);
+            });
+        } catch (err) {
+            console.error("Cancellation sync failed:", err);
         }
+    }
 
-        function openBookingModal(timeSlot, practitionerName = "Chido") {
-            document.getElementById("slotTime").value = timeSlot;
-            document.getElementById("practitionerName").value = practitionerName;
-            document.getElementById("bookingModal").classList.add("active");
-        }
+    function renderPractitionerColumns(data) {
+        const app = document.getElementById("app");
+        app.innerHTML = "";
 
-        function closeBookingModal() {
-            document.getElementById("bookingModal").classList.remove("active");
-        }
+        data.forEach(p => {
+            const card = document.createElement("div");
+            card.className = "card";
 
-        function confirmBooking(event) {
-            event.preventDefault();
-            const slot = document.getElementById("slotTime").value;
-            const name = document.getElementById("patientName").value.trim();
-            const rawPhone = document.getElementById("patientPhone").value.trim();
-            const practitioner = document.getElementById("practitionerName").value.trim();
+            let slotsHTML = "";
+            p.slots.forEach(slot => {
+                const booking = bookingsList.find(b => 
+                    (b.practitioner === p.name || b.therapist === p.name) && 
+                    (b.slot === slot || b.time === slot)
+                );
 
-            const cleanPhone = rawPhone.replace(/[^\d]/g, '');
-            if (!cleanPhone || cleanPhone.length < 7) {
-                alert("Please enter a valid phone number with digits before sending.");
-                return;
-            }
+                if (booking) {
+                    slotsHTML += `
+                        <div class="slot-card booked">
+                            <div>
+                                <div class="slot-time">${slot}</div>
+                                <div class="patient-info">
+                                    <span><strong>👤 ${booking.name || 'Booked'}</strong></span>
+                                    ${booking.phone ? `<span>📱 ${booking.phone}</span>` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-remind">Remind</button>
+                                <button class="btn btn-cancel" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    slotsHTML += `
+                        <div class="slot-card">
+                            <div class="slot-time">${slot}</div>
+                            <button class="btn btn-book" onclick="bookSlot('${p.name}', '${slot}')">+ Book</button>
+                        </div>
+                    `;
+                }
+            });
 
-            const todayDate = getTodayDateString();
-            const newBooking = { practitioner, slot, name, phone: cleanPhone, date: todayDate };
+            card.innerHTML = `
+                <div class="practitioner-header">
+                    <span class="practitioner-name">${p.name}</span>
+                    <span class="practitioner-role">${p.role || 'Practitioner'}</span>
+                </div>
+                ${slotsHTML}
+            `;
+            app.appendChild(card);
+        });
+    }
 
-            bookingsList = bookingsList.filter(b => !(
-                (b.practitioner === practitioner || b.therapist === practitioner) && 
-                (b.slot === slot || b.time === slot)
-            ));
-            bookingsList.push(newBooking);
-            localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-            renderPractitionerColumns(currentTherapistsData);
-            closeBookingModal();
-
-            fetch('/api/bookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newBooking),
-                keepalive: true
-            }).catch(err => console.warn("Background save error:", err));
-
-            const message = `Hello ${name}, your appointment with ${practitioner} is confirmed for ${todayDate} at ${slot}. - The Wellness Centre`;
-            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
-            window.open(waUrl, '_blank');
-        }
-    </script>
+    loadSlots();
+    setInterval(loadSlots, 3000);
+</script>
 </body>
 </html>

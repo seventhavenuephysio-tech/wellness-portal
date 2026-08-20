@@ -6,6 +6,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 // In-memory data structures
@@ -13,14 +15,13 @@ let bookings = [];
 let contacts = {};
 let slotsData = [];
 
-// --- Bookings Endpoints ---
+// --- API Endpoints ---
 app.get('/api/bookings', (req, res) => {
     res.json(bookings);
 });
 
 app.post('/api/bookings', (req, res) => {
     const newBooking = req.body;
-    // Remove existing booking for the exact same practitioner & slot before pushing
     bookings = bookings.filter(b => !(
         (b.practitioner === newBooking.practitioner || b.therapist === newBooking.practitioner) &&
         (b.slot === newBooking.slot || b.time === newBooking.slot)
@@ -34,7 +35,6 @@ app.post('/api/bookings/cancel', (req, res) => {
     const targetTherapist = practitioner || therapist;
     const targetSlot = slot || time;
 
-    // Filter out cancelled booking from memory
     bookings = bookings.filter(b => !(
         (b.practitioner === targetTherapist || b.therapist === targetTherapist) &&
         (b.slot === targetSlot || b.time === targetSlot)
@@ -43,7 +43,6 @@ app.post('/api/bookings/cancel', (req, res) => {
     res.json({ success: true, bookings });
 });
 
-// --- Contacts Endpoints ---
 app.get('/api/contacts', (req, res) => {
     res.json(contacts);
 });
@@ -55,7 +54,6 @@ app.post('/api/contacts', (req, res) => {
     res.json({ success: true, contacts });
 });
 
-// --- Slots Endpoints ---
 app.get('/api/slots', (req, res) => {
     res.json(slotsData);
 });
@@ -65,12 +63,15 @@ app.post('/api/slots', (req, res) => {
     res.json({ success: true, slots: slotsData });
 });
 
-// Catch-all route for single-page application
+// Wildcard fallback route for single page app
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
+// --- Server Startup (Bind to 0.0.0.0 for Render) ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
 });

@@ -53,7 +53,7 @@
 <script>
     localStorage.removeItem("saved_therapist_schedules");
 
-    const defaultTherapists = [
+    const fixedTherapists = [
         { 
             name: "Chido", 
             role: "Physiotherapist", 
@@ -101,7 +101,7 @@
             }
         } catch (e) {}
 
-        renderPractitionerColumns(defaultTherapists);
+        renderPractitionerColumns(fixedTherapists);
     }
 
     async function bookSlot(practitioner, slot) {
@@ -122,7 +122,7 @@
         ));
         bookingsList.push(newBooking);
         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-        renderPractitionerColumns(defaultTherapists);
+        renderPractitionerColumns(fixedTherapists);
 
         try {
             await fetch('/api/bookings', {
@@ -150,7 +150,7 @@
             (b.slot === timeSlot || b.time === timeSlot)
         ));
         localStorage.setItem("saved_bookings", JSON.stringify(bookingsList));
-        renderPractitionerColumns(defaultTherapists);
+        renderPractitionerColumns(fixedTherapists);
 
         try {
             await fetch('/api/bookings/cancel', {

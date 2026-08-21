@@ -504,7 +504,8 @@
         </div>
         <div class="form-field">
             <label>Patient Full Name *</label>
-            <input type="text" id="patientNameInput" placeholder="e.g. Sarah Jenkins">
+            <input type="text" id="patientNameInput" list="patientNamesList" placeholder="e.g. Sarah Jenkins" oninput="autofillPatientPhone()">
+            <datalist id="patientNamesList"></datalist>
         </div>
         <div class="form-field">
             <label>Phone Number</label>
@@ -587,12 +588,40 @@
         setTimeout(() => toast.style.display = "none", 3000);
     }
 
+    function updatePatientDatalist() {
+        const datalist = document.getElementById("patientNamesList");
+        if (!datalist) return;
+        const uniquePatients = {};
+        bookingsList.forEach(b => {
+            if (b.name) uniquePatients[b.name.trim()] = true;
+        });
+        datalist.innerHTML = Object.keys(uniquePatients)
+            .map(name => `<option value="${name}">`)
+            .join('');
+    }
+
+    function autofillPatientPhone() {
+        const inputName = document.getElementById("patientNameInput").value.trim().toLowerCase();
+        const phoneField = document.getElementById("patientPhoneInput");
+        if (!inputName) return;
+
+        // Find existing patient record with phone
+        const match = [...bookingsList].reverse().find(b => 
+            b.name && b.name.trim().toLowerCase() === inputName && b.phone
+        );
+
+        if (match && match.phone) {
+            phoneField.value = match.phone;
+        }
+    }
+
     function openModal(practitioner, slot) {
         currentBookingTarget = { practitioner, slot, date: selectedDate };
         document.getElementById("modalDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
         document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
         document.getElementById("patientNameInput").value = "";
         document.getElementById("patientPhoneInput").value = "";
+        updatePatientDatalist();
         document.getElementById("bookingModal").classList.add("active");
     }
 

@@ -91,7 +91,8 @@
             </div>
             <div class="form-group">
                 <label>Patient Full Name</label>
-                <input type="text" id="patientNameInput" placeholder="Enter patient full name...">
+                <input type="text" id="patientNameInput" list="patientNamesList" placeholder="Start typing patient name..." autocomplete="off">
+                <datalist id="patientNamesList"></datalist>
             </div>
             <div class="form-group">
                 <label>Phone Number</label>
@@ -114,6 +115,36 @@
         let bookingsList = [];
         let currentBookingTarget = null;
         let selectedDate = new Date().toISOString().split('T')[0];
+
+        function getPatientDirectory() {
+            const directory = {};
+            bookingsList.forEach(b => {
+                const name = (b.name || b.patientName || '').trim().toLowerCase();
+                const phone = b.phone || b.phoneNumber || b.contact || '';
+                if (name && phone) directory[name] = phone;
+            });
+            return directory;
+        }
+
+        function updatePatientDatalist() {
+            const datalist = document.getElementById("patientNamesList");
+            if (!datalist) return;
+            const directory = getPatientDirectory();
+            datalist.innerHTML = Object.keys(directory)
+                .map(name => `<option value="${name.replace(/\b\w/g, l => l.toUpperCase())}">`)
+                .join('');
+        }
+
+        function autofillPatientPhone() {
+            const nameInput = document.getElementById("patientNameInput")?.value.trim().toLowerCase();
+            const phoneInput = document.getElementById("patientPhoneInput");
+            if (!nameInput || !phoneInput) return;
+
+            const directory = getPatientDirectory();
+            if (directory[nameInput]) {
+                phoneInput.value = directory[nameInput];
+            }
+        }
 
         function updateDateLabel() {
             const dateObj = new Date(selectedDate + "T00:00:00");
@@ -144,6 +175,7 @@
             document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
             document.getElementById("patientNameInput").value = "";
             document.getElementById("patientPhoneInput").value = "";
+            updatePatientDatalist();
             document.getElementById("bookingModal").classList.add("active");
         }
 
@@ -200,6 +232,14 @@
                 app.appendChild(card);
             });
         }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const nameField = document.getElementById("patientNameInput");
+            if (nameField) {
+                nameField.addEventListener("input", autofillPatientPhone);
+                nameField.addEventListener("change", autofillPatientPhone);
+            }
+        });
 
         updateDateLabel();
         renderColumns();

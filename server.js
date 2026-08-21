@@ -1,37 +1,4 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json());
-
-const therapists = [
-    { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-    { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-    { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
-];
-
-let bookings = [];
-
-app.get('/api/slots', (req, res) => res.json(therapists));
-app.get('/api/bookings', (req, res) => res.json(bookings));
-
-app.post('/api/bookings', (req, res) => {
-    bookings.push(req.body);
-    res.json({ success: true, booking: req.body });
-});
-
-app.post('/api/bookings/cancel', (req, res) => {
-    const { practitioner, slot, time } = req.body;
-    const targetSlot = slot || time;
-    bookings = bookings.filter(b => !(
-        (b.practitioner === practitioner || b.therapist === practitioner) &&
-        (b.slot === targetSlot || b.time === targetSlot)
-    ));
-    res.json({ success: true });
-});
-
-app.get('*', (req, res) => {
-    res.send(`<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -69,12 +36,14 @@ app.get('*', (req, res) => {
     <div id="app" class="app-grid"></div>
 </div>
 <script>
-    localStorage.clear();
-    const fixedTherapists = [
+    localStorage.removeItem("saved_therapist_schedules");
+
+    const therapists = [
         { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
         { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
         { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
     ];
+
     let bookingsList = [];
 
     function updateBookingCount() {
@@ -85,10 +54,11 @@ app.get('*', (req, res) => {
         try {
             const res = await fetch("/api/bookings");
             if (res.ok) {
-                bookingsList = await res.json();
+                const data = await res.json();
+                if (Array.isArray(data)) bookingsList = data;
             }
         } catch (e) {}
-        renderColumns(fixedTherapists);
+        renderColumns(therapists);
     }
 
     async function bookSlot(practitioner, slot) {
@@ -98,13 +68,17 @@ app.get('*', (req, res) => {
         const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone };
         
         bookingsList.push(booking);
-        renderColumns(fixedTherapists);
+        renderColumns(therapists);
 
-        await fetch('/api/bookings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(booking)
-        });
+        try {
+            await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(booking)
+            });
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     async function cancelBooking(practitioner, slot) {
@@ -113,13 +87,17 @@ app.get('*', (req, res) => {
             (b.practitioner === practitioner || b.therapist === practitioner) &&
             (b.slot === slot || b.time === slot)
         ));
-        renderColumns(fixedTherapists);
+        renderColumns(therapists);
 
-        await fetch('/api/bookings/cancel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ practitioner, slot })
-        });
+        try {
+            await fetch('/api/bookings/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ practitioner, slot })
+            });
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     function renderColumns(data) {
@@ -136,34 +114,34 @@ app.get('*', (req, res) => {
                     (b.slot === slot || b.time === slot)
                 );
                 if (booking) {
-                    slotsHTML += \`
+                    slotsHTML += `
                         <div class="slot-card booked">
                             <div>
-                                <div class="slot-time">\${slot}</div>
+                                <div class="slot-time">${slot}</div>
                                 <div class="patient-info">
-                                    <span><strong>👤 \${booking.name}</strong></span>
-                                    \${booking.phone ? \`<span>📱 \${booking.phone}</span>\` : ''}
+                                    <span><strong>👤 ${booking.name}</strong></span>
+                                    ${booking.phone ? `<span>📱 ${booking.phone}</span>` : ''}
                                 </div>
                             </div>
                             <div>
                                 <button class="btn btn-remind">Remind</button>
-                                <button class="btn btn-cancel" onclick="cancelBooking('\${p.name}', '\${slot}')">Cancel</button>
+                                <button class="btn btn-cancel" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
                             </div>
-                        </div>\`;
+                        </div>`;
                 } else {
-                    slotsHTML += \`
+                    slotsHTML += `
                         <div class="slot-card">
-                            <div class="slot-time">\${slot}</div>
-                            <button class="btn btn-book" onclick="bookSlot('\${p.name}', '\${slot}')">+ Book</button>
-                        </div>\`;
+                            <div class="slot-time">${slot}</div>
+                            <button class="btn btn-book" onclick="bookSlot('${p.name}', '${slot}')">+ Book</button>
+                        </div>`;
                 }
             });
-            card.innerHTML = \`
+            card.innerHTML = `
                 <div class="practitioner-header">
-                    <span class="practitioner-name">\${p.name}</span>
-                    <span class="practitioner-role">\${p.role}</span>
+                    <span class="practitioner-name">${p.name}</span>
+                    <span class="practitioner-role">${p.role}</span>
                 </div>
-                \${slotsHTML}\`;
+                ${slotsHTML}`;
             app.appendChild(card);
         });
     }
@@ -172,7 +150,4 @@ app.get('*', (req, res) => {
     setInterval(loadSlots, 3000);
 </script>
 </body>
-</html>`);
-});
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+</html>

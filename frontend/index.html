@@ -114,7 +114,7 @@
             flex-wrap: wrap;
         }
 
-        .search-wrapper { position: relative; width: 280px; }
+        .search-wrapper { position: relative; width: 340px; }
         .search-wrapper input {
             width: 100%;
             padding: 10px 16px 10px 40px;
@@ -137,6 +137,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .date-picker-wrapper {
@@ -182,12 +183,23 @@
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
         .btn-nav-date:hover {
             background: var(--primary-light);
             color: var(--primary-dark);
             border-color: #bae6fd;
+        }
+
+        .btn-export {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+        .btn-export:hover {
+            background: #dcfce7;
+            color: #14532d;
+            border-color: #86efac;
         }
 
         .date-display-badge {
@@ -199,6 +211,44 @@
             border-radius: var(--radius-sm);
             border: 1px solid #bae6fd;
         }
+
+        /* Patient Search Results Panel Across All Dates */
+        .search-results-panel {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            display: none;
+        }
+        .search-results-panel.active { display: block; }
+        .search-results-header {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-results-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 10px;
+        }
+        .search-result-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-result-info { font-size: 0.825rem; }
+        .search-result-name { font-weight: 800; color: var(--text-dark); }
+        .search-result-meta { color: var(--text-muted); font-weight: 600; margin-top: 2px; }
 
         /* Fixed 3-Column Practitioner Grid Layout */
         .therapist-grid {
@@ -277,6 +327,25 @@
         }
         .slot-pill:hover { border-color: var(--border-hover); background: #f8fafc; }
         .slot-pill.booked { background: #f8fafc; border-color: #cbd5e1; }
+        
+        /* Lunch Break Slot Styling */
+        .slot-pill.lunch {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            opacity: 0.85;
+        }
+        .slot-pill.lunch:hover { background: #f1f5f9; border-color: #e2e8f0; }
+        .lunch-badge {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
 
         .time-label { font-weight: 700; font-size: 0.875rem; color: var(--text-dark); }
         
@@ -391,7 +460,7 @@
     <div class="controls-bar">
         <div class="search-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Search therapist..." onkeyup="filterTherapists()">
+            <input type="text" id="searchInput" placeholder="Search patient name, phone, therapist..." onkeyup="handleSearch()">
         </div>
 
         <div class="calendar-controls">
@@ -403,7 +472,17 @@
             <button class="btn-nav-date" onclick="goToToday()">Today</button>
             <button class="btn-nav-date" onclick="changeDate(1)">Next ►</button>
             <div class="date-display-badge" id="dateDisplayLabel"></div>
+            <button class="btn-nav-date btn-export" onclick="exportDailyAgenda()">📥 Export CSV</button>
         </div>
+    </div>
+
+    <!-- Patient Search Results Panel Across All Dates -->
+    <div class="search-results-panel" id="searchResultsPanel">
+        <div class="search-results-header">
+            <span>🔍 Global Patient Search Results (<span id="searchResultsCount">0</span>)</span>
+            <button class="btn-close" style="width:24px; height:24px; font-size:0.9rem;" onclick="clearSearch()">×</button>
+        </div>
+        <div class="search-results-list" id="searchResultsList"></div>
     </div>
 
     <div id="app" class="therapist-grid"></div>
@@ -445,10 +524,11 @@
 <script>
     localStorage.removeItem("saved_therapist_schedules");
 
+    // 01:00 PM is reserved as Lunch Break for Mispar and Tinotenda
     const therapists = [
-        { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
+        { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"], lunch: [] },
+        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"], lunch: ["01:00 PM"] },
+        { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"], lunch: ["01:00 PM"] }
     ];
 
     let bookingsList = [];
@@ -490,6 +570,14 @@
         document.getElementById("dateSelect").value = selectedDate;
         updateDateLabel();
         renderColumns(getFilteredTherapists());
+    }
+
+    function jumpToDate(dateStr) {
+        selectedDate = dateStr;
+        document.getElementById("dateSelect").value = selectedDate;
+        updateDateLabel();
+        renderColumns(getFilteredTherapists());
+        clearSearch();
     }
 
     function showToast(msg) {
@@ -566,13 +654,78 @@
         } catch (err) { console.error(err); }
     }
 
+    function handleSearch() {
+        const query = document.getElementById("searchInput").value.trim().toLowerCase();
+        const panel = document.getElementById("searchResultsPanel");
+        const list = document.getElementById("searchResultsList");
+
+        renderColumns(getFilteredTherapists());
+
+        if (query.length < 2) {
+            panel.classList.remove("active");
+            return;
+        }
+
+        // Global search across all bookings regardless of date
+        const matches = bookingsList.filter(b => 
+            (b.name && b.name.toLowerCase().includes(query)) ||
+            (b.phone && b.phone.toLowerCase().includes(query))
+        );
+
+        if (matches.length > 0) {
+            document.getElementById("searchResultsCount").textContent = matches.length;
+            list.innerHTML = matches.map(m => `
+                <div class="search-result-card">
+                    <div class="search-result-info">
+                        <div class="search-result-name">👤 ${m.name} ${m.phone ? `(${m.phone})` : ''}</div>
+                        <div class="search-result-meta">📅 ${m.date || 'Today'} • ⏰ ${m.slot || m.time} • 🩺 ${m.practitioner || m.therapist}</div>
+                    </div>
+                    <button class="btn-action btn-book" style="padding:4px 10px; font-size:0.75rem;" onclick="jumpToDate('${m.date || selectedDate}')">View Date →</button>
+                </div>
+            `).join('');
+            panel.classList.add("active");
+        } else {
+            panel.classList.remove("active");
+        }
+    }
+
+    function clearSearch() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("searchResultsPanel").classList.remove("active");
+        renderColumns(therapists);
+    }
+
     function getFilteredTherapists() {
         const query = document.getElementById("searchInput").value.toLowerCase();
         return therapists.filter(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
     }
 
-    function filterTherapists() {
-        renderColumns(getFilteredTherapists());
+    function exportDailyAgenda() {
+        const dateBookings = bookingsList.filter(b => (!b.date || b.date === selectedDate));
+        if (dateBookings.length === 0) {
+            alert("No appointments booked for " + document.getElementById("dateDisplayLabel").textContent);
+            return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,Date,Time,Practitioner,Patient Name,Phone\n";
+        dateBookings.forEach(b => {
+            const dateStr = b.date || selectedDate;
+            const timeStr = b.slot || b.time;
+            const docStr = b.practitioner || b.therapist;
+            const nameStr = `"${b.name.replace(/"/g, '""')}"`;
+            const phoneStr = `"${(b.phone || '').replace(/"/g, '""')}"`;
+            csvContent += `${dateStr},${timeStr},${docStr},${nameStr},${phoneStr}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `wellness_agenda_${selectedDate}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showToast("Exported " + dateBookings.length + " appointments to CSV!");
     }
 
     function renderColumns(data) {
@@ -583,14 +736,25 @@
         app.innerHTML = "";
         data.forEach(p => {
             const therapistBookings = dateBookings.filter(b => (b.practitioner === p.name || b.therapist === p.name));
+            const totalAvailableSlots = p.slots.length - p.lunch.length;
             const bookedCount = therapistBookings.length;
-            const occupancyPct = Math.round((bookedCount / p.slots.length) * 100);
+            const occupancyPct = Math.round((bookedCount / totalAvailableSlots) * 100);
 
             const card = document.createElement("div");
             card.className = "therapist-card";
             
             let slotsHTML = "";
             p.slots.forEach(slot => {
+                // Check if this slot is a designated Lunch Break
+                if (p.lunch && p.lunch.includes(slot)) {
+                    slotsHTML += `
+                        <div class="slot-pill lunch">
+                            <div class="time-label">${slot}</div>
+                            <span class="lunch-badge">🍱 Lunch Break</span>
+                        </div>`;
+                    return;
+                }
+
                 const booking = therapistBookings.find(b => (b.slot === slot || b.time === slot));
                 if (booking) {
                     slotsHTML += `
@@ -625,7 +789,7 @@
                     <div class="occupancy-bar-container">
                         <div class="occupancy-labels">
                             <span>Daily Capacity</span>
-                            <span>${bookedCount} / ${p.slots.length} Booked (${occupancyPct}%)</span>
+                            <span>${bookedCount} / ${totalAvailableSlots} Booked (${occupancyPct}%)</span>
                         </div>
                         <div class="progress-track">
                             <div class="progress-fill" style="width: ${occupancyPct}%;"></div>

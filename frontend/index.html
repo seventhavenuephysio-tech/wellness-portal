@@ -11,7 +11,7 @@
         :root {
             --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
             --surface: #ffffff;
-            --surface-glass: rgba(255, 255, 255, 0.85);
+            --surface-glass: rgba(255, 255, 255, 0.88);
             --primary: #0284c7;
             --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
             --primary-dark: #0369a1;
@@ -24,7 +24,7 @@
             --border-hover: #cbd5e1;
             --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.03);
             --shadow-md: 0 8px 16px -2px rgba(15, 23, 42, 0.06);
-            --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+            --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08);
             --radius-lg: 18px;
             --radius-md: 12px;
             --radius-sm: 8px;
@@ -97,7 +97,7 @@
         }
 
         /* Container */
-        .main-container { max-width: 1320px; margin: 32px auto; padding: 0 24px; }
+        .main-container { max-width: 1380px; margin: 32px auto; padding: 0 24px; }
 
         /* Controls / Filter Bar */
         .controls-bar {
@@ -140,18 +140,21 @@
             gap: 6px;
         }
 
-        /* Practitioner Grid */
+        /* Fixed 3-Column Practitioner Grid Layout */
         .therapist-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 24px;
+            align-items: start;
         }
 
-        @media (max-width: 1024px) {
-            .therapist-grid { grid-template-columns: 1fr; }
+        @media (max-width: 900px) {
+            .therapist-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
-        /* Practitioner Card */
+        /* Practitioner Card / Column */
         .therapist-card {
             background: var(--surface);
             border-radius: var(--radius-lg);
@@ -199,7 +202,7 @@
         .progress-track { height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--primary-gradient); border-radius: 999px; transition: width 0.4s ease; }
 
-        /* Slots List */
+        /* Slots List Inside Column */
         .slots-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
 
         .slot-pill {
@@ -289,7 +292,7 @@
 
         .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 
-        /* Toast */
+        /* Toast Notification */
         .toast-notification {
             position: fixed;
             bottom: 28px;

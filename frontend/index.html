@@ -3,235 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wellness Centre — Clinical Appointments</title>
+    <title>The Wellness Centre — Physiotherapy Booking Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+            --surface: #ffffff;
+            --surface-glass: rgba(255, 255, 255, 0.85);
             --primary: #0284c7;
+            --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
             --primary-dark: #0369a1;
             --primary-light: #e0f2fe;
             --accent: #0f766e;
             --accent-light: #ccfbf1;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
+            --text-dark: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-            --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
-            --radius: 14px;
+            --border-hover: #cbd5e1;
+            --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.03);
+            --shadow-md: 0 8px 16px -2px rgba(15, 23, 42, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-        body { background: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 60px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+        
+        body { 
+            background: var(--bg-gradient); 
+            color: var(--text-dark); 
+            min-height: 100vh; 
+            padding-bottom: 60px;
+            -webkit-font-smoothing: antialiased;
+        }
 
+        /* Glass Navbar */
         .navbar {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
+            background: var(--surface-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 16px 32px;
+            padding: 16px 36px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: var(--shadow-sm);
         }
-        .brand { display: flex; align-items: center; gap: 12px; }
+
+        .brand { display: flex; align-items: center; gap: 14px; }
         .brand-logo {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #0284c7, #0f766e);
-            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 800;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+            font-size: 1.25rem;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
         }
-        .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
-        .brand-text p { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-        .nav-stats { display: flex; gap: 12px; }
-        .stat-chip {
-            background: #f1f5f9;
+        .brand-text h1 { font-size: 1.25rem; font-weight: 800; color: var(--text-dark); letter-spacing: -0.02em; line-height: 1.2; }
+        .brand-text p { font-size: 0.725rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+
+        .nav-widgets { display: flex; align-items: center; gap: 12px; }
+        .badge-chip {
+            background: #ffffff;
             border: 1px solid var(--border);
             padding: 8px 16px;
-            border-radius: 999px;
-            font-size: 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.825rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
+            box-shadow: var(--shadow-sm);
         }
-        .stat-chip.highlight { background: var(--primary-light); color: var(--primary-dark); border-color: #bae6fd; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+        .badge-chip.active { background: var(--primary-light); color: var(--primary-dark); border-color: #bae6fd; }
+        .pulse-indicator { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
 
-        .container { max-width: 1280px; margin: 32px auto; padding: 0 24px; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
 
-        .toolbar {
+        /* Container */
+        .main-container { max-width: 1320px; margin: 32px auto; padding: 0 24px; }
+
+        /* Controls / Filter Bar */
+        .controls-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
             gap: 16px;
-        }
-        .search-input {
-            background: white;
+            background: var(--surface);
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 16px;
-            font-size: 0.9rem;
-            width: 280px;
-            outline: none;
-            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
         }
-        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
 
-        .practitioner-grid {
+        .search-wrapper { position: relative; width: 320px; }
+        .search-wrapper input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #f8fafc;
+        }
+        .search-wrapper input:focus {
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+        }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; }
+
+        .date-chip {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Practitioner Grid */
+        .therapist-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 24px;
         }
 
-        .p-card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
+        @media (max-width: 1024px) {
+            .therapist-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Practitioner Card */
+        .therapist-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
             border: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-            transition: all 0.2s ease;
+            box-shadow: var(--shadow-md);
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
-        .p-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .therapist-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
 
-        .p-card-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
+        .card-header {
+            padding: 22px 24px;
             background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
         }
-        .p-avatar {
-            width: 48px;
-            height: 48px;
+
+        .header-top { display: flex; align-items: center; gap: 14px; }
+        
+        .avatar-circle {
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #e0f2fe, #ccfbf1);
-            color: var(--primary-dark);
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 1.25rem;
             font-weight: 800;
-            font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid white;
-            box-shadow: var(--shadow-sm);
-        }
-        .p-meta h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-        .p-meta p { font-size: 0.825rem; color: var(--text-muted); font-weight: 500; }
-        .p-tag {
-            margin-left: auto;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-            background: var(--accent-light);
-            color: var(--accent);
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+            border: 3px solid white;
         }
 
-        .slots-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+        .profile-meta h3 { font-size: 1.15rem; font-weight: 800; color: var(--text-dark); letter-spacing: -0.01em; }
+        .profile-meta p { font-size: 0.825rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
 
-        .slot-row {
+        .occupancy-bar-container { margin-top: 16px; }
+        .occupancy-labels { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+        .progress-track { height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary-gradient); border-radius: 999px; transition: width 0.4s ease; }
+
+        /* Slots List */
+        .slots-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+        .slot-pill {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 12px 16px;
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border);
             background: #ffffff;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
         }
-        .slot-row:hover { border-color: #cbd5e1; background: #f8fafc; }
-        .slot-row.is-booked { background: #f8fafc; border-color: #cbd5e1; }
+        .slot-pill:hover { border-color: var(--border-hover); background: #f8fafc; }
+        .slot-pill.booked { background: #f8fafc; border-color: #cbd5e1; }
 
-        .slot-time { font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
-        .patient-detail { margin-top: 2px; font-size: 0.8rem; color: var(--text-muted); }
-        .patient-name-val { font-weight: 600; color: var(--text-main); }
+        .time-label { font-weight: 700; font-size: 0.875rem; color: var(--text-dark); }
+        
+        .patient-card-info { margin-top: 3px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.3; }
+        .patient-name-tag { font-weight: 700; color: var(--text-dark); }
 
-        .btn {
+        /* Buttons */
+        .btn-action {
             border: none;
             padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
             font-size: 0.825rem;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-danger { background: #fee2e2; color: #dc2626; }
-        .btn-danger:hover { background: #fca5a5; }
 
-        .modal-overlay {
+        .btn-book { background: var(--primary-gradient); color: white; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2); }
+        .btn-book:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35); }
+
+        .btn-cancel { background: #fee2e2; color: #dc2626; }
+        .btn-cancel:hover { background: #fca5a5; }
+
+        /* Modal Overlay */
+        .modal-backdrop {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(6px);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 1000;
             padding: 20px;
         }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: white;
+        .modal-backdrop.active { display: flex; }
+
+        .modal-box {
+            background: #ffffff;
             width: 100%;
-            max-width: 420px;
-            border-radius: 16px;
-            padding: 24px;
+            max-width: 440px;
+            border-radius: var(--radius-lg);
+            padding: 28px;
             box-shadow: var(--shadow-lg);
-            animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.96); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-        .modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); }
-        .close-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
-        .form-control {
-            width: 100%;
-            padding: 10px 14px;
+            animation: modalSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             border: 1px solid var(--border);
-            border-radius: 8px;
+        }
+
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.2rem; font-weight: 800; color: var(--text-dark); }
+        .btn-close { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; color: var(--text-muted); }
+
+        .form-field { margin-bottom: 16px; }
+        .form-field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
+        .form-field input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
             outline: none;
+            transition: all 0.2s ease;
         }
-        .form-control:focus { border-color: var(--primary); }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .form-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
 
-        .toast {
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+
+        /* Toast */
+        .toast-notification {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 28px;
+            right: 28px;
             background: #0f172a;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            color: #ffffff;
+            padding: 14px 22px;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 700;
             box-shadow: var(--shadow-lg);
             display: none;
             align-items: center;
@@ -250,46 +318,51 @@
             <p>PHYSIOTHERAPY BOOKING PORTAL</p>
         </div>
     </div>
-    <div class="nav-stats">
-        <div class="stat-chip"><span class="dot"></span> Live Portal</div>
-        <div class="stat-chip highlight"><span id="totalBookedCount">0</span> Appointments Scheduled</div>
+    <div class="nav-widgets">
+        <div class="badge-chip"><span class="pulse-indicator"></span> Live System</div>
+        <div class="badge-chip active"><span id="totalBookedCount">0</span> Booked Appointments</div>
     </div>
 </div>
 
-<div class="container">
-    <div class="toolbar">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search practitioner..." onkeyup="filterPractitioners()">
+<div class="main-container">
+    <div class="controls-bar">
+        <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search therapist..." onkeyup="filterTherapists()">
+        </div>
+        <div class="date-chip">📅 Today's Schedule</div>
     </div>
-    <div id="app" class="practitioner-grid"></div>
+
+    <div id="app" class="therapist-grid"></div>
 </div>
 
-<div class="modal-overlay" id="bookingModal">
-    <div class="modal">
+<div class="modal-backdrop" id="bookingModal">
+    <div class="modal-box">
         <div class="modal-header">
-            <h3 class="modal-title">Book Appointment</h3>
-            <button class="close-btn" onclick="closeModal()">×</button>
+            <h3 class="modal-title">New Appointment</h3>
+            <button class="btn-close" onclick="closeModal()">×</button>
         </div>
-        <div class="form-group">
-            <label>Practitioner & Slot</label>
-            <input type="text" id="modalSlotInfo" class="form-control" disabled style="background:#f1f5f9;">
+        <div class="form-field">
+            <label>Therapist & Time Slot</label>
+            <input type="text" id="modalSlotInfo" disabled style="background:#f1f5f9; font-weight:700; color:#475569;">
         </div>
-        <div class="form-group">
-            <label>Patient Full Name</label>
-            <input type="text" id="patientNameInput" class="form-control" placeholder="e.g. John Doe">
+        <div class="form-field">
+            <label>Patient Full Name *</label>
+            <input type="text" id="patientNameInput" placeholder="e.g. Sarah Jenkins">
         </div>
-        <div class="form-group">
+        <div class="form-field">
             <label>Phone Number</label>
-            <input type="text" id="patientPhoneInput" class="form-control" placeholder="e.g. +263 77 123 4567">
+            <input type="text" id="patientPhoneInput" placeholder="e.g. +263 77 000 0000">
         </div>
-        <div class="modal-actions">
-            <button class="btn" style="background:#f1f5f9; color:#475569;" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+        <div class="modal-footer">
+            <button class="btn-action" style="background:#f1f5f9; color:#475569;" onclick="closeModal()">Cancel</button>
+            <button class="btn-action btn-book" onclick="submitBooking()">Confirm Booking →</button>
         </div>
     </div>
 </div>
 
-<div class="toast" id="toast">
-    <span id="toastMsg">Action completed successfully</span>
+<div class="toast-notification" id="toast">
+    <span id="toastMsg">Notification message</span>
 </div>
 
 <script>
@@ -328,7 +401,7 @@
         if (!currentBookingTarget) return;
         const name = document.getElementById("patientNameInput").value.trim();
         const phone = document.getElementById("patientPhoneInput").value.trim();
-        if (!name) return alert("Please enter patient name.");
+        if (!name) return alert("Please enter the patient's full name.");
 
         const { practitioner, slot } = currentBookingTarget;
         const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone };
@@ -336,7 +409,7 @@
         bookingsList.push(booking);
         closeModal();
         renderColumns(therapists);
-        showToast("Booking confirmed for " + name);
+        showToast("Appointment confirmed for " + name);
 
         try {
             await fetch('/api/bookings', {
@@ -376,7 +449,7 @@
         } catch (err) { console.error(err); }
     }
 
-    function filterPractitioners() {
+    function filterTherapists() {
         const query = document.getElementById("searchInput").value.toLowerCase();
         const filtered = therapists.filter(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
         renderColumns(filtered);
@@ -387,43 +460,57 @@
         const app = document.getElementById("app");
         app.innerHTML = "";
         data.forEach(p => {
+            const therapistBookings = bookingsList.filter(b => (b.practitioner === p.name || b.therapist === p.name));
+            const bookedCount = therapistBookings.length;
+            const occupancyPct = Math.round((bookedCount / p.slots.length) * 100);
+
             const card = document.createElement("div");
-            card.className = "p-card";
+            card.className = "therapist-card";
             
             let slotsHTML = "";
             p.slots.forEach(slot => {
-                const booking = bookingsList.find(b => 
-                    (b.practitioner === p.name || b.therapist === p.name) && 
-                    (b.slot === slot || b.time === slot)
-                );
+                const booking = therapistBookings.find(b => (b.slot === slot || b.time === slot));
                 if (booking) {
                     slotsHTML += `
-                        <div class="slot-row is-booked">
+                        <div class="slot-pill booked">
                             <div>
-                                <div class="slot-time">${slot}</div>
-                                <div class="patient-detail"><span class="patient-name-val">👤 ${booking.name}</span> ${booking.phone ? `• 📱 ${booking.phone}` : ''}</div>
+                                <div class="time-label">${slot}</div>
+                                <div class="patient-card-info">
+                                    <span class="patient-name-tag">👤 ${booking.name}</span>
+                                    ${booking.phone ? ` • 📱 ${booking.phone}` : ''}
+                                </div>
                             </div>
-                            <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
+                            <button class="btn-action btn-cancel" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
                         </div>`;
                 } else {
                     slotsHTML += `
-                        <div class="slot-row">
-                            <div class="slot-time">${slot}</div>
-                            <button class="btn btn-primary" onclick="openModal('${p.name}', '${slot}')">+ Book</button>
+                        <div class="slot-pill">
+                            <div class="time-label">${slot}</div>
+                            <button class="btn-action btn-book" onclick="openModal('${p.name}', '${slot}')">+ Book</button>
                         </div>`;
                 }
             });
 
             card.innerHTML = `
-                <div class="p-card-header">
-                    <div class="p-avatar">${p.name.charAt(0)}</div>
-                    <div class="p-meta">
-                        <h3>${p.name}</h3>
-                        <p>${p.role}</p>
+                <div class="card-header">
+                    <div class="header-top">
+                        <div class="avatar-circle">${p.name.charAt(0)}</div>
+                        <div class="profile-meta">
+                            <h3>${p.name}</h3>
+                            <p>${p.role}</p>
+                        </div>
                     </div>
-                    <span class="p-tag">Available</span>
+                    <div class="occupancy-bar-container">
+                        <div class="occupancy-labels">
+                            <span>Capacity</span>
+                            <span>${bookedCount} / ${p.slots.length} Booked (${occupancyPct}%)</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${occupancyPct}%;"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="slots-list">${slotsHTML}</div>`;
+                <div class="slots-body">${slotsHTML}</div>`;
             app.appendChild(card);
         });
     }

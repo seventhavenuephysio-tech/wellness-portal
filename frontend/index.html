@@ -55,7 +55,7 @@
             box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
         }
         .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
-        .brand-text p { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+        .brand-text p { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .nav-stats { display: flex; gap: 12px; }
         .stat-chip {
@@ -247,7 +247,7 @@
         <div class="brand-logo">┼</div>
         <div class="brand-text">
             <h1>The Wellness Centre</h1>
-            <p>Physiotherapy & Rehabilitation Portal</p>
+            <p>PHYSIOTHERAPY BOOKING PORTAL</p>
         </div>
     </div>
     <div class="nav-stats">
@@ -296,9 +296,9 @@
     localStorage.removeItem("saved_therapist_schedules");
 
     const therapists = [
-        { name: "Chido", role: "Senior Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Mispar", role: "Sports Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Tinotenda", role: "Rehab Specialist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
+        { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
+        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
+        { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
     ];
 
     let bookingsList = [];

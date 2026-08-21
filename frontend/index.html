@@ -116,20 +116,26 @@
         let currentBookingTarget = null;
         let selectedDate = new Date().toISOString().split('T')[0];
 
-        function getPatientDirectory() {
-            const directory = {};
-            bookingsList.forEach(b => {
-                const name = (b.name || b.patientName || '').trim().toLowerCase();
-                const phone = b.phone || b.phoneNumber || b.contact || '';
-                if (name && phone) directory[name] = phone;
-            });
-            return directory;
+        // Automatic Phonebook Storage
+        function getSavedDirectory() {
+            try {
+                return JSON.parse(localStorage.getItem("patient_phonebook") || "{}");
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function savePatientToDirectory(name, phone) {
+            if (!name || !phone) return;
+            const dir = getSavedDirectory();
+            dir[name.trim().toLowerCase()] = phone.trim();
+            localStorage.setItem("patient_phonebook", JSON.stringify(dir));
         }
 
         function updatePatientDatalist() {
             const datalist = document.getElementById("patientNamesList");
             if (!datalist) return;
-            const directory = getPatientDirectory();
+            const directory = getSavedDirectory();
             datalist.innerHTML = Object.keys(directory)
                 .map(name => `<option value="${name.replace(/\b\w/g, l => l.toUpperCase())}">`)
                 .join('');
@@ -140,7 +146,7 @@
             const phoneInput = document.getElementById("patientPhoneInput");
             if (!nameInput || !phoneInput) return;
 
-            const directory = getPatientDirectory();
+            const directory = getSavedDirectory();
             if (directory[nameInput]) {
                 phoneInput.value = directory[nameInput];
             }
@@ -189,6 +195,11 @@
             const name = document.getElementById("patientNameInput").value.trim();
             const phone = document.getElementById("patientPhoneInput").value.trim();
             if (!name) return alert("Please enter the patient's full name.");
+
+            // Save phone number automatically for next time
+            if (phone) {
+                savePatientToDirectory(name, phone);
+            }
 
             const { practitioner, slot, date } = currentBookingTarget;
             const booking = { practitioner, slot, name, phone, date };

@@ -99,7 +99,7 @@
         /* Container */
         .main-container { max-width: 1380px; margin: 32px auto; padding: 0 24px; }
 
-        /* Controls / Filter Bar */
+        /* Controls / Filter & Calendar Bar */
         .controls-bar {
             display: flex;
             justify-content: space-between;
@@ -111,9 +111,10 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
             box-shadow: var(--shadow-sm);
+            flex-wrap: wrap;
         }
 
-        .search-wrapper { position: relative; width: 320px; }
+        .search-wrapper { position: relative; width: 280px; }
         .search-wrapper input {
             width: 100%;
             padding: 10px 16px 10px 40px;
@@ -131,13 +132,72 @@
         }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; }
 
-        .date-chip {
+        /* Active Calendar Bar Controls */
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+        }
+
+        .date-picker-wrapper label {
             font-size: 0.85rem;
             font-weight: 700;
             color: var(--text-muted);
             display: flex;
             align-items: center;
             gap: 6px;
+            cursor: pointer;
+        }
+
+        .date-picker-wrapper input[type="date"] {
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: var(--text-dark);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-nav-date {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-nav-date:hover {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border-color: #bae6fd;
+        }
+
+        .date-display-badge {
+            font-size: 0.875rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #bae6fd;
         }
 
         /* Fixed 3-Column Practitioner Grid Layout */
@@ -323,7 +383,7 @@
     </div>
     <div class="nav-widgets">
         <div class="badge-chip"><span class="pulse-indicator"></span> Live System</div>
-        <div class="badge-chip active"><span id="totalBookedCount">0</span> Booked Appointments</div>
+        <div class="badge-chip active"><span id="totalBookedCount">0</span> Booked (Selected Day)</div>
     </div>
 </div>
 
@@ -333,7 +393,17 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="searchInput" placeholder="Search therapist..." onkeyup="filterTherapists()">
         </div>
-        <div class="date-chip">📅 Today's Schedule</div>
+
+        <div class="calendar-controls">
+            <button class="btn-nav-date" onclick="changeDate(-1)">◄ Prev</button>
+            <div class="date-picker-wrapper">
+                <label for="dateSelect">📅</label>
+                <input type="date" id="dateSelect" onchange="onDatePickerChange()">
+            </div>
+            <button class="btn-nav-date" onclick="goToToday()">Today</button>
+            <button class="btn-nav-date" onclick="changeDate(1)">Next ►</button>
+            <div class="date-display-badge" id="dateDisplayLabel"></div>
+        </div>
     </div>
 
     <div id="app" class="therapist-grid"></div>
@@ -344,6 +414,10 @@
         <div class="modal-header">
             <h3 class="modal-title">New Appointment</h3>
             <button class="btn-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="form-field">
+            <label>Selected Date</label>
+            <input type="text" id="modalDateInfo" disabled style="background:#f1f5f9; font-weight:700; color:#0284c7;">
         </div>
         <div class="form-field">
             <label>Therapist & Time Slot</label>
@@ -379,6 +453,44 @@
 
     let bookingsList = [];
     let currentBookingTarget = null;
+    let selectedDate = new Date().toISOString().split('T')[0];
+
+    function initCalendar() {
+        const picker = document.getElementById("dateSelect");
+        picker.value = selectedDate;
+        updateDateLabel();
+    }
+
+    function updateDateLabel() {
+        const dateObj = new Date(selectedDate + "T00:00:00");
+        const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        document.getElementById("dateDisplayLabel").textContent = dateObj.toLocaleDateString('en-US', options);
+    }
+
+    function onDatePickerChange() {
+        const picker = document.getElementById("dateSelect");
+        if (picker.value) {
+            selectedDate = picker.value;
+            updateDateLabel();
+            renderColumns(getFilteredTherapists());
+        }
+    }
+
+    function changeDate(days) {
+        const current = new Date(selectedDate + "T00:00:00");
+        current.setDate(current.getDate() + days);
+        selectedDate = current.toISOString().split('T')[0];
+        document.getElementById("dateSelect").value = selectedDate;
+        updateDateLabel();
+        renderColumns(getFilteredTherapists());
+    }
+
+    function goToToday() {
+        selectedDate = new Date().toISOString().split('T')[0];
+        document.getElementById("dateSelect").value = selectedDate;
+        updateDateLabel();
+        renderColumns(getFilteredTherapists());
+    }
 
     function showToast(msg) {
         const toast = document.getElementById("toast");
@@ -388,7 +500,8 @@
     }
 
     function openModal(practitioner, slot) {
-        currentBookingTarget = { practitioner, slot };
+        currentBookingTarget = { practitioner, slot, date: selectedDate };
+        document.getElementById("modalDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
         document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
         document.getElementById("patientNameInput").value = "";
         document.getElementById("patientPhoneInput").value = "";
@@ -406,12 +519,12 @@
         const phone = document.getElementById("patientPhoneInput").value.trim();
         if (!name) return alert("Please enter the patient's full name.");
 
-        const { practitioner, slot } = currentBookingTarget;
-        const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone };
+        const { practitioner, slot, date } = currentBookingTarget;
+        const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone, date };
         
         bookingsList.push(booking);
         closeModal();
-        renderColumns(therapists);
+        renderColumns(getFilteredTherapists());
         showToast("Appointment confirmed for " + name);
 
         try {
@@ -431,39 +544,45 @@
                 if (Array.isArray(data)) bookingsList = data;
             }
         } catch (e) {}
-        renderColumns(therapists);
+        renderColumns(getFilteredTherapists());
     }
 
     async function cancelBooking(practitioner, slot) {
-        if (!confirm(`Cancel appointment at ${slot} for ${practitioner}?`)) return;
+        if (!confirm(`Cancel appointment on ${selectedDate} at ${slot} for ${practitioner}?`)) return;
         bookingsList = bookingsList.filter(b => !(
             (b.practitioner === practitioner || b.therapist === practitioner) &&
-            (b.slot === slot || b.time === slot)
+            (b.slot === slot || b.time === slot) &&
+            (!b.date || b.date === selectedDate)
         ));
-        renderColumns(therapists);
+        renderColumns(getFilteredTherapists());
         showToast("Appointment canceled.");
 
         try {
             await fetch('/api/bookings/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot })
+                body: JSON.stringify({ practitioner, slot, date: selectedDate })
             });
         } catch (err) { console.error(err); }
     }
 
-    function filterTherapists() {
+    function getFilteredTherapists() {
         const query = document.getElementById("searchInput").value.toLowerCase();
-        const filtered = therapists.filter(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
-        renderColumns(filtered);
+        return therapists.filter(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
+    }
+
+    function filterTherapists() {
+        renderColumns(getFilteredTherapists());
     }
 
     function renderColumns(data) {
-        document.getElementById("totalBookedCount").textContent = bookingsList.length;
+        const dateBookings = bookingsList.filter(b => (!b.date || b.date === selectedDate));
+        document.getElementById("totalBookedCount").textContent = dateBookings.length;
+
         const app = document.getElementById("app");
         app.innerHTML = "";
         data.forEach(p => {
-            const therapistBookings = bookingsList.filter(b => (b.practitioner === p.name || b.therapist === p.name));
+            const therapistBookings = dateBookings.filter(b => (b.practitioner === p.name || b.therapist === p.name));
             const bookedCount = therapistBookings.length;
             const occupancyPct = Math.round((bookedCount / p.slots.length) * 100);
 
@@ -505,7 +624,7 @@
                     </div>
                     <div class="occupancy-bar-container">
                         <div class="occupancy-labels">
-                            <span>Capacity</span>
+                            <span>Daily Capacity</span>
                             <span>${bookedCount} / ${p.slots.length} Booked (${occupancyPct}%)</span>
                         </div>
                         <div class="progress-track">
@@ -518,6 +637,7 @@
         });
     }
 
+    initCalendar();
     loadSlots();
     setInterval(loadSlots, 3000);
 </script>

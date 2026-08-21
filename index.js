@@ -1,28 +1,36 @@
 const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose'); // 1. Import Mongoose
-require('dotenv').config();
-
+const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'frontend')));
 
-// 2. Connect to MongoDB
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wellness-booking';
+let bookings = [];
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('Successfully connected to MongoDB!'))
-  .catch((error) => console.error('MongoDB connection error:', error));
-
-// Basic Route
-app.get('/', (req, res) => {
-  res.send('Wellness Booking API is running and database is connecting!');
+app.get('/api/bookings', (req, res) => {
+    res.json(bookings);
 });
 
-// Start the Server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.post('/api/bookings', (req, res) => {
+    bookings.push(req.body);
+    res.json({ success: true, booking: req.body });
+});
+
+app.post('/api/bookings/cancel', (req, res) => {
+    const { practitioner, slot, time } = req.body;
+    const targetSlot = slot || time;
+    bookings = bookings.filter(b => !(
+        (b.practitioner === practitioner || b.therapist === practitioner) &&
+        (b.slot === targetSlot || b.time === targetSlot)
+    ));
+    res.json({ success: true });
+});
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
 });

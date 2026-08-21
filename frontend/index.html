@@ -424,7 +424,6 @@
     <script>
         localStorage.removeItem("saved_therapist_schedules");
 
-        // 01:00 PM is reserved as Lunch Break for Mispar and Tinotenda
         const therapists = [
             { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"], lunch: [] },
             { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"], lunch: ["01:00 PM"] },
@@ -487,7 +486,6 @@
             setTimeout(() => toast.style.display = "none", 3000);
         }
 
-        // Patient Directory Lookup Map
         function getPatientDirectory() {
             const directory = {};
             bookingsList.forEach(b => {

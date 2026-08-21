@@ -3,282 +3,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wellness Centre</title>
+    <title>The Wellness Centre — Clinical Appointments</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #f1f5f9;
-            --surface: #ffffff;
-            --primary: #0f766e;
-            --primary-hover: #0d9488;
-            --primary-light: #ccfbf1;
-            --text-dark: #0f172a;
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #0f766e;
+            --accent-light: #ccfbf1;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
-            --booked-bg: #f8fafc;
-            --booked-border: #cbd5e1;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --success: #10b981;
-            --radius-lg: 16px;
-            --radius-md: 10px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+            --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08);
+            --radius: 14px;
         }
 
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
-        
-        body { 
-            background-color: var(--bg-main); 
-            margin: 0; 
-            padding: 28px 20px; 
-            display: flex; 
-            justify-content: center; 
-            color: var(--text-dark);
-            min-height: 100vh;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text-main); min-height: 100vh; padding-bottom: 60px; }
 
-        .container { 
-            width: 100%; 
-            max-width: 1320px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 24px; 
-        }
-
-        .header-card {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 20px 28px;
+        .navbar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
         }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-icon {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
-            color: white;
-            border-radius: 12px;
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0284c7, #0f766e);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
-            font-weight: 700;
-            box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
+            color: white;
+            font-weight: 800;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
         }
+        .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+        .brand-text p { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
 
-        .header-title { margin: 0; font-size: 1.4rem; font-weight: 700; color: var(--text-dark); letter-spacing: -0.02em; }
-        .header-sub { margin: 2px 0 0 0; font-size: 0.85rem; color: var(--text-muted); }
-
-        .booked-badge { 
-            background: var(--primary-light); 
-            color: var(--primary); 
-            padding: 8px 16px; 
-            border-radius: 9999px; 
-            font-size: 0.875rem; 
-            font-weight: 700;
+        .nav-stats { display: flex; gap: 12px; }
+        .stat-chip {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+        .stat-chip.highlight { background: var(--primary-light); color: var(--primary-dark); border-color: #bae6fd; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
 
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--primary);
-            border-radius: 50%;
-            box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.4);
-            animation: pulse 2s infinite;
-        }
+        .container { max-width: 1280px; margin: 32px auto; padding: 0 24px; }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.4); }
-            70% { box-shadow: 0 0 0 8px rgba(15, 118, 110, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(15, 118, 110, 0); }
-        }
-
-        .app-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, minmax(0, 1fr)); 
-            gap: 24px; 
-            width: 100%; 
-        }
-
-        @media (max-width: 960px) {
-            .app-grid { grid-template-columns: 1fr; }
-        }
-
-        .card { 
-            background: var(--surface); 
-            border: 1px solid var(--border); 
-            border-radius: var(--radius-lg); 
-            padding: 20px; 
-            box-shadow: var(--shadow-md); 
+        .toolbar {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
             gap: 16px;
         }
+        .search-input {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            width: 280px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
 
-        .practitioner-header { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
+        .practitioner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
         }
 
-        .avatar {
+        .p-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .p-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+        .p-card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .p-avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: #f1f5f9;
-            color: var(--primary);
-            font-weight: 700;
+            background: linear-gradient(135deg, #e0f2fe, #ccfbf1);
+            color: var(--primary-dark);
+            font-weight: 800;
             font-size: 1.1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid var(--primary-light);
-        }
-
-        .practitioner-info { flex: 1; }
-        .practitioner-name { font-weight: 700; font-size: 1.15rem; color: var(--text-dark); margin: 0; }
-        .practitioner-role { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
-
-        .slots-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .slot-card { 
-            border: 1px solid var(--border); 
-            border-radius: var(--radius-md); 
-            padding: 12px 16px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            background: var(--surface);
-            transition: all 0.2s ease;
-        }
-
-        .slot-card:hover {
-            border-color: #cbd5e1;
+            border: 2px solid white;
             box-shadow: var(--shadow-sm);
         }
-
-        .slot-card.booked { 
-            background: var(--booked-bg); 
-            border-color: var(--booked-border); 
+        .p-meta h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .p-meta p { font-size: 0.825rem; color: var(--text-muted); font-weight: 500; }
+        .p-tag {
+            margin-left: auto;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--accent-light);
+            color: var(--accent);
         }
 
-        .slot-time { 
-            font-weight: 600; 
-            font-size: 0.9rem; 
-            color: var(--text-dark); 
-        }
+        .slots-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
 
-        .btn { 
-            padding: 8px 14px; 
-            border-radius: 8px; 
-            border: none; 
-            font-weight: 600; 
-            cursor: pointer; 
-            font-size: 0.825rem; 
+        .slot-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            transition: all 0.15s ease;
+        }
+        .slot-row:hover { border-color: #cbd5e1; background: #f8fafc; }
+        .slot-row.is-booked { background: #f8fafc; border-color: #cbd5e1; }
+
+        .slot-time { font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
+        .patient-detail { margin-top: 2px; font-size: 0.8rem; color: var(--text-muted); }
+        .patient-name-val { font-weight: 600; color: var(--text-main); }
+
+        .btn {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.825rem;
+            cursor: pointer;
             transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-danger { background: #fee2e2; color: #dc2626; }
+        .btn-danger:hover { background: #fca5a5; }
 
-        .btn-book { 
-            background: var(--primary); 
-            color: white; 
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
         }
-
-        .btn-book:hover { 
-            background: var(--primary-hover); 
-            transform: translateY(-1px);
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+            animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
-        .btn-cancel { 
-            background: #fee2e2; 
-            color: var(--danger); 
-            margin-left: 6px; 
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
         }
-
-        .btn-cancel:hover { 
-            background: #fca5a5; 
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); }
+        .close-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
         }
+        .form-control:focus { border-color: var(--primary); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-        .btn-remind { 
-            background: #ecfdf5; 
-            color: #059669; 
-        }
-
-        .btn-remind:hover {
-            background: #d1fae5;
-        }
-
-        .patient-info { 
-            font-size: 0.825rem; 
-            color: var(--text-muted); 
-            margin-top: 4px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 2px; 
-        }
-
-        .patient-name {
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
             font-weight: 600;
-            color: var(--text-dark);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header-card">
-        <div class="brand">
-            <div class="brand-icon">┼</div>
-            <div>
-                <h1 class="header-title">The Wellness Centre</h1>
-                <p class="header-sub">Physiotherapy Appointments & Practitioner Schedules</p>
-            </div>
-        </div>
-        <div class="booked-badge">
-            <span class="pulse-dot"></span>
-            <span id="totalBookedCount">0</span> Appointments Booked
+<div class="navbar">
+    <div class="brand">
+        <div class="brand-logo">┼</div>
+        <div class="brand-text">
+            <h1>The Wellness Centre</h1>
+            <p>Physiotherapy & Rehabilitation Portal</p>
         </div>
     </div>
-    <div id="app" class="app-grid"></div>
+    <div class="nav-stats">
+        <div class="stat-chip"><span class="dot"></span> Live Portal</div>
+        <div class="stat-chip highlight"><span id="totalBookedCount">0</span> Appointments Scheduled</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="toolbar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search practitioner..." onkeyup="filterPractitioners()">
+    </div>
+    <div id="app" class="practitioner-grid"></div>
+</div>
+
+<div class="modal-overlay" id="bookingModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Book Appointment</h3>
+            <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Practitioner & Slot</label>
+            <input type="text" id="modalSlotInfo" class="form-control" disabled style="background:#f1f5f9;">
+        </div>
+        <div class="form-group">
+            <label>Patient Full Name</label>
+            <input type="text" id="patientNameInput" class="form-control" placeholder="e.g. John Doe">
+        </div>
+        <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" id="patientPhoneInput" class="form-control" placeholder="e.g. +263 77 123 4567">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" style="background:#f1f5f9; color:#475569;" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">
+    <span id="toastMsg">Action completed successfully</span>
 </div>
 
 <script>
     localStorage.removeItem("saved_therapist_schedules");
 
     const therapists = [
-        { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
-        { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
+        { name: "Chido", role: "Senior Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
+        { name: "Mispar", role: "Sports Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] },
+        { name: "Tinotenda", role: "Rehab Specialist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"] }
     ];
 
     let bookingsList = [];
+    let currentBookingTarget = null;
 
-    function updateBookingCount() {
-        document.getElementById("totalBookedCount").textContent = bookingsList.length;
+    function showToast(msg) {
+        const toast = document.getElementById("toast");
+        document.getElementById("toastMsg").textContent = msg;
+        toast.style.display = "flex";
+        setTimeout(() => toast.style.display = "none", 3000);
+    }
+
+    function openModal(practitioner, slot) {
+        currentBookingTarget = { practitioner, slot };
+        document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
+        document.getElementById("patientNameInput").value = "";
+        document.getElementById("patientPhoneInput").value = "";
+        document.getElementById("bookingModal").classList.add("active");
+    }
+
+    function closeModal() {
+        document.getElementById("bookingModal").classList.remove("active");
+        currentBookingTarget = null;
+    }
+
+    async function submitBooking() {
+        if (!currentBookingTarget) return;
+        const name = document.getElementById("patientNameInput").value.trim();
+        const phone = document.getElementById("patientPhoneInput").value.trim();
+        if (!name) return alert("Please enter patient name.");
+
+        const { practitioner, slot } = currentBookingTarget;
+        const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone };
+        
+        bookingsList.push(booking);
+        closeModal();
+        renderColumns(therapists);
+        showToast("Booking confirmed for " + name);
+
+        try {
+            await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(booking)
+            });
+        } catch (err) { console.error(err); }
     }
 
     async function loadSlots() {
@@ -292,33 +358,14 @@
         renderColumns(therapists);
     }
 
-    async function bookSlot(practitioner, slot) {
-        const name = prompt("Enter Patient Name:");
-        if (!name) return;
-        const phone = prompt("Enter Phone Number:") || "";
-        const booking = { practitioner, therapist: practitioner, slot, time: slot, name, phone };
-        
-        bookingsList.push(booking);
-        renderColumns(therapists);
-
-        try {
-            await fetch('/api/bookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(booking)
-            });
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
     async function cancelBooking(practitioner, slot) {
-        if (!confirm("Cancel booking at " + slot + " for " + practitioner + "?")) return;
+        if (!confirm(`Cancel appointment at ${slot} for ${practitioner}?`)) return;
         bookingsList = bookingsList.filter(b => !(
             (b.practitioner === practitioner || b.therapist === practitioner) &&
             (b.slot === slot || b.time === slot)
         ));
         renderColumns(therapists);
+        showToast("Appointment canceled.");
 
         try {
             await fetch('/api/bookings/cancel', {
@@ -326,18 +373,22 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ practitioner, slot })
             });
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
+    }
+
+    function filterPractitioners() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const filtered = therapists.filter(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
+        renderColumns(filtered);
     }
 
     function renderColumns(data) {
-        updateBookingCount();
+        document.getElementById("totalBookedCount").textContent = bookingsList.length;
         const app = document.getElementById("app");
         app.innerHTML = "";
         data.forEach(p => {
             const card = document.createElement("div");
-            card.className = "card";
+            card.className = "p-card";
             
             let slotsHTML = "";
             p.slots.forEach(slot => {
@@ -347,39 +398,32 @@
                 );
                 if (booking) {
                     slotsHTML += `
-                        <div class="slot-card booked">
+                        <div class="slot-row is-booked">
                             <div>
                                 <div class="slot-time">${slot}</div>
-                                <div class="patient-info">
-                                    <span class="patient-name">👤 ${booking.name}</span>
-                                    ${booking.phone ? `<span>📱 ${booking.phone}</span>` : ''}
-                                </div>
+                                <div class="patient-detail"><span class="patient-name-val">👤 ${booking.name}</span> ${booking.phone ? `• 📱 ${booking.phone}` : ''}</div>
                             </div>
-                            <div>
-                                <button class="btn btn-remind">Remind</button>
-                                <button class="btn btn-cancel" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
-                            </div>
+                            <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
                         </div>`;
                 } else {
                     slotsHTML += `
-                        <div class="slot-card">
+                        <div class="slot-row">
                             <div class="slot-time">${slot}</div>
-                            <button class="btn btn-book" onclick="bookSlot('${p.name}', '${slot}')">+ Book Slot</button>
+                            <button class="btn btn-primary" onclick="openModal('${p.name}', '${slot}')">+ Book</button>
                         </div>`;
                 }
             });
 
             card.innerHTML = `
-                <div class="practitioner-header">
-                    <div class="avatar">${p.name.charAt(0)}</div>
-                    <div class="practitioner-info">
-                        <h3 class="practitioner-name">${p.name}</h3>
-                        <div class="practitioner-role">${p.role}</div>
+                <div class="p-card-header">
+                    <div class="p-avatar">${p.name.charAt(0)}</div>
+                    <div class="p-meta">
+                        <h3>${p.name}</h3>
+                        <p>${p.role}</p>
                     </div>
+                    <span class="p-tag">Available</span>
                 </div>
-                <div class="slots-container">
-                    ${slotsHTML}
-                </div>`;
+                <div class="slots-list">${slotsHTML}</div>`;
             app.appendChild(card);
         });
     }

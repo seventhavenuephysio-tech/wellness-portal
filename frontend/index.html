@@ -294,7 +294,9 @@
             document.getElementById("blockDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
             const select = document.getElementById("blockTherapistSelect");
             select.innerHTML = '<option value="ALL">ALL Practitioners</option>';
-            therapists.forEach(p => { select.innerHTML += `<option value="${p.name}">${p.name} (${p.role})</option>`; });
+            therapists.forEach(p => { 
+                select.innerHTML += `<option value="${p.name}">${p.name} (${p.role})</option>`; 
+            });
             document.getElementById("globalBlockReason").value = "Away";
             document.getElementById("globalBlockModal").classList.add("active");
         }
@@ -307,17 +309,30 @@
             const slotSelection = document.getElementById("blockTimeSelect").value;
             const target = document.getElementById("blockTherapistSelect").value;
             const reason = document.getElementById("globalBlockReason").value.trim() || "Away";
-            const targetTherapists = target === "ALL" ? therapists : therapists.filter(p => p.name === target);
 
-            for (let p of targetTherapists) {
+            const targetTherapists = target === "ALL" 
+                ? therapists 
+                : therapists.filter(p => p.name.toLowerCase() === target.toLowerCase());
+
+            const requests = [];
+
+            for (const p of targetTherapists) {
                 const slotsToBlock = slotSelection === "ALL_DAY" ? p.slots : [slotSelection];
-                for (let slot of slotsToBlock) {
-                    await fetch(`${API_URL}/blocks`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ practitioner: p.name, slot, date: selectedDate, reason })
-                    });
+                for (const slot of slotsToBlock) {
+                    requests.push(
+                        fetch(`${API_URL}/blocks`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ practitioner: p.name, slot, date: selectedDate, reason })
+                        })
+                    );
                 }
+            }
+
+            try {
+                await Promise.all(requests);
+            } catch (err) {
+                console.error("Failed to block slots:", err);
             }
 
             closeGlobalBlockModal();

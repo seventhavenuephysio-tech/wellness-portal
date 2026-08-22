@@ -3,78 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seventh Avenue Physio - Wellness Portal</title>
+    <title>Seventh Avenue Physio — Appointment Portal</title>
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg: #f8fafc;
+            --brand-primary: #0f172a;
+            --brand-accent: #0d9488;
+            --brand-accent-hover: #0f766e;
+            --bg-main: #f1f5f9;
             --card-bg: #ffffff;
-            --border: #e2e8f0;
-            --text: #0f172a;
+            --border-color: #cbd5e1;
+            --text-main: #1e293b;
             --text-muted: #64748b;
-            --booked-bg: #f1f5f9;
-            --lunch-bg: #fff7ed;
-            --lunch-text: #c2410c;
-            --blocked-bg: #fef2f2;
-            --blocked-text: #991b1b;
-            --danger: #ef4444;
+            
+            --status-booked-bg: #eff6ff;
+            --status-booked-text: #1e40af;
+            --status-booked-border: #bfdbfe;
+            
+            --status-lunch-bg: #fff7ed;
+            --status-lunch-text: #c2410c;
+            --status-lunch-border: #fed7aa;
+            
+            --status-blocked-bg: #fef2f2;
+            --status-blocked-text: #991b1b;
+            --status-blocked-border: #fecaca;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding: 20px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 24px; min-height: 100vh; }
 
         header {
-            max-width: 1200px; margin: 0 auto 20px auto; display: flex; flex-wrap: wrap;
-            justify-content: space-between; align-items: center; gap: 15px;
-            background: var(--card-bg); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border);
+            max-width: 1280px; margin: 0 auto 24px auto;
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;
+            background: var(--card-bg); padding: 18px 28px; border-radius: 16px; border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
         }
 
-        .brand-title { font-size: 1.25rem; font-weight: 700; }
+        .brand-title { display: flex; align-items: center; gap: 10px; font-size: 1.35rem; font-weight: 700; color: var(--brand-primary); letter-spacing: -0.02em; }
+        .brand-icon { background: var(--brand-accent); color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+
         .controls-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
         .btn {
-            background: var(--primary); color: white; border: none; padding: 8px 14px;
-            border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.875rem;
+            background: var(--brand-accent); color: white; border: none; padding: 9px 16px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.875rem;
+            transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
         }
-        .btn:hover { background: var(--primary-hover); }
-        .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); cursor: pointer; }
-        .btn-outline:hover { background: #f1f5f9; }
-        .btn-danger-outline { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; cursor: pointer; }
-        .btn-danger-outline:hover { background: #fee2e2; }
+        .btn:hover { background: var(--brand-accent-hover); transform: translateY(-1px); }
+        
+        .btn-outline { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; transform: none; }
+        
+        .btn-danger-outline { background: #ffffff; color: #dc2626; border: 1px solid #fca5a5; }
+        .btn-danger-outline:hover { background: #fef2f2; border-color: #dc2626; transform: none; }
 
         input[type="date"], input[type="text"], input[type="tel"], select {
-            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.875rem; outline: none;
+            padding: 9px 14px; border: 1px solid var(--border-color); border-radius: 8px;
+            font-size: 0.875rem; outline: none; background: #ffffff; color: var(--text-main);
+            transition: border-color 0.2s;
+        }
+        input[type="date"]:focus, input[type="text"]:focus, input[type="tel"]:focus, select:focus {
+            border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
 
-        .app-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-        .therapist-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-        .header-top { display: flex; align-items: center; gap: 12px; }
-        .avatar-circle { width: 44px; height: 44px; border-radius: 50%; background: #dbeafe; color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .app-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+        .therapist-card {
+            background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: var(--shadow-sm);
+        }
 
-        .slots-body { display: flex; flex-direction: column; gap: 8px; }
-        .slot-pill { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
-        .slot-pill.booked { background: var(--booked-bg); }
-        .slot-pill.lunch { background: var(--lunch-bg); border-color: #fed7aa; }
-        .slot-pill.blocked { background: var(--blocked-bg); border-color: #fecaca; color: var(--blocked-text); }
+        .header-top { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
+        .avatar-circle {
+            width: 48px; height: 48px; border-radius: 12px; background: #e0f2fe; color: #0284c7;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;
+        }
+        .therapist-info h3 { font-size: 1.1rem; font-weight: 700; color: var(--brand-primary); }
+        .therapist-info p { font-size: 0.825rem; color: var(--text-muted); font-weight: 500; }
+
+        .slots-body { display: flex; flex-direction: column; gap: 10px; }
+        .slot-pill {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: #ffffff;
+            transition: border-color 0.15s;
+        }
+        .slot-pill:hover { border-color: #cbd5e1; }
+        .slot-pill.booked { background: var(--status-booked-bg); border-color: var(--status-booked-border); color: var(--status-booked-text); }
+        .slot-pill.lunch { background: var(--status-lunch-bg); border-color: var(--status-lunch-border); color: var(--status-lunch-text); }
+        .slot-pill.blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-border); color: var(--status-blocked-text); }
+
+        .time-text { font-size: 0.9rem; font-weight: 600; }
+        .status-badge { font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
 
         .closed-banner {
             grid-column: 1 / -1; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;
-            border-radius: 12px; padding: 40px; text-align: center; font-size: 1.2rem; font-weight: 600;
+            border-radius: 16px; padding: 48px; text-align: center; font-size: 1.25rem; font-weight: 600;
         }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+            justify-content: center; align-items: center; z-index: 1000;
+        }
         .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
+        .modal-content {
+            background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px;
+            display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-md);
+        }
         .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-        .btn-sm { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; background: white; }
+        .form-group label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; background: white; font-weight: 600; }
+        .btn-sm:hover { background: #f8fafc; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="brand-title">🏥 Seventh Avenue Physio</div>
+        <div class="brand-title">
+            <div class="brand-icon">✚</div>
+            Seventh Avenue Physio
+        </div>
         <div class="controls-group">
             <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
             <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
@@ -83,7 +132,7 @@
             <button class="btn btn-outline" onclick="goToToday()">Today</button>
             <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
             <input type="date" id="dateSelect" onchange="onDatePickerChange()">
-            <span id="dateDisplayLabel" style="font-weight: 600; min-width: 150px;"></span>
+            <span id="dateDisplayLabel" style="font-weight: 700; min-width: 150px; color: var(--brand-primary);"></span>
         </div>
     </header>
 
@@ -92,14 +141,14 @@
     <!-- BOOKING MODAL -->
     <div id="bookingModal" class="modal">
         <div class="modal-content">
-            <h3 style="font-size: 1.15rem;">Book Appointment</h3>
+            <h3 style="font-size: 1.2rem; color: var(--brand-primary); font-weight: 700;">Book Appointment</h3>
             <div class="form-group">
                 <label>Date</label>
-                <input type="text" id="modalDateInfo" readonly style="background: #f1f5f9;">
+                <input type="text" id="modalDateInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
             </div>
             <div class="form-group">
                 <label>Practitioner & Slot</label>
-                <input type="text" id="modalSlotInfo" readonly style="background: #f1f5f9;">
+                <input type="text" id="modalSlotInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
             </div>
             <div class="form-group">
                 <label>Patient Full Name</label>
@@ -110,7 +159,7 @@
                 <label>Phone Number</label>
                 <input type="tel" id="patientPhoneInput" placeholder="e.g. +263771234567">
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                 <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
                 <button class="btn" onclick="submitBooking()">Confirm Booking</button>
             </div>
@@ -120,10 +169,10 @@
     <!-- GLOBAL BLOCK TIME MODAL -->
     <div id="globalBlockModal" class="modal">
         <div class="modal-content">
-            <h3 style="font-size: 1.15rem; color: #991b1b;">🚫 Block Time Slot</h3>
+            <h3 style="font-size: 1.2rem; color: #991b1b; font-weight: 700;">🚫 Block Time Slot</h3>
             <div class="form-group">
                 <label>Date</label>
-                <input type="text" id="blockDateInfo" readonly style="background: #f1f5f9;">
+                <input type="text" id="blockDateInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
             </div>
             <div class="form-group">
                 <label>Select Time Slot</label>
@@ -147,9 +196,9 @@
                 <label>Reason / Note</label>
                 <input type="text" id="globalBlockReason" placeholder="e.g. Away, Leave, Staff Meeting">
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                 <button class="btn btn-outline" onclick="closeGlobalBlockModal()">Cancel</button>
-                <button class="btn btn-danger-outline" style="background: #ef4444; color: white;" onclick="submitGlobalBlock()">Confirm Block</button>
+                <button class="btn" style="background: #dc2626;" onclick="submitGlobalBlock()">Confirm Block</button>
             </div>
         </div>
     </div>
@@ -173,7 +222,7 @@
                 const res = await fetch(`${API_URL}/schedule`);
                 const data = await res.json();
                 bookingsList = data.bookings || [];
-                blockedSlotsList = data.blocks || data.blockedSlots || [];
+                blockedSlotsList = data.blocks || [];
                 renderColumns();
             } catch (e) {
                 console.error("Error connecting to server:", e);
@@ -305,21 +354,6 @@
             document.getElementById("globalBlockModal").classList.remove("active");
         }
 
-        async function sendBlockRequest(payload) {
-            let response = await fetch(`${API_URL}/block`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-                await fetch(`${API_URL}/blocks`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-            }
-        }
-
         async function submitGlobalBlock() {
             const slotSelection = document.getElementById("blockTimeSelect").value;
             const target = document.getElementById("blockTherapistSelect").value;
@@ -334,42 +368,32 @@
             for (const p of targetTherapists) {
                 const slotsToBlock = slotSelection === "ALL_DAY" ? p.slots : [slotSelection];
                 for (const slot of slotsToBlock) {
-                    const payload = {
-                        therapist: p.name,
-                        practitioner: p.name,
-                        slot: slot,
-                        time: slot,
-                        date: selectedDate,
-                        reason: reason
-                    };
-                    requests.push(sendBlockRequest(payload));
+                    requests.push(
+                        fetch(`${API_URL}/block`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                practitioner: p.name,
+                                slot: slot,
+                                date: selectedDate,
+                                reason: reason
+                            })
+                        })
+                    );
                 }
             }
 
-            try {
-                await Promise.all(requests);
-            } catch (err) {
-                console.error("Failed to block slots:", err);
-            }
-
+            try { await Promise.all(requests); } catch (err) { console.error(err); }
             closeGlobalBlockModal();
             fetchSchedule();
         }
 
         async function unblockSlot(practitioner, slot) {
-            const payload = { therapist: practitioner, practitioner, slot, time: slot, date: selectedDate };
-            let response = await fetch(`${API_URL}/block`, {
+            await fetch(`${API_URL}/block`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ practitioner, slot, date: selectedDate })
             });
-            if (!response.ok) {
-                await fetch(`${API_URL}/blocks`, {
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-            }
             fetchSchedule();
         }
 
@@ -377,7 +401,7 @@
             await fetch(`${API_URL}/bookings`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, therapist: practitioner, slot, time: slot, date: selectedDate })
+                body: JSON.stringify({ practitioner, slot, date: selectedDate })
             });
             fetchSchedule();
         }
@@ -395,7 +419,7 @@
             await fetch(`${API_URL}/bookings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, therapist: practitioner, slot, time: slot, name, phone, date })
+                body: JSON.stringify({ practitioner, slot, name, phone, date })
             });
 
             closeModal();
@@ -429,35 +453,31 @@
 
                 p.slots.forEach(slot => {
                     if (p.lunch && p.lunch.includes(slot)) {
-                        slotsHTML += `<div class="slot-pill lunch"><span class="time-label">${slot}</span><span style="font-size:0.8rem; color:var(--lunch-text);">🍱 Lunch</span></div>`;
+                        slotsHTML += `<div class="slot-pill lunch"><span class="time-text">${slot}</span><span class="status-badge">🍱 Lunch Break</span></div>`;
                         return;
                     }
 
                     const isBlocked = dateBlocks.find(b => 
-                        ((b.practitioner && b.practitioner.toLowerCase() === p.name.toLowerCase()) || 
-                         (b.therapist && b.therapist.toLowerCase() === p.name.toLowerCase())) && 
-                        (b.slot === slot || b.time === slot)
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() && b.slot === slot
                     );
 
                     if (isBlocked) {
-                        slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason || 'Away'}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
+                        slotsHTML += `<div class="slot-pill blocked"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">🚫 ${isBlocked.reason || 'Away'}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
                         return;
                     }
 
                     const booking = dateBookings.find(b => 
-                        ((b.practitioner && b.practitioner.toLowerCase() === p.name.toLowerCase()) || 
-                         (b.therapist && b.therapist.toLowerCase() === p.name.toLowerCase())) && 
-                        (b.slot === slot || b.time === slot)
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() && b.slot === slot
                     );
 
                     if (booking) {
-                        slotsHTML += `<div class="slot-pill booked"><div><strong>${slot}</strong><br><small>👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
+                        slotsHTML += `<div class="slot-pill booked"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
                     } else {
-                        slotsHTML += `<div class="slot-pill"><span>${slot}</span><button class="btn-action btn-book" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
+                        slotsHTML += `<div class="slot-pill"><span class="time-text">${slot}</span><button class="btn-sm" style="border-color:var(--brand-accent); color:var(--brand-accent);" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
                     }
                 });
 
-                card.innerHTML = `<div class="header-top"><div class="avatar-circle">${p.name.charAt(0)}</div><div><h3>${p.name}</h3><p>${p.role}</p></div></div><div class="slots-body">${slotsHTML}</div>`;
+                card.innerHTML = `<div class="header-top"><div class="avatar-circle">${p.name.charAt(0)}</div><div class="therapist-info"><h3>${p.name}</h3><p>${p.role}</p></div></div><div class="slots-body">${slotsHTML}</div>`;
                 app.appendChild(card);
             });
         }

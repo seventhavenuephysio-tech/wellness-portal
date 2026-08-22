@@ -40,7 +40,8 @@
         .btn:hover { background: var(--primary-hover); }
         .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
         .btn-outline:hover { background: #f1f5f9; }
-        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger-outline { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .btn-danger-outline:hover { background: #fee2e2; }
 
         input[type="date"], input[type="text"], input[type="tel"], select {
             padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.875rem; outline: none;
@@ -74,10 +75,7 @@
         .modal-content { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-        .slot-actions { display: flex; gap: 6px; }
-        .btn-sm { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; }
-        .btn-block-slot { background: #fee2e2; color: #991b1b; }
-        .btn-block-slot:hover { background: #fca5a5; }
+        .btn-sm { padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; background: white; }
     </style>
 </head>
 <body>
@@ -87,6 +85,7 @@
         <div class="controls-group">
             <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
             <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
+            <button class="btn btn-danger-outline" onclick="openGlobalBlockModal()">🚫 Block Time</button>
             <button class="btn btn-outline" onclick="changeDate(-1)">◀</button>
             <button class="btn btn-outline" onclick="goToToday()">Today</button>
             <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
@@ -125,28 +124,38 @@
         </div>
     </div>
 
-    <!-- BLOCK SLOT MODAL -->
-    <div id="blockModal" class="modal">
+    <!-- GLOBAL BLOCK TIME MODAL -->
+    <div id="globalBlockModal" class="modal">
         <div class="modal-content">
             <h3 style="font-size: 1.15rem; color: #991b1b;">🚫 Block Time Slot</h3>
             <div class="form-group">
-                <label>Date & Time Slot</label>
-                <input type="text" id="blockSlotInfo" readonly style="background: #f1f5f9;">
+                <label>Date</label>
+                <input type="text" id="blockDateInfo" readonly style="background: #f1f5f9;">
             </div>
             <div class="form-group">
-                <label>Apply Block To</label>
-                <select id="blockTargetSelect">
-                    <option value="single">This Practitioner Only</option>
-                    <option value="all">ALL Practitioners</option>
+                <label>Select Time Slot</label>
+                <select id="blockTimeSelect">
+                    <option value="08:00 AM">08:00 AM</option>
+                    <option value="09:00 AM">09:00 AM</option>
+                    <option value="10:00 AM">10:00 AM</option>
+                    <option value="11:00 AM">11:00 AM</option>
+                    <option value="12:00 PM">12:00 PM</option>
+                    <option value="01:00 PM">01:00 PM</option>
+                    <option value="02:00 PM">02:00 PM</option>
+                    <option value="03:00 PM">03:00 PM</option>
                 </select>
             </div>
             <div class="form-group">
+                <label>Apply Block To</label>
+                <select id="blockTherapistSelect"></select>
+            </div>
+            <div class="form-group">
                 <label>Reason / Note</label>
-                <input type="text" id="blockReasonInput" placeholder="e.g. Meeting, Out of Office, Reserved">
+                <input type="text" id="globalBlockReason" placeholder="e.g. Staff Meeting, Out of Office">
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
-                <button class="btn btn-outline" onclick="closeBlockModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="confirmBlockSlot()">Block Slot</button>
+                <button class="btn btn-outline" onclick="closeGlobalBlockModal()">Cancel</button>
+                <button class="btn btn-danger-outline" style="background: #ef4444; color: white;" onclick="submitGlobalBlock()">Confirm Block</button>
             </div>
         </div>
     </div>
@@ -159,9 +168,8 @@
         ];
 
         let bookingsList = [];
-        let blockedSlotsList = []; // { practitioner, slot, date, reason }
+        let blockedSlotsList = [];
         let currentBookingTarget = null;
-        let currentBlockTarget = null;
         let selectedDate = new Date().toISOString().split('T')[0];
 
         function getSavedDirectory() {
@@ -323,33 +331,35 @@
             currentBookingTarget = null;
         }
 
-        function openBlockModal(practitioner, slot) {
-            currentBlockTarget = { practitioner, slot, date: selectedDate };
-            document.getElementById("blockSlotInfo").value = `${slot} (${document.getElementById("dateDisplayLabel").textContent})`;
-            document.getElementById("blockReasonInput").value = "Blocked";
-            document.getElementById("blockModal").classList.add("active");
+        function openGlobalBlockModal() {
+            document.getElementById("blockDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
+            const select = document.getElementById("blockTherapistSelect");
+            select.innerHTML = '<option value="ALL">ALL Practitioners</option>';
+            therapists.forEach(p => {
+                select.innerHTML += `<option value="${p.name}">${p.name} (${p.role})</option>`;
+            });
+            document.getElementById("globalBlockReason").value = "Blocked";
+            document.getElementById("globalBlockModal").classList.add("active");
         }
 
-        function closeBlockModal() {
-            document.getElementById("blockModal").classList.remove("active");
-            currentBlockTarget = null;
+        function closeGlobalBlockModal() {
+            document.getElementById("globalBlockModal").classList.remove("active");
         }
 
-        function confirmBlockSlot() {
-            if (!currentBlockTarget) return;
-            const targetType = document.getElementById("blockTargetSelect").value;
-            const reason = document.getElementById("blockReasonInput").value.trim() || "Blocked";
-            const { practitioner, slot, date } = currentBlockTarget;
+        function submitGlobalBlock() {
+            const slot = document.getElementById("blockTimeSelect").value;
+            const target = document.getElementById("blockTherapistSelect").value;
+            const reason = document.getElementById("globalBlockReason").value.trim() || "Blocked";
 
-            if (targetType === "all") {
+            if (target === "ALL") {
                 therapists.forEach(p => {
-                    blockedSlotsList.push({ practitioner: p.name, slot, date, reason });
+                    blockedSlotsList.push({ practitioner: p.name, slot, date: selectedDate, reason });
                 });
             } else {
-                blockedSlotsList.push({ practitioner, slot, date, reason });
+                blockedSlotsList.push({ practitioner: target, slot, date: selectedDate, reason });
             }
 
-            closeBlockModal();
+            closeGlobalBlockModal();
             renderColumns();
         }
 
@@ -409,7 +419,7 @@
 
                     const isBlocked = dateBlocks.find(b => b.practitioner === p.name && b.slot === slot);
                     if (isBlocked) {
-                        slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason}</small></div><button class="btn-sm btn-outline" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
+                        slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
                         return;
                     }
 
@@ -417,7 +427,7 @@
                     if (booking) {
                         slotsHTML += `<div class="slot-pill booked"><div><strong>${slot}</strong><br><small>👤 ${booking.name}</small></div></div>`;
                     } else {
-                        slotsHTML += `<div class="slot-pill"><span>${slot}</span><div class="slot-actions"><button class="btn-sm btn-block-slot" onclick="openBlockModal('${p.name}', '${slot}')">🚫 Block</button><button class="btn-action btn-book" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div></div>`;
+                        slotsHTML += `<div class="slot-pill"><span>${slot}</span><button class="btn-action btn-book" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
                     }
                 });
 

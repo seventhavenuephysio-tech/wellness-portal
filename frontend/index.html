@@ -305,6 +305,21 @@
             document.getElementById("globalBlockModal").classList.remove("active");
         }
 
+        async function sendBlockRequest(payload) {
+            let response = await fetch(`${API_URL}/block`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                await fetch(`${API_URL}/blocks`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+            }
+        }
+
         async function submitGlobalBlock() {
             const slotSelection = document.getElementById("blockTimeSelect").value;
             const target = document.getElementById("blockTherapistSelect").value;
@@ -319,13 +334,15 @@
             for (const p of targetTherapists) {
                 const slotsToBlock = slotSelection === "ALL_DAY" ? p.slots : [slotSelection];
                 for (const slot of slotsToBlock) {
-                    requests.push(
-                        fetch(`${API_URL}/blocks`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ practitioner: p.name, slot, date: selectedDate, reason })
-                        })
-                    );
+                    const payload = {
+                        therapist: p.name,
+                        practitioner: p.name,
+                        slot: slot,
+                        time: slot,
+                        date: selectedDate,
+                        reason: reason
+                    };
+                    requests.push(sendBlockRequest(payload));
                 }
             }
 
@@ -340,11 +357,19 @@
         }
 
         async function unblockSlot(practitioner, slot) {
-            await fetch(`${API_URL}/blocks`, {
+            const payload = { therapist: practitioner, practitioner, slot, time: slot, date: selectedDate };
+            let response = await fetch(`${API_URL}/block`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, date: selectedDate })
+                body: JSON.stringify(payload)
             });
+            if (!response.ok) {
+                await fetch(`${API_URL}/blocks`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+            }
             fetchSchedule();
         }
 
@@ -352,7 +377,7 @@
             await fetch(`${API_URL}/bookings`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, date: selectedDate })
+                body: JSON.stringify({ practitioner, therapist: practitioner, slot, time: slot, date: selectedDate })
             });
             fetchSchedule();
         }
@@ -370,7 +395,7 @@
             await fetch(`${API_URL}/bookings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, name, phone, date })
+                body: JSON.stringify({ practitioner, therapist: practitioner, slot, time: slot, name, phone, date })
             });
 
             closeModal();
@@ -408,13 +433,23 @@
                         return;
                     }
 
-                    const isBlocked = dateBlocks.find(b => (b.practitioner === p.name || b.therapist === p.name) && b.slot === slot);
+                    const isBlocked = dateBlocks.find(b => 
+                        ((b.practitioner && b.practitioner.toLowerCase() === p.name.toLowerCase()) || 
+                         (b.therapist && b.therapist.toLowerCase() === p.name.toLowerCase())) && 
+                        (b.slot === slot || b.time === slot)
+                    );
+
                     if (isBlocked) {
-                        slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
+                        slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason || 'Away'}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
                         return;
                     }
 
-                    const booking = dateBookings.find(b => b.practitioner === p.name && b.slot === slot);
+                    const booking = dateBookings.find(b => 
+                        ((b.practitioner && b.practitioner.toLowerCase() === p.name.toLowerCase()) || 
+                         (b.therapist && b.therapist.toLowerCase() === p.name.toLowerCase())) && 
+                        (b.slot === slot || b.time === slot)
+                    );
+
                     if (booking) {
                         slotsHTML += `<div class="slot-pill booked"><div><strong>${slot}</strong><br><small>👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
                     } else {

@@ -68,6 +68,14 @@
             border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
 
+        .today-badge {
+            background: #dcfce7; color: #15803d; border: 1px solid #86efac;
+            font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 12px;
+            letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; display: inline-block;
+        }
+
+        .search-box { width: 200px; }
+
         .app-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
         .therapist-card {
             background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px;
@@ -86,12 +94,19 @@
         .slot-pill {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: #ffffff;
-            transition: border-color 0.15s;
+            transition: all 0.2s ease;
         }
         .slot-pill:hover { border-color: #cbd5e1; }
         .slot-pill.booked { background: var(--status-booked-bg); border-color: var(--status-booked-border); color: var(--status-booked-text); }
         .slot-pill.lunch { background: var(--status-lunch-bg); border-color: var(--status-lunch-border); color: var(--status-lunch-text); }
         .slot-pill.blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-border); color: var(--status-blocked-text); }
+
+        .slot-pill.highlighted {
+            border: 2px solid #2563eb !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+            transform: scale(1.02);
+        }
+        .slot-pill.dimmed { opacity: 0.35; }
 
         .time-text { font-size: 0.9rem; font-weight: 600; }
         .status-badge { font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
@@ -125,6 +140,7 @@
             The Wellness Centre
         </div>
         <div class="controls-group">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search patient..." oninput="renderColumns()">
             <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
             <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
             <button class="btn btn-danger-outline" onclick="openGlobalBlockModal()">🚫 Block Time</button>
@@ -132,7 +148,10 @@
             <button class="btn btn-outline" onclick="goToToday()">Today</button>
             <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
             <input type="date" id="dateSelect" onchange="onDatePickerChange()">
-            <span id="dateDisplayLabel" style="font-weight: 700; min-width: 150px; color: var(--brand-primary);"></span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <span id="dateDisplayLabel" style="font-weight: 700; color: var(--brand-primary);"></span>
+                <span id="todayBadge" class="today-badge" style="display: none;">TODAY</span>
+            </div>
         </div>
     </header>
 
@@ -303,8 +322,17 @@
 
         function updateDateLabel() {
             const dateObj = new Date(selectedDate + "T00:00:00");
+            const todayStr = new Date().toISOString().split('T')[0];
+
             document.getElementById("dateDisplayLabel").textContent = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
             document.getElementById("dateSelect").value = selectedDate;
+
+            const badge = document.getElementById("todayBadge");
+            if (selectedDate === todayStr) {
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
         }
 
         function onDatePickerChange() {
@@ -436,6 +464,7 @@
         function renderColumns() {
             const dateObj = new Date(selectedDate + "T00:00:00");
             const app = document.getElementById("app");
+            const query = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
             app.innerHTML = "";
 
             if (dateObj.getDay() === 0) {
@@ -471,9 +500,13 @@
                     );
 
                     if (booking) {
-                        slotsHTML += `<div class="slot-pill booked"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
+                        const matchesSearch = query !== "" && booking.name.toLowerCase().includes(query);
+                        const searchClass = query !== "" ? (matchesSearch ? "highlighted" : "dimmed") : "";
+
+                        slotsHTML += `<div class="slot-pill booked ${searchClass}"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
                     } else {
-                        slotsHTML += `<div class="slot-pill"><span class="time-text">${slot}</span><button class="btn-sm" style="border-color:var(--brand-accent); color:var(--brand-accent);" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
+                        const searchClass = query !== "" ? "dimmed" : "";
+                        slotsHTML += `<div class="slot-pill ${searchClass}"><span class="time-text">${slot}</span><button class="btn-sm" style="border-color:var(--brand-accent); color:var(--brand-accent);" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
                     }
                 });
 

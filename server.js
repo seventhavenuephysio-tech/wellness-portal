@@ -1,11 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files from the "frontend" folder
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Connect to MongoDB using Environment Variable on Render
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -33,12 +37,7 @@ const blockedSlotSchema = new mongoose.Schema({
 const Booking = mongoose.model('Booking', bookingSchema);
 const BlockedSlot = mongoose.model('BlockedSlot', blockedSlotSchema);
 
-// Root route so visitors don't see "Cannot GET /"
-app.get('/', (req, res) => {
-  res.send('🏥 Seventh Avenue Physio API is running live!');
-});
-
-// Fetch all bookings and blocks
+// API Endpoints
 app.get('/api/schedule', async (req, res) => {
   try {
     const bookings = await Booking.find();
@@ -49,7 +48,6 @@ app.get('/api/schedule', async (req, res) => {
   }
 });
 
-// Add a booking
 app.post('/api/bookings', async (req, res) => {
   try {
     const newBooking = new Booking(req.body);
@@ -60,7 +58,6 @@ app.post('/api/bookings', async (req, res) => {
   }
 });
 
-// Delete/Cancel a booking
 app.delete('/api/bookings', async (req, res) => {
   try {
     const { practitioner, slot, date } = req.body;
@@ -71,7 +68,6 @@ app.delete('/api/bookings', async (req, res) => {
   }
 });
 
-// Add a time block
 app.post('/api/blocks', async (req, res) => {
   try {
     const newBlock = new BlockedSlot(req.body);
@@ -82,7 +78,6 @@ app.post('/api/blocks', async (req, res) => {
   }
 });
 
-// Remove a time block
 app.delete('/api/blocks', async (req, res) => {
   try {
     const { practitioner, slot, date } = req.body;
@@ -91,6 +86,11 @@ app.delete('/api/blocks', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to unblock slot' });
   }
+});
+
+// Fallback: Send index.html for any other request
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;

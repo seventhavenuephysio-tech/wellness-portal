@@ -2,11 +2,13 @@
   "name": "wellness-portal",
   "version": "1.0.0",
   "description": "The Wellness Centre Portal",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0"
   }
 }

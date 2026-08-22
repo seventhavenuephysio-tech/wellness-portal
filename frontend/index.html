@@ -68,6 +68,9 @@
     <header>
         <div class="brand-title">🏥 Seventh Avenue Physio</div>
         <div class="controls-group">
+            <!-- Hidden file input for uploading phone contacts CSV -->
+            <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
+            <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
             <button class="btn btn-outline" onclick="changeDate(-1)">◀</button>
             <button class="btn btn-outline" onclick="goToToday()">Today</button>
             <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
@@ -116,7 +119,7 @@
         let currentBookingTarget = null;
         let selectedDate = new Date().toISOString().split('T')[0];
 
-        // Automatic Phonebook Storage
+        // Phonebook Directory Logic
         function getSavedDirectory() {
             try {
                 return JSON.parse(localStorage.getItem("patient_phonebook") || "{}");
@@ -130,6 +133,34 @@
             const dir = getSavedDirectory();
             dir[name.trim().toLowerCase()] = phone.trim();
             localStorage.setItem("patient_phonebook", JSON.stringify(dir));
+        }
+
+        function handleContactImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let count = 0;
+                const dir = getSavedDirectory();
+
+                lines.forEach(line => {
+                    const cols = line.split(',');
+                    if (cols.length >= 2) {
+                        const name = cols[0].replace(/['"]+/g, '').trim();
+                        const phone = cols[1].replace(/['"]+/g, '').trim();
+                        if (name && phone && phone.match(/[0-9]/)) {
+                            dir[name.toLowerCase()] = phone;
+                            count++;
+                        }
+                    }
+                });
+
+                localStorage.setItem("patient_phonebook", JSON.stringify(dir));
+                alert(`Successfully imported ${count} contacts!`);
+            };
+            reader.readAsText(file);
         }
 
         function updatePatientDatalist() {
@@ -196,7 +227,6 @@
             const phone = document.getElementById("patientPhoneInput").value.trim();
             if (!name) return alert("Please enter the patient's full name.");
 
-            // Save phone number automatically for next time
             if (phone) {
                 savePatientToDirectory(name, phone);
             }

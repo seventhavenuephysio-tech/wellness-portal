@@ -323,7 +323,7 @@
                         fetch(`${API_URL}/blocks`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ practitioner: p.name, slot, date: selectedDate, reason })
+                            body: JSON.stringify({ therapist: p.name, slot, date: selectedDate, reason })
                         })
                     );
                 }
@@ -339,11 +339,11 @@
             fetchSchedule();
         }
 
-        async function unblockSlot(practitioner, slot) {
+        async function unblockSlot(therapist, slot) {
             await fetch(`${API_URL}/blocks`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, date: selectedDate })
+                body: JSON.stringify({ therapist, slot, date: selectedDate })
             });
             fetchSchedule();
         }
@@ -408,7 +408,7 @@
                         return;
                     }
 
-                    const isBlocked = dateBlocks.find(b => b.practitioner === p.name && b.slot === slot);
+                    const isBlocked = dateBlocks.find(b => (b.therapist === p.name || b.practitioner === p.name) && b.slot === slot);
                     if (isBlocked) {
                         slotsHTML += `<div class="slot-pill blocked"><div><strong>${slot}</strong><br><small>🚫 ${isBlocked.reason}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
                         return;

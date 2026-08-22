@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seventh Avenue Physio — Appointment Portal</title>
+    <title>The Wellness Centre — Appointment Portal</title>
     <style>
         :root {
             --brand-primary: #0f172a;
@@ -122,7 +122,7 @@
     <header>
         <div class="brand-title">
             <div class="brand-icon">✚</div>
-            Seventh Avenue Physio
+            The Wellness Centre
         </div>
         <div class="controls-group">
             <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
@@ -428,7 +428,7 @@
             if (phone) {
                 let cleanPhone = phone.replace(/[^0-9]/g, '');
                 if (cleanPhone.startsWith('0')) cleanPhone = '263' + cleanPhone.substring(1);
-                const msg = `Hi ${name}, your appointment at Seventh Avenue Physio with ${practitioner} is confirmed for ${date} at ${slot}.`;
+                const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
                 window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
             }
         }
@@ -439,7 +439,7 @@
             app.innerHTML = "";
 
             if (dateObj.getDay() === 0) {
-                app.innerHTML = `<div class="closed-banner">🔒 Seventh Avenue Physio is closed on Sundays</div>`;
+                app.innerHTML = `<div class="closed-banner">🔒 The Wellness Centre is closed on Sundays</div>`;
                 return;
             }
 

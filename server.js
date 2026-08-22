@@ -1,99 +1,80 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// Serve static frontend files from the "frontend" folder
+// In-memory data store
+let bookings = [];
+let blocks = [];
+
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// Connect to MongoDB using Environment Variable on Render
-const MONGODB_URI = process.env.MONGODB_URI;
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Connected to MongoDB successfully'))
-  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
-
-// MongoDB Schemas
-const bookingSchema = new mongoose.Schema({
-  practitioner: String,
-  slot: String,
-  name: String,
-  phone: String,
-  date: String
+// GET Schedule (bookings + blocks)
+app.get('/api/schedule', (req, res) => {
+    res.json({ bookings, blocks });
 });
 
-const blockedSlotSchema = new mongoose.Schema({
-  practitioner: String,
-  slot: String,
-  date: String,
-  reason: String
+// POST Booking
+app.post('/api/bookings', (req, res) => {
+    const { practitioner, therapist, slot, time, name, phone, date } = req.body;
+    const booking = {
+        practitioner: practitioner || therapist,
+        slot: slot || time,
+        name,
+        phone,
+        date
+    };
+    bookings.push(booking);
+    res.status(201).json({ message: 'Booking created', booking });
 });
 
-const Booking = mongoose.model('Booking', bookingSchema);
-const BlockedSlot = mongoose.model('BlockedSlot', blockedSlotSchema);
+// DELETE Booking
+app.delete('/api/bookings', (req, res) => {
+    const { practitioner, therapist, slot, time, date } = req.body;
+    const targetPractitioner = (practitioner || therapist || '').toLowerCase();
+    const targetSlot = slot || time;
 
-// API Endpoints
-app.get('/api/schedule', async (req, res) => {
-  try {
-    const bookings = await Booking.find();
-    const blockedSlots = await BlockedSlot.find();
-    res.json({ bookings, blockedSlots });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch schedule data' });
-  }
+    bookings = bookings.filter(b => 
+        !(b.practitioner.toLowerCase() === targetPractitioner && b.slot === targetSlot && b.date === date)
+    );
+    res.json({ message: 'Booking deleted' });
 });
 
-app.post('/api/bookings', async (req, res) => {
-  try {
-    const newBooking = new Booking(req.body);
-    await newBooking.save();
-    res.json(newBooking);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to save booking' });
-  }
+// POST Block Slot
+app.post('/api/block', (req, res) => {
+    const { practitioner, therapist, slot, time, date, reason } = req.body;
+    const block = {
+        practitioner: practitioner || therapist,
+        slot: slot || time,
+        date,
+        reason: reason || 'Away'
+    };
+    blocks.push(block);
+    res.status(201).json({ message: 'Block created', block });
 });
 
-app.delete('/api/bookings', async (req, res) => {
-  try {
-    const { practitioner, slot, date } = req.body;
-    await Booking.deleteOne({ practitioner, slot, date });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to cancel booking' });
-  }
+// DELETE Block Slot
+app.delete('/api/block', (req, res) => {
+    const { practitioner, therapist, slot, time, date } = req.body;
+    const targetPractitioner = (practitioner || therapist || '').toLowerCase();
+    const targetSlot = slot || time;
+
+    blocks = blocks.filter(b => 
+        !(b.practitioner.toLowerCase() === targetPractitioner && b.slot === targetSlot && b.date === date)
+    );
+    res.json({ message: 'Block deleted' });
 });
 
-app.post('/api/blocks', async (req, res) => {
-  try {
-    const newBlock = new BlockedSlot(req.body);
-    await newBlock.save();
-    res.json(newBlock);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to block time slot' });
-  }
-});
-
-app.delete('/api/blocks', async (req, res) => {
-  try {
-    const { practitioner, slot, date } = req.body;
-    await BlockedSlot.deleteOne({ practitioner, slot, date });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to unblock slot' });
-  }
-});
-
-// Fallback: Send index.html for any other request
+// Fallback to index.html for SPA routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

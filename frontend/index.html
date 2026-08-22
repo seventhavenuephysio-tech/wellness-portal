@@ -1,4 +1,139 @@
-function handleContactImport(event) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seventh Avenue Physio - Wellness Portal</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --booked-bg: #f1f5f9;
+            --lunch-bg: #fff7ed;
+            --lunch-text: #c2410c;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 20px; }
+
+        header {
+            max-width: 1200px; margin: 0 auto 20px auto; display: flex; flex-wrap: wrap;
+            justify-content: space-between; align-items: center; gap: 15px;
+            background: var(--card-bg); padding: 16px 24px; border-radius: 12px; border: 1px solid var(--border);
+        }
+
+        .brand-title { font-size: 1.25rem; font-weight: 700; }
+        .controls-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 8px 14px;
+            border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.875rem;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+        .btn-outline:hover { background: #f1f5f9; }
+
+        input[type="date"], input[type="text"], input[type="tel"] {
+            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.875rem; outline: none;
+        }
+
+        .app-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .therapist-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+        .header-top { display: flex; align-items: center; gap: 12px; }
+        .avatar-circle { width: 44px; height: 44px; border-radius: 50%; background: #dbeafe; color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+        .slots-body { display: flex; flex-direction: column; gap: 8px; }
+        .slot-pill { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+        .slot-pill.booked { background: var(--booked-bg); }
+        .slot-pill.lunch { background: var(--lunch-bg); border-color: #fed7aa; }
+
+        .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; }
+        .btn-book { background: #dbeafe; color: var(--primary); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-title">🏥 Seventh Avenue Physio</div>
+        <div class="controls-group">
+            <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
+            <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
+            <button class="btn btn-outline" onclick="changeDate(-1)">◀</button>
+            <button class="btn btn-outline" onclick="goToToday()">Today</button>
+            <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
+            <input type="date" id="dateSelect" onchange="onDatePickerChange()">
+            <span id="dateDisplayLabel" style="font-weight: 600; min-width: 150px;"></span>
+        </div>
+    </header>
+
+    <div id="app" class="app-grid"></div>
+
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <h3 style="font-size: 1.15rem;">Book Appointment</h3>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="text" id="modalDateInfo" readonly style="background: #f1f5f9;">
+            </div>
+            <div class="form-group">
+                <label>Practitioner & Slot</label>
+                <input type="text" id="modalSlotInfo" readonly style="background: #f1f5f9;">
+            </div>
+            <div class="form-group">
+                <label>Patient Full Name</label>
+                <input type="text" id="patientNameInput" list="patientNamesList" placeholder="Start typing patient name..." autocomplete="off">
+                <datalist id="patientNamesList"></datalist>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="patientPhoneInput" placeholder="e.g. +263771234567">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
+                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn" onclick="submitBooking()">Confirm Booking</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const therapists = [
+            { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: [] },
+            { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: ["01:00 PM"] },
+            { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: ["01:00 PM"] }
+        ];
+
+        let bookingsList = [];
+        let currentBookingTarget = null;
+        let selectedDate = new Date().toISOString().split('T')[0];
+
+        function getSavedDirectory() {
+            try {
+                return JSON.parse(localStorage.getItem("patient_phonebook") || "{}");
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function savePatientToDirectory(name, phone) {
+            if (!name || !phone) return;
+            const dir = getSavedDirectory();
+            dir[name.trim().toLowerCase()] = phone.trim();
+            localStorage.setItem("patient_phonebook", JSON.stringify(dir));
+        }
+
+        function handleContactImport(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -9,20 +144,17 @@ function handleContactImport(event) {
                 const dir = getSavedDirectory();
 
                 lines.forEach(line => {
-                    // Split line by commas, handling quoted text safely
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     if (cols.length > 1) {
                         let name = "";
                         let phone = "";
 
-                        // Search through all columns in the row to find a name and a phone number
                         cols.forEach(col => {
                             const clean = col.replace(/['"]+/g, '').trim();
-                            // Check if it looks like a phone number (digits, plus sign, spaces, dashes)
                             if (/^\+?[0-9\s\-\(\)]{7,15}$/.test(clean)) {
                                 phone = clean;
                             } else if (clean.length > 1 && !name && isNaN(clean)) {
-                                name = clean; // Capture text that isn't a number as the name
+                                name = clean;
                             }
                         });
 
@@ -38,3 +170,128 @@ function handleContactImport(event) {
             };
             reader.readAsText(file);
         }
+
+        function updatePatientDatalist() {
+            const datalist = document.getElementById("patientNamesList");
+            if (!datalist) return;
+            const directory = getSavedDirectory();
+            datalist.innerHTML = Object.keys(directory)
+                .map(name => `<option value="${name.replace(/\b\w/g, l => l.toUpperCase())}">`)
+                .join('');
+        }
+
+        function autofillPatientPhone() {
+            const nameInput = document.getElementById("patientNameInput")?.value.trim().toLowerCase();
+            const phoneInput = document.getElementById("patientPhoneInput");
+            if (!nameInput || !phoneInput) return;
+
+            const directory = getSavedDirectory();
+            if (directory[nameInput]) {
+                phoneInput.value = directory[nameInput];
+            }
+        }
+
+        function updateDateLabel() {
+            const dateObj = new Date(selectedDate + "T00:00:00");
+            document.getElementById("dateDisplayLabel").textContent = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+            document.getElementById("dateSelect").value = selectedDate;
+        }
+
+        function onDatePickerChange() {
+            const picker = document.getElementById("dateSelect");
+            if (picker.value) { selectedDate = picker.value; updateDateLabel(); renderColumns(); }
+        }
+
+        function changeDate(days) {
+            const current = new Date(selectedDate + "T00:00:00");
+            current.setDate(current.getDate() + days);
+            selectedDate = current.toISOString().split('T')[0];
+            updateDateLabel(); renderColumns();
+        }
+
+        function goToToday() {
+            selectedDate = new Date().toISOString().split('T')[0];
+            updateDateLabel(); renderColumns();
+        }
+
+        function openModal(practitioner, slot) {
+            currentBookingTarget = { practitioner, slot, date: selectedDate };
+            document.getElementById("modalDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
+            document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
+            document.getElementById("patientNameInput").value = "";
+            document.getElementById("patientPhoneInput").value = "";
+            updatePatientDatalist();
+            document.getElementById("bookingModal").classList.add("active");
+        }
+
+        function closeModal() {
+            document.getElementById("bookingModal").classList.remove("active");
+            currentBookingTarget = null;
+        }
+
+        function submitBooking() {
+            if (!currentBookingTarget) return;
+            const name = document.getElementById("patientNameInput").value.trim();
+            const phone = document.getElementById("patientPhoneInput").value.trim();
+            if (!name) return alert("Please enter the patient's full name.");
+
+            if (phone) {
+                savePatientToDirectory(name, phone);
+            }
+
+            const { practitioner, slot, date } = currentBookingTarget;
+            const booking = { practitioner, slot, name, phone, date };
+            
+            bookingsList.push(booking);
+            closeModal();
+            renderColumns();
+
+            if (phone) {
+                let cleanPhone = phone.replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) cleanPhone = '263' + cleanPhone.substring(1);
+                const msg = `Hi ${name}, your appointment at Seventh Avenue Physio with ${practitioner} is confirmed for ${date} at ${slot}.`;
+                window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
+        }
+
+        function renderColumns() {
+            const dateBookings = bookingsList.filter(b => b.date === selectedDate);
+            const app = document.getElementById("app");
+            app.innerHTML = "";
+
+            therapists.forEach(p => {
+                const card = document.createElement("div");
+                card.className = "therapist-card";
+                let slotsHTML = "";
+
+                p.slots.forEach(slot => {
+                    if (p.lunch && p.lunch.includes(slot)) {
+                        slotsHTML += `<div class="slot-pill lunch"><span class="time-label">${slot}</span><span style="font-size:0.8rem; color:var(--lunch-text);">🍱 Lunch</span></div>`;
+                        return;
+                    }
+                    const booking = dateBookings.find(b => b.practitioner === p.name && b.slot === slot);
+                    if (booking) {
+                        slotsHTML += `<div class="slot-pill booked"><div><strong>${slot}</strong><br><small>👤 ${booking.name}</small></div></div>`;
+                    } else {
+                        slotsHTML += `<div class="slot-pill"><span>${slot}</span><button class="btn-action btn-book" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
+                    }
+                });
+
+                card.innerHTML = `<div class="header-top"><div class="avatar-circle">${p.name.charAt(0)}</div><div><h3>${p.name}</h3><p>${p.role}</p></div></div><div class="slots-body">${slotsHTML}</div>`;
+                app.appendChild(card);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const nameField = document.getElementById("patientNameInput");
+            if (nameField) {
+                nameField.addEventListener("input", autofillPatientPhone);
+                nameField.addEventListener("change", autofillPatientPhone);
+            }
+        });
+
+        updateDateLabel();
+        renderColumns();
+    </script>
+</body>
+</html>

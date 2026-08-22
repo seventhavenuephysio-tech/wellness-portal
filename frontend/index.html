@@ -135,6 +135,7 @@
             <div class="form-group">
                 <label>Select Time Slot</label>
                 <select id="blockTimeSelect">
+                    <option value="ALL_DAY" style="font-weight: bold; color: #991b1b;">🗓️ ALL DAY (Full Day)</option>
                     <option value="08:00 AM">08:00 AM</option>
                     <option value="09:00 AM">09:00 AM</option>
                     <option value="10:00 AM">10:00 AM</option>
@@ -151,7 +152,7 @@
             </div>
             <div class="form-group">
                 <label>Reason / Note</label>
-                <input type="text" id="globalBlockReason" placeholder="e.g. Staff Meeting, Out of Office">
+                <input type="text" id="globalBlockReason" placeholder="e.g. Away, Leave, Staff Meeting">
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px;">
                 <button class="btn btn-outline" onclick="closeGlobalBlockModal()">Cancel</button>
@@ -338,7 +339,7 @@
             therapists.forEach(p => {
                 select.innerHTML += `<option value="${p.name}">${p.name} (${p.role})</option>`;
             });
-            document.getElementById("globalBlockReason").value = "Blocked";
+            document.getElementById("globalBlockReason").value = "Away";
             document.getElementById("globalBlockModal").classList.add("active");
         }
 
@@ -347,17 +348,21 @@
         }
 
         function submitGlobalBlock() {
-            const slot = document.getElementById("blockTimeSelect").value;
+            const slotSelection = document.getElementById("blockTimeSelect").value;
             const target = document.getElementById("blockTherapistSelect").value;
-            const reason = document.getElementById("globalBlockReason").value.trim() || "Blocked";
+            const reason = document.getElementById("globalBlockReason").value.trim() || "Away";
 
-            if (target === "ALL") {
-                therapists.forEach(p => {
-                    blockedSlotsList.push({ practitioner: p.name, slot, date: selectedDate, reason });
+            const targetTherapists = target === "ALL" ? therapists : therapists.filter(p => p.name === target);
+
+            targetTherapists.forEach(p => {
+                const slotsToBlock = slotSelection === "ALL_DAY" ? p.slots : [slotSelection];
+                slotsToBlock.forEach(slot => {
+                    // Avoid duplicating existing blocks
+                    if (!blockedSlotsList.some(b => b.date === selectedDate && b.slot === slot && b.practitioner === p.name)) {
+                        blockedSlotsList.push({ practitioner: p.name, slot, date: selectedDate, reason });
+                    }
                 });
-            } else {
-                blockedSlotsList.push({ practitioner: target, slot, date: selectedDate, reason });
-            }
+            });
 
             closeGlobalBlockModal();
             renderColumns();

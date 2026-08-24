@@ -1,71 +1,111 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const twilio = require('twilio');
+const mongoose = require('mongoose');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize Twilio Client
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// 1. Connect to MongoDB Atlas using Render environment variable
+const MONGO_URI = process.env.MONGO_URI;
 
-// Connect to MongoDB Atlas
-const mongoURI = process.env.MONGO_URI || process.env.MONGO_PASSWORD;
-mongoose.connect(mongoURI)
-    .then(() => console.log('MongoDB Connected Successfully'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
-// Booking Schema & Model
-const bookingSchema = new mongoose.Schema({
-    therapist: String,
-    time: String,
-    date: String,
-    patientName: String,
-    patientPhone: String
+// 2. Schemas & Models
+const BookingSchema = new mongoose.Schema({
+    practitioner: { type: String, required: true },
+    slot: { type: String, required: true },
+    name: { type: String, required: true },
+    phone: { type: String, default: '' },
+    date: { type: String, required: true }
 });
 
-const Booking = mongoose.model('Booking', bookingSchema);
+const BlockSchema = new mongoose.Schema({
+    practitioner: { type: String, required: true },
+    slot: { type: String, required: true },
+    date: { type: String, required: true },
+    reason: { type: String, default: 'Away' }
+});
 
-// CREATE BOOKING + SEND WHATSAPP
+const Booking = mongoose.model('Booking', BookingSchema);
+const Block = mongoose.model('Block', BlockSchema);
+
+// 3. API Endpoints
+
+// GET Schedule
+app.get('/api/schedule', async (req, res) => {
+    try {
+        const bookings = await Booking.find({});
+        const blocks = await Block.find({});
+        res.json({ bookings, blocks });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+});
+
+// POST Booking
 app.post('/api/bookings', async (req, res) => {
+    const { practitioner, slot, name, phone, date } = req.body;
+    if (!practitioner || !slot || !name || !date) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     try {
-        const { therapist, time, date, patientName, patientPhone } = req.body;
-
-        // Save booking to MongoDB
-        const newBooking = new Booking({ therapist, time, date, patientName, patientPhone });
-        await newBooking.save();
-
-        // Send WhatsApp notification
-        if (patientPhone) {
-            await twilioClient.messages.create({
-                body: `Hello ${patientName}, your appointment with ${therapist} is confirmed for ${date} at ${time}. - Seventh Avenue Physio`,
-                from: process.env.TWILIO_WHATSAPP_NUMBER,
-                to: `whatsapp:${patientPhone}`
-            });
-        }
-
-        res.status(201).json({ message: "Booking created and WhatsApp reminder sent!", booking: newBooking });
-    } catch (error) {
-        console.error("Booking Error:", error);
-        res.status(500).json({ error: error.message });
+        const booking = await Booking.create({ practitioner, slot, name, phone, date });
+        res.status(201).json(booking);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save booking' });
     }
 });
 
-// GET ALL BOOKINGS
-app.get('/api/bookings', async (req, res) => {
+// DELETE Booking
+app.delete('/api/bookings', async (req, res) => {
+    const { practitioner, slot, date } = req.body;
     try {
-        const bookings = await Booking.find();
-        res.json(bookings);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        await Booking.deleteOne({ 
+            practitioner: new RegExp(`^${practitioner}$`, 'i'), 
+            slot, 
+            date 
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to cancel booking' });
     }
 });
 
-// ROOT STATUS CHECK
-app.get('/', (req, res) => {
-    res.json({ status: "online", dbConnected: mongoose.connection.readyState === 1 });
+// POST Block Slot
+app.post('/api/block', async (req, res) => {
+    const { practitioner, slot, date, reason } = req.body;
+    if (!practitioner || !slot || !date) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const block = await Block.create({ practitioner, slot, date, reason });
+        res.status(201).json(block);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to block slot' });
+    }
+});
+
+// DELETE Block Slot
+app.delete('/api/block', async (req, res) => {
+    const { practitioner, slot, date } = req.body;
+    try {
+        await Block.deleteOne({ 
+            practitioner: new RegExp(`^${practitioner}$`, 'i'), 
+            slot, 
+            date 
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to unblock slot' });
+    }
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

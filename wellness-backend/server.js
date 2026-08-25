@@ -13,7 +13,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('Connected to MongoDB Atlas'))
     .catch(err => console.error('MongoDB connection error:', err));
 
-// 2. Define Schemas & Models
+// 2. Schemas & Models
 const BookingSchema = new mongoose.Schema({
     practitioner: { type: String, required: true },
     slot: { type: String, required: true },
@@ -32,7 +32,7 @@ const BlockSchema = new mongoose.Schema({
 const Booking = mongoose.model('Booking', BookingSchema);
 const Block = mongoose.model('Block', BlockSchema);
 
-// 3. Raw List of Zimbabwean Public Holidays (Year, Month, Day)
+// 3. Raw Zimbabwean Public Holidays Data
 const RAW_HOLIDAYS = [
     { year: 2026, month: 1, day: 1 },   // New Year's Day
     { year: 2026, month: 2, day: 21 },  // National Youth Day
@@ -44,12 +44,11 @@ const RAW_HOLIDAYS = [
     { year: 2026, month: 8, day: 10 },  // Heroes' Day
     { year: 2026, month: 8, day: 11 },  // Defence Forces Day
     { year: 2026, month: 9, day: 15 },  // Munhumutapa Day
-    { year: 2026, month: 12, day: 22 }, // Unity Day
+    { year: 2026, month: 12, day: 22 }, // National Unity Day
     { year: 2026, month: 12, day: 25 }, // Christmas Day
     { year: 2026, month: 12, day: 26 }  // Boxing Day
 ];
 
-// Helper to generate all potential string representations of a date
 function generateDateVariations({ year, month, day }) {
     const mm = String(month).padStart(2, '0');
     const dd = String(day).padStart(2, '0');
@@ -57,12 +56,12 @@ function generateDateVariations({ year, month, day }) {
     const d = String(day);
 
     return [
-        `${year}-${mm}-${dd}`, // 2026-08-11
-        `${year}-${m}-${d}`,   // 2026-8-11
-        `${dd}/${mm}/${year}`, // 11/08/2026
-        `${d}/${m}/${year}`,   // 11/8/2026
-        `${mm}/${dd}/${year}`, // 08/11/2026
-        `${m}/${d}/${year}`    // 8/11/2026
+        `${year}-${mm}-${dd}`,
+        `${year}-${m}-${d}`,
+        `${dd}/${mm}/${year}`,
+        `${d}/${m}/${year}`,
+        `${mm}/${dd}/${year}`,
+        `${m}/${d}/${year}`
     ];
 }
 
@@ -109,7 +108,7 @@ app.get('/api/schedule', async (req, res) => {
     }
 });
 
-// POST New Booking
+// POST Booking
 app.post('/api/bookings', async (req, res) => {
     const { practitioner, slot, name, phone, date } = req.body;
     if (!practitioner || !slot || !name || !date) {
@@ -139,7 +138,7 @@ app.delete('/api/bookings', async (req, res) => {
     }
 });
 
-// POST Manual Block
+// POST Block
 app.post('/api/block', async (req, res) => {
     const { practitioner, slot, date, reason } = req.body;
     if (!practitioner || !slot || !date) {
@@ -154,7 +153,7 @@ app.post('/api/block', async (req, res) => {
     }
 });
 
-// DELETE Manual Block
+// DELETE Block
 app.delete('/api/block', async (req, res) => {
     const { practitioner, slot, date } = req.body;
     try {

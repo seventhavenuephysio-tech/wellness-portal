@@ -59,7 +59,7 @@ app.get('/api/schedule', async (req, res) => {
 
         // Generate automatic blocks for public holidays across all staff and slots
         const practitioners = ['Chido', 'Mispar', 'Tinotenda'];
-        const slots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'];
+        const slots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'];
 
         let holidayBlocks = [];
         ZIM_PUBLIC_HOLIDAYS.forEach(holidayDate => {

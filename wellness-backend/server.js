@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 1. Connect to MongoDB Atlas using your Render Environment Variable
+// 1. Connect to MongoDB Atlas
 const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
@@ -32,34 +32,43 @@ const BlockSchema = new mongoose.Schema({
 const Booking = mongoose.model('Booking', BookingSchema);
 const Block = mongoose.model('Block', BlockSchema);
 
-// 3. Zimbabwean Public Holidays (YYYY-MM-DD Format)
+// 3. Zimbabwean Public Holidays (supporting both YYYY-MM-DD and DD/MM/YYYY formats)
 const ZIM_PUBLIC_HOLIDAYS = [
-    '2026-01-01', // New Year's Day
-    '2026-02-21', // National Youth Day
-    '2026-04-03', // Good Friday
-    '2026-04-06', // Easter Monday
-    '2026-04-18', // Independence Day
-    '2026-05-01', // Workers' Day / Labour Day
-    '2026-05-25', // Africa Day
-    '2026-08-10', // Heroes' Day
-    '2026-08-11', // Defence Forces Day
-    '2026-09-15', // Munhumutapa Day
-    '2026-12-22', // National Unity Day
-    '2026-12-25', // Christmas Day
-    '2026-12-26'  // Boxing Day
+    '2026-01-01', '01/01/2026', '1/1/2026',
+    '2026-02-21', '21/02/2026', '21/2/2026',
+    '2026-04-03', '03/04/2026', '3/4/2026',
+    '2026-04-06', '06/04/2026', '6/4/2026',
+    '2026-04-18', '18/04/2026', '18/4/2026',
+    '2026-05-01', '01/05/2026', '1/5/2026',
+    '2026-05-25', '25/05/2026', '25/5/2026',
+    '2026-08-10', '10/08/2026', '10/8/2026',
+    '2026-08-11', '11/08/2026', '11/8/2026',
+    '2026-09-15', '15/09/2026', '15/9/2026',
+    '2026-12-22', '22/12/2026', '22/12/2026',
+    '2026-12-25', '25/12/2026', '25/12/2026',
+    '2026-12-26', '26/12/2026', '26/12/2026'
 ];
 
 // 4. API Endpoints
 
-// GET Schedule Data (Combines Database Blocks + Auto-Generated Public Holiday Blocks)
+// GET Schedule Data
 app.get('/api/schedule', async (req, res) => {
     try {
         const bookings = await Booking.find({});
         const dbBlocks = await Block.find({});
 
-        // Generate automatic blocks for public holidays across all staff and slots
         const practitioners = ['Chido', 'Mispar', 'Tinotenda'];
-        const slots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'];
+        // Includes single digit and zero-padded slots to guarantee matching
+        const slots = [
+            '8:00 AM', '08:00 AM',
+            '9:00 AM', '09:00 AM',
+            '10:00 AM',
+            '11:00 AM',
+            '12:00 PM',
+            '1:00 PM', '01:00 PM',
+            '2:00 PM', '02:00 PM',
+            '3:00 PM', '03:00 PM'
+        ];
 
         let holidayBlocks = [];
         ZIM_PUBLIC_HOLIDAYS.forEach(holidayDate => {

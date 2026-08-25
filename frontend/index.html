@@ -114,7 +114,10 @@
     </div>
 
     <script>
-        const API_URL = 'https://wellness-portal-api.onrender.com/api';
+        const API_URL = window.location.origin.includes('onrender.com') 
+            ? `${window.location.origin}/api` 
+            : 'https://wellness-portal-api.onrender.com/api';
+
         const practitioners = [
             { name: 'Chido', title: 'Physiotherapist' },
             { name: 'Mispar', title: 'Physiotherapist' },
@@ -157,7 +160,7 @@
         }
 
         function cleanSlot(s) {
-            return s ? s.replace(/^0/, '') : '';
+            return s ? String(s).replace(/^0/, '') : '';
         }
 
         async function loadSchedule() {
@@ -166,21 +169,30 @@
 
             try {
                 const res = await fetch(`${API_URL}/schedule`);
-                rawScheduleData = await res.json();
+                const data = await res.json();
+                
+                rawScheduleData = {
+                    bookings: Array.isArray(data.bookings) ? data.bookings : [],
+                    blocks: Array.isArray(data.blocks) ? data.blocks : []
+                };
                 renderGrid(rawScheduleData, dateStr);
             } catch (err) {
                 console.error("Failed to load schedule:", err);
+                document.getElementById('practitionerGrid').innerHTML = '<p style="color:red; text-align:center; grid-column: 1/-1;">Error loading schedule. Please refresh.</p>';
             }
         }
 
         function renderGrid(data, selectedDate) {
             const grid = document.getElementById('practitionerGrid');
             grid.innerHTML = '';
-            const query = document.getElementById('searchInput').value.toLowerCase();
+            const query = (document.getElementById('searchInput').value || '').toLowerCase();
 
             const parts = selectedDate.split('-');
             const altDate1 = `${parts[2]}/${parts[1]}/${parts[0]}`; 
             const altDate2 = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
+
+            const blocksList = Array.isArray(data.blocks) ? data.blocks : [];
+            const bookingsList = Array.isArray(data.bookings) ? data.bookings : [];
 
             practitioners.forEach(p => {
                 const card = document.createElement('div');
@@ -188,20 +200,21 @@
 
                 let slotsHtml = '';
                 timeSlots.forEach(slot => {
-                    // Using optional chaining (?.) to prevent crashes on bad data
-                    const block = data.blocks.find(b => 
-                        b.practitioner?.toLowerCase() === p.name.toLowerCase() &&
+                    const block = blocksList.find(b => 
+                        b && b.practitioner && typeof b.practitioner === 'string' &&
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
                         cleanSlot(b.slot) === cleanSlot(slot) &&
                         (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
-                    const booking = data.bookings.find(b => 
-                        b.practitioner?.toLowerCase() === p.name.toLowerCase() &&
+                    const booking = bookingsList.find(b => 
+                        b && b.practitioner && typeof b.practitioner === 'string' &&
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
                         cleanSlot(b.slot) === cleanSlot(slot) &&
                         (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
-                    if (query && booking && !booking.name.toLowerCase().includes(query)) return;
+                    if (query && booking && booking.name && !booking.name.toLowerCase().includes(query)) return;
 
                     if (block) {
                         slotsHtml += `

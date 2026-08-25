@@ -188,14 +188,15 @@
 
                 let slotsHtml = '';
                 timeSlots.forEach(slot => {
+                    // Using optional chaining (?.) to prevent crashes on bad data
                     const block = data.blocks.find(b => 
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
+                        b.practitioner?.toLowerCase() === p.name.toLowerCase() &&
                         cleanSlot(b.slot) === cleanSlot(slot) &&
                         (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
                     const booking = data.bookings.find(b => 
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
+                        b.practitioner?.toLowerCase() === p.name.toLowerCase() &&
                         cleanSlot(b.slot) === cleanSlot(slot) &&
                         (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );

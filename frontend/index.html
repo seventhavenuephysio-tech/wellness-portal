@@ -5,526 +5,306 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wellness Centre — Appointment Portal</title>
     <style>
-        :root {
-            --brand-primary: #0f172a;
-            --brand-accent: #0d9488;
-            --brand-accent-hover: #0f766e;
-            --bg-main: #f1f5f9;
-            --card-bg: #ffffff;
-            --border-color: #cbd5e1;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            
-            --status-booked-bg: #eff6ff;
-            --status-booked-text: #1e40af;
-            --status-booked-border: #bfdbfe;
-            
-            --status-lunch-bg: #fff7ed;
-            --status-lunch-text: #c2410c;
-            --status-lunch-border: #fed7aa;
-            
-            --status-blocked-bg: #fef2f2;
-            --status-blocked-text: #991b1b;
-            --status-blocked-border: #fecaca;
-            
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 24px; min-height: 100vh; }
-
-        header {
-            max-width: 1280px; margin: 0 auto 24px auto;
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;
-            background: var(--card-bg); padding: 18px 28px; border-radius: 16px; border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .brand-title { display: flex; align-items: center; gap: 10px; font-size: 1.35rem; font-weight: 700; color: var(--brand-primary); letter-spacing: -0.02em; }
-        .brand-icon { background: var(--brand-accent); color: white; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-
-        .controls-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-        .btn {
-            background: var(--brand-accent); color: white; border: none; padding: 9px 16px;
-            border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.875rem;
-            transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn:hover { background: var(--brand-accent-hover); transform: translateY(-1px); }
-        
-        .btn-outline { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-color); }
-        .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; transform: none; }
-        
-        .btn-danger-outline { background: #ffffff; color: #dc2626; border: 1px solid #fca5a5; }
-        .btn-danger-outline:hover { background: #fef2f2; border-color: #dc2626; transform: none; }
-
-        input[type="date"], input[type="text"], input[type="tel"], select {
-            padding: 9px 14px; border: 1px solid var(--border-color); border-radius: 8px;
-            font-size: 0.875rem; outline: none; background: #ffffff; color: var(--text-main);
-            transition: border-color 0.2s;
-        }
-        input[type="date"]:focus, input[type="text"]:focus, input[type="tel"]:focus, select:focus {
-            border-color: var(--brand-accent); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-        }
-
-        .today-badge {
-            background: #dcfce7; color: #15803d; border: 1px solid #86efac;
-            font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 12px;
-            letter-spacing: 0.05em; text-transform: uppercase; margin-left: 6px; display: inline-block;
-        }
-
-        .search-box { width: 200px; }
-
-        .app-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
-        .therapist-card {
-            background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px;
-            padding: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: var(--shadow-sm);
-        }
-
-        .header-top { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
-        .avatar-circle {
-            width: 48px; height: 48px; border-radius: 12px; background: #e0f2fe; color: #0284c7;
-            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;
-        }
-        .therapist-info h3 { font-size: 1.1rem; font-weight: 700; color: var(--brand-primary); }
-        .therapist-info p { font-size: 0.825rem; color: var(--text-muted); font-weight: 500; }
-
-        .slots-body { display: flex; flex-direction: column; gap: 10px; }
-        .slot-pill {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: #ffffff;
-            transition: all 0.2s ease;
-        }
-        .slot-pill:hover { border-color: #cbd5e1; }
-        .slot-pill.booked { background: var(--status-booked-bg); border-color: var(--status-booked-border); color: var(--status-booked-text); }
-        .slot-pill.lunch { background: var(--status-lunch-bg); border-color: var(--status-lunch-border); color: var(--status-lunch-text); }
-        .slot-pill.blocked { background: var(--status-blocked-bg); border-color: var(--status-blocked-border); color: var(--status-blocked-text); }
-
-        .slot-pill.highlighted {
-            border: 2px solid #2563eb !important;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
-            transform: scale(1.02);
-        }
-        .slot-pill.dimmed { opacity: 0.35; }
-
-        .time-text { font-size: 0.9rem; font-weight: 600; }
-        .status-badge { font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
-
-        .closed-banner {
-            grid-column: 1 / -1; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;
-            border-radius: 16px; padding: 48px; text-align: center; font-size: 1.25rem; font-weight: 600;
-        }
-
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
-            justify-content: center; align-items: center; z-index: 1000;
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 440px;
-            display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-md);
-        }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-group label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
-        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; background: white; font-weight: 600; }
-        .btn-sm:hover { background: #f8fafc; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background: #f4f6f8; color: #333; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+        .btn-primary { background: #0d6efd; color: #fff; }
+        .btn-secondary { background: #e9ecef; color: #495057; }
+        .btn-danger { background: #dc3545; color: #fff; }
+        .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        input[type="date"] { padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d6efd; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .slot { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 8px; }
+        .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
+        .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .slot-time { font-weight: bold; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand-title">
-            <div class="brand-icon">✚</div>
-            The Wellness Centre
-        </div>
-        <div class="controls-group">
-            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search patient..." oninput="renderColumns()">
-            <input type="file" id="contactFileInput" accept=".csv" style="display:none" onchange="handleContactImport(event)">
-            <button class="btn btn-outline" onclick="document.getElementById('contactFileInput').click()">📥 Import Contacts</button>
-            <button class="btn btn-danger-outline" onclick="openGlobalBlockModal()">🚫 Block Time</button>
-            <button class="btn btn-outline" onclick="changeDate(-1)">◀</button>
-            <button class="btn btn-outline" onclick="goToToday()">Today</button>
-            <button class="btn btn-outline" onclick="changeDate(1)">▶</button>
-            <input type="date" id="dateSelect" onchange="onDatePickerChange()">
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <span id="dateDisplayLabel" style="font-weight: 700; color: var(--brand-primary);"></span>
-                <span id="todayBadge" class="today-badge" style="display: none;">TODAY</span>
-            </div>
-        </div>
-    </header>
-
-    <div id="app" class="app-grid"></div>
-
-    <!-- BOOKING MODAL -->
-    <div id="bookingModal" class="modal">
-        <div class="modal-content">
-            <h3 style="font-size: 1.2rem; color: var(--brand-primary); font-weight: 700;">Book Appointment</h3>
-            <div class="form-group">
-                <label>Date</label>
-                <input type="text" id="modalDateInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
-            </div>
-            <div class="form-group">
-                <label>Practitioner & Slot</label>
-                <input type="text" id="modalSlotInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
-            </div>
-            <div class="form-group">
-                <label>Patient Full Name</label>
-                <input type="text" id="patientNameInput" list="patientNamesList" placeholder="Start typing patient name..." autocomplete="off">
-                <datalist id="patientNamesList"></datalist>
-            </div>
-            <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" id="patientPhoneInput" placeholder="e.g. +263771234567">
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-                <button class="btn" onclick="submitBooking()">Confirm Booking</button>
-            </div>
+    <div class="header">
+        <div class="logo">✚ The Wellness Centre</div>
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
         </div>
     </div>
 
-    <!-- GLOBAL BLOCK TIME MODAL -->
-    <div id="globalBlockModal" class="modal">
+    <div class="date-picker-container">
+        <button class="btn btn-secondary" onclick="changeDate(-1)">◀</button>
+        <button class="btn btn-secondary" onclick="setToday()">Today</button>
+        <button class="btn btn-secondary" onclick="changeDate(1)">▶</button>
+        <input type="date" id="datePicker" onchange="loadSchedule()">
+        <span id="dateDisplay" style="font-weight: bold; margin-left: 10px;"></span>
+    </div>
+
+    <div class="grid" id="practitionerGrid"></div>
+
+    <!-- Booking Modal -->
+    <div class="modal" id="bookingModal">
         <div class="modal-content">
-            <h3 style="font-size: 1.2rem; color: #991b1b; font-weight: 700;">🚫 Block Time Slot</h3>
-            <div class="form-group">
-                <label>Date</label>
-                <input type="text" id="blockDateInfo" readonly style="background: #f8fafc; color: var(--text-muted);">
-            </div>
-            <div class="form-group">
-                <label>Select Time Slot</label>
-                <select id="blockTimeSelect">
-                    <option value="ALL_DAY" style="font-weight: bold; color: #991b1b;">🗓️ ALL DAY (Full Day)</option>
-                    <option value="08:00 AM">08:00 AM</option>
-                    <option value="09:00 AM">09:00 AM</option>
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="11:00 AM">11:00 AM</option>
-                    <option value="12:00 PM">12:00 PM</option>
-                    <option value="01:00 PM">01:00 PM</option>
-                    <option value="02:00 PM">02:00 PM</option>
-                    <option value="03:00 PM">03:00 PM</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Apply Block To</label>
-                <select id="blockTherapistSelect"></select>
-            </div>
-            <div class="form-group">
-                <label>Reason / Note</label>
-                <input type="text" id="globalBlockReason" placeholder="e.g. Away, Leave, Staff Meeting">
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
-                <button class="btn btn-outline" onclick="closeGlobalBlockModal()">Cancel</button>
-                <button class="btn" style="background: #dc2626;" onclick="submitGlobalBlock()">Confirm Block</button>
-            </div>
+            <h3>Book Appointment</h3>
+            <form id="bookingForm" onsubmit="handleBookSubmit(event)">
+                <input type="hidden" id="bookPractitioner">
+                <input type="hidden" id="bookSlot">
+                <div class="form-group">
+                    <label>Patient Name</label>
+                    <input type="text" id="patientName" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="patientPhone">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Block Modal -->
+    <div class="modal" id="blockModal">
+        <div class="modal-content">
+            <h3>Block Slot / Time Off</h3>
+            <form id="blockForm" onsubmit="handleBlockSubmit(event)">
+                <div class="form-group">
+                    <label>Practitioner</label>
+                    <select id="blockPractitionerSelect" style="width:100%; padding:8px; border:1px solid #ced4da; border-radius:4px;">
+                        <option value="Chido">Chido</option>
+                        <option value="Mispar">Mispar</option>
+                        <option value="Tinotenda">Tinotenda</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Slot</label>
+                    <select id="blockSlotSelect" style="width:100%; padding:8px; border:1px solid #ced4da; border-radius:4px;">
+                        <option value="8:00 AM">8:00 AM</option>
+                        <option value="9:00 AM">9:00 AM</option>
+                        <option value="10:00 AM">10:00 AM</option>
+                        <option value="11:00 AM">11:00 AM</option>
+                        <option value="12:00 PM">12:00 PM</option>
+                        <option value="1:00 PM">1:00 PM</option>
+                        <option value="2:00 PM">2:00 PM</option>
+                        <option value="3:00 PM">3:00 PM</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="blockReason" placeholder="Lunch, Away, etc.">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('blockModal')">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Block</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
-        const API_URL = "/api";
-
-        const therapists = [
-            { name: "Chido", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: [] },
-            { name: "Mispar", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: ["01:00 PM"] },
-            { name: "Tinotenda", role: "Physiotherapist", slots: ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM"], lunch: ["01:00 PM"] }
+        const API_URL = 'https://wellness-portal-api.onrender.com/api';
+        const practitioners = [
+            { name: 'Chido', title: 'Physiotherapist' },
+            { name: 'Mispar', title: 'Physiotherapist' },
+            { name: 'Tinotenda', title: 'Physiotherapist' }
         ];
+        const timeSlots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'];
 
-        let bookingsList = [];
-        let blockedSlotsList = [];
-        let currentBookingTarget = null;
-        let selectedDate = new Date().toISOString().split('T')[0];
+        document.addEventListener('DOMContentLoaded', () => {
+            setToday();
+        });
 
-        async function fetchSchedule() {
-            try {
-                const res = await fetch(`${API_URL}/schedule`);
-                const data = await res.json();
-                bookingsList = data.bookings || [];
-                blockedSlotsList = data.blocks || [];
-                renderColumns();
-            } catch (e) {
-                console.error("Error connecting to server:", e);
-            }
-        }
-
-        function getSavedDirectory() {
-            try { return JSON.parse(localStorage.getItem("patient_phonebook") || "{}"); } catch (e) { return {}; }
-        }
-
-        function savePatientToDirectory(name, phone) {
-            if (!name || !phone) return;
-            const dir = getSavedDirectory();
-            dir[name.trim().toLowerCase()] = phone.trim();
-            localStorage.setItem("patient_phonebook", JSON.stringify(dir));
-        }
-
-        function handleContactImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split('\n').filter(line => line.trim() !== '');
-                if (lines.length < 2) return alert("Invalid CSV file.");
-
-                const parseCSVLine = (line) => {
-                    const values = []; let current = ''; let inQuotes = false;
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        if (char === '"') { inQuotes = !inQuotes; }
-                        else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-                        else { current += char; }
-                    }
-                    values.push(current.trim()); return values;
-                };
-
-                const headers = parseCSVLine(lines[0]).map(h => h.replace(/['"]+/g, '').toLowerCase());
-                const nameIndexes = [], phoneIndexes = [];
-
-                headers.forEach((h, idx) => {
-                    if (h.includes('name') || h.includes('given') || h.includes('family')) nameIndexes.push(idx);
-                    if (h.includes('phone') || h.includes('mobile') || h.includes('tel')) phoneIndexes.push(idx);
-                });
-
-                const dir = getSavedDirectory(); let count = 0;
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = parseCSVLine(lines[i]);
-                    if (!cols.length) continue;
-                    let fullName = nameIndexes.map(idx => cols[idx]?.replace(/['"]+/g, '').trim()).filter(Boolean).join(' ');
-                    let phone = phoneIndexes.map(idx => cols[idx]?.replace(/['"]+/g, '').trim()).find(p => p && p.replace(/[^0-9+]/g, '').length >= 7) || '';
-
-                    if (fullName && phone) { dir[fullName.toLowerCase()] = phone; count++; }
-                }
-                localStorage.setItem("patient_phonebook", JSON.stringify(dir));
-                alert(`Successfully imported ${count} patient contacts!`);
-                updatePatientDatalist();
-            };
-            reader.readAsText(file);
-        }
-
-        function updatePatientDatalist() {
-            const datalist = document.getElementById("patientNamesList");
-            if (!datalist) return;
-            const directory = getSavedDirectory();
-            datalist.innerHTML = Object.keys(directory)
-                .map(name => `<option value="${name.replace(/\b\w/g, l => l.toUpperCase())}">`)
-                .join('');
-        }
-
-        function autofillPatientPhone() {
-            const nameInput = document.getElementById("patientNameInput")?.value.trim().toLowerCase();
-            const phoneInput = document.getElementById("patientPhoneInput");
-            if (!nameInput || !phoneInput) return;
-            const directory = getSavedDirectory();
-            if (directory[nameInput]) phoneInput.value = directory[nameInput];
-        }
-
-        function updateDateLabel() {
-            const dateObj = new Date(selectedDate + "T00:00:00");
-            const todayStr = new Date().toISOString().split('T')[0];
-
-            document.getElementById("dateDisplayLabel").textContent = dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-            document.getElementById("dateSelect").value = selectedDate;
-
-            const badge = document.getElementById("todayBadge");
-            if (selectedDate === todayStr) {
-                badge.style.display = "inline-block";
-            } else {
-                badge.style.display = "none";
-            }
-        }
-
-        function onDatePickerChange() {
-            const picker = document.getElementById("dateSelect");
-            if (picker.value) { selectedDate = picker.value; updateDateLabel(); renderColumns(); }
+        function setToday() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
+            loadSchedule();
         }
 
         function changeDate(days) {
-            const current = new Date(selectedDate + "T00:00:00");
+            const picker = document.getElementById('datePicker');
+            const current = new Date(picker.value);
             current.setDate(current.getDate() + days);
-            selectedDate = current.toISOString().split('T')[0];
-            updateDateLabel(); renderColumns();
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            picker.value = `${yyyy}-${mm}-${dd}`;
+            loadSchedule();
         }
 
-        function goToToday() {
-            selectedDate = new Date().toISOString().split('T')[0];
-            updateDateLabel(); renderColumns();
-        }
-
-        function openModal(practitioner, slot) {
-            currentBookingTarget = { practitioner, slot, date: selectedDate };
-            document.getElementById("modalDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
-            document.getElementById("modalSlotInfo").value = `${practitioner} — ${slot}`;
-            document.getElementById("patientNameInput").value = "";
-            document.getElementById("patientPhoneInput").value = "";
-            updatePatientDatalist();
-            document.getElementById("bookingModal").classList.add("active");
-        }
-
-        function closeModal() {
-            document.getElementById("bookingModal").classList.remove("active");
-            currentBookingTarget = null;
-        }
-
-        function openGlobalBlockModal() {
-            document.getElementById("blockDateInfo").value = document.getElementById("dateDisplayLabel").textContent;
-            const select = document.getElementById("blockTherapistSelect");
-            select.innerHTML = '<option value="ALL">ALL Practitioners</option>';
-            therapists.forEach(p => { 
-                select.innerHTML += `<option value="${p.name}">${p.name} (${p.role})</option>`; 
-            });
-            document.getElementById("globalBlockReason").value = "Away";
-            document.getElementById("globalBlockModal").classList.add("active");
-        }
-
-        function closeGlobalBlockModal() {
-            document.getElementById("globalBlockModal").classList.remove("active");
-        }
-
-        async function submitGlobalBlock() {
-            const slotSelection = document.getElementById("blockTimeSelect").value;
-            const target = document.getElementById("blockTherapistSelect").value;
-            const reason = document.getElementById("globalBlockReason").value.trim() || "Away";
-
-            const targetTherapists = target === "ALL" 
-                ? therapists 
-                : therapists.filter(p => p.name.toLowerCase() === target.toLowerCase());
-
-            const requests = [];
-
-            for (const p of targetTherapists) {
-                const slotsToBlock = slotSelection === "ALL_DAY" ? p.slots : [slotSelection];
-                for (const slot of slotsToBlock) {
-                    requests.push(
-                        fetch(`${API_URL}/block`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                practitioner: p.name,
-                                slot: slot,
-                                date: selectedDate,
-                                reason: reason
-                            })
-                        })
-                    );
-                }
+        function formatDisplayDate(dateStr) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
             }
-
-            try { await Promise.all(requests); } catch (err) { console.error(err); }
-            closeGlobalBlockModal();
-            fetchSchedule();
+            return dateStr;
         }
 
-        async function unblockSlot(practitioner, slot) {
-            await fetch(`${API_URL}/block`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, date: selectedDate })
-            });
-            fetchSchedule();
+        function normalizeSlot(slot) {
+            return slot.replace(/^0/, ''); // Normalize "08:00 AM" -> "8:00 AM"
         }
 
-        async function cancelBooking(practitioner, slot) {
-            await fetch(`${API_URL}/bookings`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, date: selectedDate })
-            });
-            fetchSchedule();
-        }
+        async function loadSchedule() {
+            const dateStr = document.getElementById('datePicker').value;
+            document.getElementById('dateDisplay').innerText = formatDisplayDate(dateStr);
 
-        async function submitBooking() {
-            if (!currentBookingTarget) return;
-            const name = document.getElementById("patientNameInput").value.trim();
-            const phone = document.getElementById("patientPhoneInput").value.trim();
-            if (!name) return alert("Please enter the patient's full name.");
-
-            if (phone) savePatientToDirectory(name, phone);
-
-            const { practitioner, slot, date } = currentBookingTarget;
-
-            await fetch(`${API_URL}/bookings`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ practitioner, slot, name, phone, date })
-            });
-
-            closeModal();
-            fetchSchedule();
-
-            if (phone) {
-                let cleanPhone = phone.replace(/[^0-9]/g, '');
-                if (cleanPhone.startsWith('0')) cleanPhone = '263' + cleanPhone.substring(1);
-                const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
-                window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            try {
+                const res = await fetch(`${API_URL}/schedule`);
+                const data = await res.json();
+                renderGrid(data, dateStr);
+            } catch (err) {
+                console.error("Failed to load schedule:", err);
             }
         }
 
-        function renderColumns() {
-            const dateObj = new Date(selectedDate + "T00:00:00");
-            const app = document.getElementById("app");
-            const query = (document.getElementById("searchInput")?.value || "").trim().toLowerCase();
-            app.innerHTML = "";
+        function renderGrid(data, selectedDate) {
+            const grid = document.getElementById('practitionerGrid');
+            grid.innerHTML = '';
 
-            if (dateObj.getDay() === 0) {
-                app.innerHTML = `<div class="closed-banner">🔒 The Wellness Centre is closed on Sundays</div>`;
-                return;
-            }
+            const parts = selectedDate.split('-');
+            const altDate1 = `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+            const altDate2 = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`; // D/M/YYYY
 
-            const dateBookings = bookingsList.filter(b => b.date === selectedDate);
-            const dateBlocks = blockedSlotsList.filter(b => b.date === selectedDate);
+            practitioners.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card';
 
-            therapists.forEach(p => {
-                const card = document.createElement("div");
-                card.className = "therapist-card";
-                let slotsHTML = "";
-
-                p.slots.forEach(slot => {
-                    if (p.lunch && p.lunch.includes(slot)) {
-                        slotsHTML += `<div class="slot-pill lunch"><span class="time-text">${slot}</span><span class="status-badge">🍱 Lunch Break</span></div>`;
-                        return;
-                    }
-
-                    const isBlocked = dateBlocks.find(b => 
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() && b.slot === slot
+                let slotsHtml = '';
+                timeSlots.forEach(slot => {
+                    // Check for Holiday or Manual Block
+                    const block = data.blocks.find(b => 
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
+                        normalizeSlot(b.slot) === slot &&
+                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
-                    if (isBlocked) {
-                        slotsHTML += `<div class="slot-pill blocked"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">🚫 ${isBlocked.reason || 'Away'}</small></div><button class="btn-sm" onclick="unblockSlot('${p.name}', '${slot}')">Unblock</button></div>`;
-                        return;
-                    }
-
-                    const booking = dateBookings.find(b => 
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() && b.slot === slot
+                    // Check for Booking
+                    const booking = data.bookings.find(b => 
+                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
+                        normalizeSlot(b.slot) === slot &&
+                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
-                    if (booking) {
-                        const matchesSearch = query !== "" && booking.name.toLowerCase().includes(query);
-                        const searchClass = query !== "" ? (matchesSearch ? "highlighted" : "dimmed") : "";
-
-                        slotsHTML += `<div class="slot-pill booked ${searchClass}"><div><span class="time-text">${slot}</span><br><small style="font-weight:600;">👤 ${booking.name}</small></div><button class="btn-sm" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div>`;
+                    if (block) {
+                        slotsHtml += `
+                            <div class="slot blocked">
+                                <span class="slot-time">${slot}</span>
+                                <span>🚫 ${block.reason || 'Closed'}</span>
+                                ${block.reason !== 'Public Holiday (Closed)' ? `<button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>` : ''}
+                            </div>`;
+                    } else if (booking) {
+                        slotsHtml += `
+                            <div class="slot booked">
+                                <span class="slot-time">${slot}</span>
+                                <span>👤 ${booking.name}</span>
+                                <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
+                            </div>`;
                     } else {
-                        const searchClass = query !== "" ? "dimmed" : "";
-                        slotsHTML += `<div class="slot-pill ${searchClass}"><span class="time-text">${slot}</span><button class="btn-sm" style="border-color:var(--brand-accent); color:var(--brand-accent);" onclick="openModal('${p.name}', '${slot}')">+ Book</button></div>`;
+                        slotsHtml += `
+                            <div class="slot">
+                                <span class="slot-time">${slot}</span>
+                                <button class="btn btn-primary" onclick="openBookingModal('${p.name}', '${slot}')">+ Book</button>
+                            </div>`;
                     }
                 });
 
-                card.innerHTML = `<div class="header-top"><div class="avatar-circle">${p.name.charAt(0)}</div><div class="therapist-info"><h3>${p.name}</h3><p>${p.role}</p></div></div><div class="slots-body">${slotsHTML}</div>`;
-                app.appendChild(card);
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="avatar">${p.name[0]}</div>
+                        <div>
+                            <h3 style="margin:0;">${p.name}</h3>
+                            <small style="color:#6c757d;">${p.title}</small>
+                        </div>
+                    </div>
+                    <div>${slotsHtml}</div>
+                `;
+                grid.appendChild(card);
             });
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const nameField = document.getElementById("patientNameInput");
-            if (nameField) {
-                nameField.addEventListener("input", autofillPatientPhone);
-                nameField.addEventListener("change", autofillPatientPhone);
-            }
-        });
+        function openBookingModal(practitioner, slot) {
+            document.getElementById('bookPractitioner').value = practitioner;
+            document.getElementById('bookSlot').value = slot;
+            document.getElementById('bookingModal').style.display = 'flex';
+        }
 
-        updateDateLabel();
-        fetchSchedule();
+        function openBlockModal() {
+            document.getElementById('blockModal').style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        async function handleBookSubmit(e) {
+            e.preventDefault();
+            const date = document.getElementById('datePicker').value;
+            const practitioner = document.getElementById('bookPractitioner').value;
+            const slot = document.getElementById('bookSlot').value;
+            const name = document.getElementById('patientName').value;
+            const phone = document.getElementById('patientPhone').value;
+
+            await fetch(`${API_URL}/bookings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ practitioner, slot, name, phone, date })
+            });
+
+            closeModal('bookingModal');
+            document.getElementById('bookingForm').reset();
+            loadSchedule();
+        }
+
+        async function handleBlockSubmit(e) {
+            e.preventDefault();
+            const date = document.getElementById('datePicker').value;
+            const practitioner = document.getElementById('blockPractitionerSelect').value;
+            const slot = document.getElementById('blockSlotSelect').value;
+            const reason = document.getElementById('blockReason').value || 'Away';
+
+            await fetch(`${API_URL}/block`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ practitioner, slot, date, reason })
+            });
+
+            closeModal('blockModal');
+            document.getElementById('blockForm').reset();
+            loadSchedule();
+        }
+
+        async function cancelBooking(practitioner, slot) {
+            const date = document.getElementById('datePicker').value;
+            await fetch(`${API_URL}/bookings`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ practitioner, slot, date })
+            });
+            loadSchedule();
+        }
+
+        async function deleteBlock(practitioner, slot) {
+            const date = document.getElementById('datePicker').value;
+            await fetch(`${API_URL}/block`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ practitioner, slot, date })
+            });
+            loadSchedule();
+        }
     </script>
 </body>
 </html>

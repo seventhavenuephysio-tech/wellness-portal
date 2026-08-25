@@ -7,15 +7,16 @@
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
         body { background: #f4f6f8; color: #333; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
         .controls { display: flex; gap: 10px; align-items: center; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
         .btn-primary { background: #0d6efd; color: #fff; }
         .btn-secondary { background: #e9ecef; color: #495057; }
         .btn-danger { background: #dc3545; color: #fff; }
+        .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
         .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="date"] { padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; }
+        input[type="date"], input[type="text"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -24,7 +25,7 @@
         .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
         .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
         .slot-time { font-weight: bold; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
@@ -36,6 +37,7 @@
     <div class="header">
         <div class="logo">✚ The Wellness Centre</div>
         <div class="controls">
+            <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
         </div>
     </div>
@@ -63,7 +65,7 @@
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" id="patientPhone">
+                    <input type="tel" id="patientPhone" placeholder="e.g. 263777203606">
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
@@ -89,14 +91,14 @@
                 <div class="form-group">
                     <label>Slot</label>
                     <select id="blockSlotSelect">
-                        <option value="8:00 AM">8:00 AM</option>
-                        <option value="9:00 AM">9:00 AM</option>
+                        <option value="08:00 AM">08:00 AM</option>
+                        <option value="09:00 AM">09:00 AM</option>
                         <option value="10:00 AM">10:00 AM</option>
                         <option value="11:00 AM">11:00 AM</option>
                         <option value="12:00 PM">12:00 PM</option>
-                        <option value="1:00 PM">1:00 PM</option>
-                        <option value="2:00 PM">2:00 PM</option>
-                        <option value="3:00 PM">3:00 PM</option>
+                        <option value="01:00 PM">01:00 PM</option>
+                        <option value="02:00 PM">02:00 PM</option>
+                        <option value="03:00 PM">03:00 PM</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -118,7 +120,8 @@
             { name: 'Mispar', title: 'Physiotherapist' },
             { name: 'Tinotenda', title: 'Physiotherapist' }
         ];
-        const timeSlots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'];
+        const timeSlots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'];
+        let rawScheduleData = { bookings: [], blocks: [] };
 
         document.addEventListener('DOMContentLoaded', () => {
             setToday();
@@ -154,7 +157,7 @@
         }
 
         function cleanSlot(s) {
-            return s.replace(/^0/, '');
+            return s ? s.replace(/^0/, '') : '';
         }
 
         async function loadSchedule() {
@@ -163,8 +166,8 @@
 
             try {
                 const res = await fetch(`${API_URL}/schedule`);
-                const data = await res.json();
-                renderGrid(data, dateStr);
+                rawScheduleData = await res.json();
+                renderGrid(rawScheduleData, dateStr);
             } catch (err) {
                 console.error("Failed to load schedule:", err);
             }
@@ -173,6 +176,7 @@
         function renderGrid(data, selectedDate) {
             const grid = document.getElementById('practitionerGrid');
             grid.innerHTML = '';
+            const query = document.getElementById('searchInput').value.toLowerCase();
 
             const parts = selectedDate.split('-');
             const altDate1 = `${parts[2]}/${parts[1]}/${parts[0]}`; 
@@ -196,6 +200,8 @@
                         (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
                     );
 
+                    if (query && booking && !booking.name.toLowerCase().includes(query)) return;
+
                     if (block) {
                         slotsHtml += `
                             <div class="slot blocked">
@@ -204,13 +210,17 @@
                                 ${block.reason !== 'Public Holiday (Closed)' ? `<button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>` : ''}
                             </div>`;
                     } else if (booking) {
+                        const waMsg = encodeURIComponent(`Hi ${booking.name}, your appointment at The Wellness Centre with ${p.name} is confirmed for ${selectedDate} at ${slot}.`);
+                        const waUrl = booking.phone ? `https://api.whatsapp.com/send/?phone=${booking.phone.replace(/[^0-9]/g, '')}&text=${waMsg}` : '#';
+
                         slotsHtml += `
                             <div class="slot booked">
                                 <span class="slot-time">${slot}</span>
-                                <span>👤 ${booking.name}</span>
+                                <span>👤 ${booking.name} ${booking.phone ? `<a href="${waUrl}" target="_blank" class="btn btn-whatsapp">WhatsApp</a>` : ''}</span>
                                 <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
                             </div>`;
                     } else {
+                        if (query) return;
                         slotsHtml += `
                             <div class="slot">
                                 <span class="slot-time">${slot}</span>
@@ -227,10 +237,15 @@
                             <small style="color:#6c757d;">${p.title}</small>
                         </div>
                     </div>
-                    <div>${slotsHtml}</div>
+                    <div>${slotsHtml || '<p style="color:#888; text-align:center;">No matching records found.</p>'}</div>
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        function filterSchedule() {
+            const dateStr = document.getElementById('datePicker').value;
+            renderGrid(rawScheduleData, dateStr);
         }
 
         function openBookingModal(practitioner, slot) {

@@ -32,33 +32,49 @@ const BlockSchema = new mongoose.Schema({
 const Booking = mongoose.model('Booking', BookingSchema);
 const Block = mongoose.model('Block', BlockSchema);
 
-// 3. Zimbabwean Public Holidays (supporting both YYYY-MM-DD and DD/MM/YYYY formats)
-const ZIM_PUBLIC_HOLIDAYS = [
-    '2026-01-01', '01/01/2026', '1/1/2026',
-    '2026-02-21', '21/02/2026', '21/2/2026',
-    '2026-04-03', '03/04/2026', '3/4/2026',
-    '2026-04-06', '06/04/2026', '6/4/2026',
-    '2026-04-18', '18/04/2026', '18/4/2026',
-    '2026-05-01', '01/05/2026', '1/5/2026',
-    '2026-05-25', '25/05/2026', '25/5/2026',
-    '2026-08-10', '10/08/2026', '10/8/2026',
-    '2026-08-11', '11/08/2026', '11/8/2026',
-    '2026-09-15', '15/09/2026', '15/9/2026',
-    '2026-12-22', '22/12/2026', '22/12/2026',
-    '2026-12-25', '25/12/2026', '25/12/2026',
-    '2026-12-26', '26/12/2026', '26/12/2026'
+// 3. Raw List of Zimbabwean Public Holidays (Year, Month, Day)
+const RAW_HOLIDAYS = [
+    { year: 2026, month: 1, day: 1 },   // New Year's Day
+    { year: 2026, month: 2, day: 21 },  // National Youth Day
+    { year: 2026, month: 4, day: 3 },   // Good Friday
+    { year: 2026, month: 4, day: 6 },   // Easter Monday
+    { year: 2026, month: 4, day: 18 },  // Independence Day
+    { year: 2026, month: 5, day: 1 },   // Workers' Day
+    { year: 2026, month: 5, day: 25 },  // Africa Day
+    { year: 2026, month: 8, day: 10 },  // Heroes' Day
+    { year: 2026, month: 8, day: 11 },  // Defence Forces Day
+    { year: 2026, month: 9, day: 15 },  // Munhumutapa Day
+    { year: 2026, month: 12, day: 22 }, // Unity Day
+    { year: 2026, month: 12, day: 25 }, // Christmas Day
+    { year: 2026, month: 12, day: 26 }  // Boxing Day
 ];
+
+// Helper to generate all potential string representations of a date
+function generateDateVariations({ year, month, day }) {
+    const mm = String(month).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    const m = String(month);
+    const d = String(day);
+
+    return [
+        `${year}-${mm}-${dd}`, // 2026-08-11
+        `${year}-${m}-${d}`,   // 2026-8-11
+        `${dd}/${mm}/${year}`, // 11/08/2026
+        `${d}/${m}/${year}`,   // 11/8/2026
+        `${mm}/${dd}/${year}`, // 08/11/2026
+        `${m}/${d}/${year}`    // 8/11/2026
+    ];
+}
 
 // 4. API Endpoints
 
-// GET Schedule Data
+// GET Schedule
 app.get('/api/schedule', async (req, res) => {
     try {
         const bookings = await Booking.find({});
         const dbBlocks = await Block.find({});
 
         const practitioners = ['Chido', 'Mispar', 'Tinotenda'];
-        // Includes single digit and zero-padded slots to guarantee matching
         const slots = [
             '8:00 AM', '08:00 AM',
             '9:00 AM', '09:00 AM',
@@ -71,14 +87,17 @@ app.get('/api/schedule', async (req, res) => {
         ];
 
         let holidayBlocks = [];
-        ZIM_PUBLIC_HOLIDAYS.forEach(holidayDate => {
-            practitioners.forEach(practitioner => {
-                slots.forEach(slot => {
-                    holidayBlocks.push({
-                        practitioner,
-                        slot,
-                        date: holidayDate,
-                        reason: 'Public Holiday (Closed)'
+        RAW_HOLIDAYS.forEach(holiday => {
+            const dateVariations = generateDateVariations(holiday);
+            dateVariations.forEach(dateStr => {
+                practitioners.forEach(practitioner => {
+                    slots.forEach(slot => {
+                        holidayBlocks.push({
+                            practitioner,
+                            slot,
+                            date: dateStr,
+                            reason: 'Public Holiday (Closed)'
+                        });
                     });
                 });
             });

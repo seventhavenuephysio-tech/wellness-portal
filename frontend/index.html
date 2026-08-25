@@ -25,6 +25,7 @@
         .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
         .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
         .slot-time { font-weight: bold; }
+        .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
         .form-group { margin-bottom: 15px; }
@@ -49,6 +50,8 @@
         <input type="date" id="datePicker" onchange="loadSchedule()">
         <span id="dateDisplay" style="font-weight: bold; margin-left: 10px;"></span>
     </div>
+
+    <div id="holidayBannerContainer"></div>
 
     <div class="grid" id="practitionerGrid"></div>
 
@@ -126,6 +129,22 @@
         const timeSlots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'];
         let rawScheduleData = { bookings: [], blocks: [] };
 
+        const ZIM_HOLIDAYS_2026 = {
+            '2026-01-01': "New Year's Day",
+            '2026-02-21': "National Youth Day",
+            '2026-04-03': "Good Friday",
+            '2026-04-06': "Easter Monday",
+            '2026-04-18': "Independence Day",
+            '2026-05-01': "Workers' Day",
+            '2026-05-25': "Africa Day",
+            '2026-08-10': "Heroes' Day",
+            '2026-08-11': "Defence Forces Day",
+            '2026-09-15': "Munhumutapa Day",
+            '2026-12-22': "National Unity Day",
+            '2026-12-25': "Christmas Day",
+            '2026-12-26': "Boxing Day"
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             setToday();
         });
@@ -141,7 +160,8 @@
 
         function changeDate(days) {
             const picker = document.getElementById('datePicker');
-            const current = new Date(picker.value);
+            const parts = picker.value.split('-');
+            const current = new Date(parts[0], parts[1] - 1, parts[2]);
             current.setDate(current.getDate() + days);
             const yyyy = current.getFullYear();
             const mm = String(current.getMonth() + 1).padStart(2, '0');
@@ -178,13 +198,22 @@
                 renderGrid(rawScheduleData, dateStr);
             } catch (err) {
                 console.error("Failed to load schedule:", err);
-                document.getElementById('practitionerGrid').innerHTML = '<p style="color:red; text-align:center; grid-column: 1/-1;">Error loading schedule. Please refresh.</p>';
+                renderGrid({ bookings: [], blocks: [] }, dateStr);
             }
         }
 
         function renderGrid(data, selectedDate) {
             const grid = document.getElementById('practitionerGrid');
+            const holidayBanner = document.getElementById('holidayBannerContainer');
             grid.innerHTML = '';
+            holidayBanner.innerHTML = '';
+
+            const holidayName = ZIM_HOLIDAYS_2026[selectedDate];
+
+            if (holidayName) {
+                holidayBanner.innerHTML = `<div class="holiday-banner">🌴 Public Holiday: ${holidayName} (Centre Closed)</div>`;
+            }
+
             const query = (document.getElementById('searchInput').value || '').toLowerCase();
 
             const parts = selectedDate.split('-');
@@ -200,6 +229,15 @@
 
                 let slotsHtml = '';
                 timeSlots.forEach(slot => {
+                    if (holidayName) {
+                        slotsHtml += `
+                            <div class="slot blocked">
+                                <span class="slot-time">${slot}</span>
+                                <span>🚫 Public Holiday (${holidayName})</span>
+                            </div>`;
+                        return;
+                    }
+
                     const block = blocksList.find(b => 
                         b && b.practitioner && typeof b.practitioner === 'string' &&
                         b.practitioner.toLowerCase() === p.name.toLowerCase() &&
@@ -221,7 +259,7 @@
                             <div class="slot blocked">
                                 <span class="slot-time">${slot}</span>
                                 <span>🚫 ${block.reason || 'Closed'}</span>
-                                ${block.reason !== 'Public Holiday (Closed)' ? `<button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>` : ''}
+                                <button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>
                             </div>`;
                     } else if (booking) {
                         const waMsg = encodeURIComponent(`Hi ${booking.name}, your appointment at The Wellness Centre with ${p.name} is confirmed for ${selectedDate} at ${slot}.`);

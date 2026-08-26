@@ -27,11 +27,10 @@
         .slot-time { font-weight: bold; }
         .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; }
-        .input-with-btn { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -67,10 +66,7 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <div class="input-with-btn">
-                        <input type="text" id="patientName" required style="flex: 1;">
-                        <button type="button" class="btn btn-secondary" onclick="pickPhoneContact()" style="white-space: nowrap;">📱 Phonebook</button>
-                    </div>
+                    <input type="text" id="patientName" required>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -215,29 +211,6 @@
             if (!cleanPhone) return '#';
             const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
             return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-        }
-
-        async function pickPhoneContact() {
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                try {
-                    const props = ['name', 'tel'];
-                    const opts = { multiple: false };
-                    const [contact] = await navigator.contacts.select(props, opts);
-
-                    if (contact) {
-                        if (contact.name && contact.name[0]) {
-                            document.getElementById('patientName').value = contact.name[0];
-                        }
-                        if (contact.tel && contact.tel[0]) {
-                            document.getElementById('patientPhone').value = sanitizePhoneNumber(contact.tel[0]);
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Phonebook selection cancelled or denied:', err);
-                }
-            } else {
-                alert('Phonebook access is active when opening this site on a mobile device (Android Chrome). On computers, use typing or the "Import CSV" button.');
-            }
         }
 
         async function loadSchedule() {

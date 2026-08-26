@@ -11,19 +11,21 @@ async function handleCSVUpload(e) {
         // Clean headers for matching
         const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
         
+        // Detect whether file is an appointment schedule or a contact list
         const isBookingFile = rawHeaders.some(h => h.includes('slot') || h.includes('practitioner'));
 
         if (!isBookingFile) {
-            // --- PATIENT CONTACTS IMPORT (Google / iCloud / Phonebook CSV) ---
-            let nameIdx = rawHeaders.findIndex(h => h === 'name' || h.includes('givenname') || h.includes('displayname') || h.includes('first'));
+            // --- PATIENT CONTACTS IMPORT (Google Contacts / CSV) ---
+            let nameIdx = rawHeaders.findIndex(h => h === 'name' || h === 'givenname' || h.includes('displayname'));
             if (nameIdx === -1) nameIdx = rawHeaders.findIndex(h => h.includes('name'));
 
-            let phoneIdx = rawHeaders.findIndex(h => h.includes('phone1value') || h.includes('phone') || h.includes('mobile') || h.includes('contact'));
-            if (phoneIdx === -1) phoneIdx = 1; // Fallback to second column
+            let phoneIdx = rawHeaders.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('cell'));
+            if (phoneIdx === -1) phoneIdx = 1;
 
             const contacts = [];
             for (let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
+                // Split row respecting quoted commas
+                const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.trim().replace(/^"|"$/g, ''));
                 const name = row[nameIdx];
                 const rawPhone = row[phoneIdx] || '';
 
@@ -36,7 +38,7 @@ async function handleCSVUpload(e) {
             }
 
             if (contacts.length === 0) {
-                alert('No valid contact names or phone numbers found in file.');
+                alert('No valid contacts found in file.');
                 return;
             }
 
@@ -62,7 +64,7 @@ async function handleCSVUpload(e) {
             // --- APPOINTMENT SCHEDULE IMPORT ---
             const bookings = parseCSV(text);
             if (bookings.length === 0) {
-                alert('No valid bookings found. CSV headers needed: Practitioner, Slot, Patient Name, Phone Number, Date');
+                alert('No valid bookings found. CSV standard headers: Practitioner, Slot, Patient Name, Phone Number, Date');
                 return;
             }
 

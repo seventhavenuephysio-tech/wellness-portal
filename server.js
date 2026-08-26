@@ -1,386 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wellness Centre — Appointment Portal</title>
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background: #f4f6f8; color: #333; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-primary { background: #0d6efd; color: #fff; }
-        .btn-secondary { background: #e9ecef; color: #495057; }
-        .btn-danger { background: #dc3545; color: #fff; }
-        .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
-        .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="date"], input[type="text"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d6efd; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .slot { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 8px; }
-        .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
-        .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
-        .slot-time { font-weight: bold; }
-        .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; }
-    </style>
-</head>
-<body>
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
 
-    <div class="header">
-        <div class="logo">✚ The Wellness Centre</div>
-        <div class="controls">
-            <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
-            <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
-        </div>
-    </div>
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-    <div class="date-picker-container">
-        <button class="btn btn-secondary" onclick="changeDate(-1)">◀</button>
-        <button class="btn btn-secondary" onclick="setToday()">Today</button>
-        <button class="btn btn-secondary" onclick="changeDate(1)">▶</button>
-        <input type="date" id="datePicker" onchange="loadSchedule()">
-        <span id="dateDisplay" style="font-weight: bold; margin-left: 10px;"></span>
-    </div>
+const MONGO_URI = process.env.MONGO_URI;
 
-    <div id="holidayBannerContainer"></div>
+if (MONGO_URI) {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log('Connected to MongoDB Atlas'))
+        .catch(err => console.error('MongoDB connection error:', err));
+} else {
+    console.warn('WARNING: MONGO_URI is missing from environment variables.');
+}
 
-    <div class="grid" id="practitionerGrid"></div>
+const BookingSchema = new mongoose.Schema({
+    practitioner: { type: String, required: true },
+    slot: { type: String, required: true },
+    name: { type: String, required: true },
+    phone: { type: String, default: '' },
+    date: { type: String, required: true }
+});
 
-    <!-- Booking Modal -->
-    <div class="modal" id="bookingModal">
-        <div class="modal-content">
-            <h3>Book Appointment</h3>
-            <form id="bookingForm" onsubmit="handleBookSubmit(event)">
-                <input type="hidden" id="bookPractitioner">
-                <input type="hidden" id="bookSlot">
-                <div class="form-group">
-                    <label>Patient Name</label>
-                    <input type="text" id="patientName" required>
-                </div>
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" id="patientPhone" placeholder="e.g. 0777203606 or 263777203606">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Booking</button>
-                </div>
-            </form>
-        </div>
-    </div>
+const BlockSchema = new mongoose.Schema({
+    practitioner: { type: String, required: true },
+    slot: { type: String, required: true },
+    date: { type: String, required: true },
+    reason: { type: String, default: 'Away' }
+});
 
-    <!-- Block Modal -->
-    <div class="modal" id="blockModal">
-        <div class="modal-content">
-            <h3>Block Slot / Time Off</h3>
-            <form id="blockForm" onsubmit="handleBlockSubmit(event)">
-                <div class="form-group">
-                    <label>Practitioner</label>
-                    <select id="blockPractitionerSelect">
-                        <option value="Chido">Chido</option>
-                        <option value="Mispar">Mispar</option>
-                        <option value="Tinotenda">Tinotenda</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Slot</label>
-                    <select id="blockSlotSelect">
-                        <option value="08:00 AM">08:00 AM</option>
-                        <option value="09:00 AM">09:00 AM</option>
-                        <option value="10:00 AM">10:00 AM</option>
-                        <option value="11:00 AM">11:00 AM</option>
-                        <option value="12:00 PM">12:00 PM</option>
-                        <option value="01:00 PM">01:00 PM</option>
-                        <option value="02:00 PM">02:00 PM</option>
-                        <option value="03:00 PM">03:00 PM</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Reason</label>
-                    <input type="text" id="blockReason" placeholder="Lunch, Away, etc.">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('blockModal')">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Block</button>
-                </div>
-            </form>
-        </div>
-    </div>
+const Booking = mongoose.model('Booking', BookingSchema);
+const Block = mongoose.model('Block', BlockSchema);
 
-    <script>
-        const API_URL = window.location.origin.includes('onrender.com') 
-            ? `${window.location.origin}/api` 
-            : 'https://wellness-portal-api.onrender.com/api';
+const frontendPath = fs.existsSync(path.join(__dirname, '../frontend'))
+    ? path.join(__dirname, '../frontend')
+    : path.join(__dirname, 'frontend');
 
-        const practitioners = [
-            { name: 'Chido', title: 'Physiotherapist' },
-            { name: 'Mispar', title: 'Physiotherapist' },
-            { name: 'Tinotenda', title: 'Physiotherapist' }
-        ];
-        const timeSlots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'];
-        let rawScheduleData = { bookings: [], blocks: [] };
+app.use(express.static(frontendPath));
 
-        const ZIM_HOLIDAYS_2026 = {
-            '2026-01-01': "New Year's Day",
-            '2026-02-21': "National Youth Day",
-            '2026-04-03': "Good Friday",
-            '2026-04-06': "Easter Monday",
-            '2026-04-18': "Independence Day",
-            '2026-05-01': "Workers' Day",
-            '2026-05-25': "Africa Day",
-            '2026-08-10': "Heroes' Day",
-            '2026-08-11': "Defence Forces Day",
-            '2026-09-15': "Munhumutapa Day",
-            '2026-12-22': "National Unity Day",
-            '2026-12-25': "Christmas Day",
-            '2026-12-26': "Boxing Day"
-        };
+app.get('/api/schedule', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.json({ bookings: [], blocks: [] });
+        }
+        const rawBookings = await Booking.find({});
+        const rawBlocks = await Block.find({});
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setToday();
+        const bookings = rawBookings.filter(b => b && b.practitioner && b.slot && b.date);
+        const blocks = rawBlocks.filter(b => b && b.practitioner && b.slot && b.date);
+
+        res.json({ bookings, blocks });
+    } catch (err) {
+        console.error('Error fetching schedule:', err);
+        res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+});
+
+app.post('/api/bookings', async (req, res) => {
+    const { practitioner, slot, name, phone, date } = req.body;
+    if (!practitioner || !slot || !name || !date) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const booking = await Booking.create({ practitioner, slot, name, phone, date });
+        res.status(201).json(booking);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save booking' });
+    }
+});
+
+app.delete('/api/bookings', async (req, res) => {
+    const { practitioner, slot, date } = req.body;
+    try {
+        await Booking.deleteOne({ 
+            practitioner: new RegExp(`^${practitioner}$`, 'i'), 
+            slot, 
+            date 
         });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to cancel booking' });
+    }
+});
 
-        function setToday() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
-            loadSchedule();
-        }
+app.post('/api/block', async (req, res) => {
+    const { practitioner, slot, date, reason } = req.body;
+    if (!practitioner || !slot || !date) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-        function changeDate(days) {
-            const picker = document.getElementById('datePicker');
-            const parts = picker.value.split('-');
-            const current = new Date(parts[0], parts[1] - 1, parts[2]);
-            current.setDate(current.getDate() + days);
-            const yyyy = current.getFullYear();
-            const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dd = String(current.getDate()).padStart(2, '0');
-            picker.value = `${yyyy}-${mm}-${dd}`;
-            loadSchedule();
-        }
+    try {
+        const block = await Block.create({ practitioner, slot, date, reason });
+        res.status(201).json(block);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to block slot' });
+    }
+});
 
-        function formatDisplayDate(dateStr) {
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-                return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            }
-            return dateStr;
-        }
+app.delete('/api/block', async (req, res) => {
+    const { practitioner, slot, date } = req.body;
+    try {
+        await Block.deleteOne({ 
+            practitioner: new RegExp(`^${practitioner}$`, 'i'), 
+            slot, 
+            date 
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to unblock slot' });
+    }
+});
 
-        function cleanSlot(s) {
-            return s ? String(s).replace(/^0/, '') : '';
-        }
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
-        function formatWhatsAppUrl(phone, name, practitioner, date, slot) {
-            if (!phone) return '#';
-            let cleanPhone = String(phone).replace(/[^0-9]/g, '');
-            if (cleanPhone.startsWith('0')) {
-                cleanPhone = '263' + cleanPhone.substring(1);
-            } else if (cleanPhone.length === 9 && cleanPhone.startsWith('7')) {
-                cleanPhone = '263' + cleanPhone;
-            }
-            const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
-            return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-        }
-
-        async function loadSchedule() {
-            const dateStr = document.getElementById('datePicker').value;
-            document.getElementById('dateDisplay').innerText = formatDisplayDate(dateStr);
-
-            try {
-                const res = await fetch(`${API_URL}/schedule`);
-                const data = await res.json();
-                
-                rawScheduleData = {
-                    bookings: Array.isArray(data.bookings) ? data.bookings : [],
-                    blocks: Array.isArray(data.blocks) ? data.blocks : []
-                };
-                renderGrid(rawScheduleData, dateStr);
-            } catch (err) {
-                console.error("Failed to load schedule:", err);
-                renderGrid({ bookings: [], blocks: [] }, dateStr);
-            }
-        }
-
-        function renderGrid(data, selectedDate) {
-            const grid = document.getElementById('practitionerGrid');
-            const holidayBanner = document.getElementById('holidayBannerContainer');
-            grid.innerHTML = '';
-            holidayBanner.innerHTML = '';
-
-            const holidayName = ZIM_HOLIDAYS_2026[selectedDate];
-
-            if (holidayName) {
-                holidayBanner.innerHTML = `<div class="holiday-banner">🌴 Public Holiday: ${holidayName} (Centre Closed)</div>`;
-            }
-
-            const query = (document.getElementById('searchInput').value || '').toLowerCase();
-
-            const parts = selectedDate.split('-');
-            const altDate1 = `${parts[2]}/${parts[1]}/${parts[0]}`; 
-            const altDate2 = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
-
-            const blocksList = Array.isArray(data.blocks) ? data.blocks : [];
-            const bookingsList = Array.isArray(data.bookings) ? data.bookings : [];
-
-            practitioners.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'card';
-
-                let slotsHtml = '';
-                timeSlots.forEach(slot => {
-                    if (holidayName) {
-                        slotsHtml += `
-                            <div class="slot blocked">
-                                <span class="slot-time">${slot}</span>
-                                <span>🚫 Public Holiday (${holidayName})</span>
-                            </div>`;
-                        return;
-                    }
-
-                    const block = blocksList.find(b => 
-                        b && b.practitioner && typeof b.practitioner === 'string' &&
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
-                        cleanSlot(b.slot) === cleanSlot(slot) &&
-                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
-                    );
-
-                    const booking = bookingsList.find(b => 
-                        b && b.practitioner && typeof b.practitioner === 'string' &&
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
-                        cleanSlot(b.slot) === cleanSlot(slot) &&
-                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
-                    );
-
-                    if (query && booking && booking.name && !booking.name.toLowerCase().includes(query)) return;
-
-                    if (block) {
-                        slotsHtml += `
-                            <div class="slot blocked">
-                                <span class="slot-time">${slot}</span>
-                                <span>🚫 ${block.reason || 'Closed'}</span>
-                                <button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>
-                            </div>`;
-                    } else if (booking) {
-                        const waUrl = formatWhatsAppUrl(booking.phone, booking.name, p.name, selectedDate, slot);
-
-                        slotsHtml += `
-                            <div class="slot booked">
-                                <span class="slot-time">${slot}</span>
-                                <span>👤 ${booking.name} ${booking.phone ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">WhatsApp</a>` : ''}</span>
-                                <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
-                            </div>`;
-                    } else {
-                        if (query) return;
-                        slotsHtml += `
-                            <div class="slot">
-                                <span class="slot-time">${slot}</span>
-                                <button class="btn btn-primary" onclick="openBookingModal('${p.name}', '${slot}')">+ Book</button>
-                            </div>`;
-                    }
-                });
-
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="avatar">${p.name[0]}</div>
-                        <div>
-                            <h3 style="margin:0;">${p.name}</h3>
-                            <small style="color:#6c757d;">${p.title}</small>
-                        </div>
-                    </div>
-                    <div>${slotsHtml || '<p style="color:#888; text-align:center;">No matching records found.</p>'}</div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function filterSchedule() {
-            const dateStr = document.getElementById('datePicker').value;
-            renderGrid(rawScheduleData, dateStr);
-        }
-
-        function openBookingModal(practitioner, slot) {
-            document.getElementById('bookPractitioner').value = practitioner;
-            document.getElementById('bookSlot').value = slot;
-            document.getElementById('bookingModal').style.display = 'flex';
-        }
-
-        function openBlockModal() {
-            document.getElementById('blockModal').style.display = 'flex';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        async function handleBookSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('datePicker').value;
-            const practitioner = document.getElementById('bookPractitioner').value;
-            const slot = document.getElementById('bookSlot').value;
-            const name = document.getElementById('patientName').value;
-            const phone = document.getElementById('patientPhone').value;
-
-            await fetch(`${API_URL}/bookings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, name, phone, date })
-            });
-
-            closeModal('bookingModal');
-            document.getElementById('bookingForm').reset();
-            loadSchedule();
-        }
-
-        async function handleBlockSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('datePicker').value;
-            const practitioner = document.getElementById('blockPractitionerSelect').value;
-            const slot = document.getElementById('blockSlotSelect').value;
-            const reason = document.getElementById('blockReason').value || 'Away';
-
-            await fetch(`${API_URL}/block`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date, reason })
-            });
-
-            closeModal('blockModal');
-            document.getElementById('blockForm').reset();
-            loadSchedule();
-        }
-
-        async function cancelBooking(practitioner, slot) {
-            const date = document.getElementById('datePicker').value;
-            await fetch(`${API_URL}/bookings`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date })
-            });
-            loadSchedule();
-        }
-
-        async function deleteBlock(practitioner, slot) {
-            const date = document.getElementById('datePicker').value;
-            await fetch(`${API_URL}/block`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date })
-            });
-            loadSchedule();
-        }
-    </script>
-</body>
-</html>
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

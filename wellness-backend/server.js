@@ -74,6 +74,22 @@ app.post('/api/bookings', async (req, res) => {
     }
 });
 
+app.post('/api/bookings/bulk', async (req, res) => {
+    const { bookings } = req.body;
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+        return res.status(400).json({ error: 'No bookings provided' });
+    }
+
+    try {
+        const validBookings = bookings.filter(b => b.practitioner && b.slot && b.name && b.date);
+        const created = await Booking.insertMany(validBookings);
+        res.status(201).json({ count: created.length });
+    } catch (err) {
+        console.error('Bulk import error:', err);
+        res.status(500).json({ error: 'Failed to import bookings' });
+    }
+});
+
 app.delete('/api/bookings', async (req, res) => {
     const { practitioner, slot, date } = req.body;
     try {

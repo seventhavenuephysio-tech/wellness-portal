@@ -9,14 +9,14 @@
         body { background: #f4f6f8; color: #333; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
-        .controls { display: flex; gap: 10px; align-items: center; }
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
         .btn-primary { background: #0d6efd; color: #fff; }
         .btn-secondary { background: #e9ecef; color: #495057; }
         .btn-danger { background: #dc3545; color: #fff; }
         .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
         .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="date"], input[type="text"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
+        input[type="date"], input[type="text"], input[type="tel"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -27,10 +27,11 @@
         .slot-time { font-weight: bold; }
         .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; }
+        .form-group input, .form-group select { width: 100%; }
+        .input-with-btn { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -66,13 +67,16 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <input type="text" id="patientName" required>
+                    <div class="input-with-btn">
+                        <input type="text" id="patientName" required style="flex: 1;">
+                        <button type="button" class="btn btn-secondary" onclick="pickPhoneContact()" title="Import from Phonebook">📱 Phonebook</button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
                     <input type="tel" id="patientPhone" placeholder="e.g. 0777203606">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Booking</button>
                 </div>
@@ -110,9 +114,9 @@
                     <label>Reason</label>
                     <input type="text" id="blockReason" placeholder="Lunch, Away, etc.">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('blockModal')">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Block</button>
+                    <button type="submit" class="btn btn-danger">Block Slot</button>
                 </div>
             </form>
         </div>
@@ -211,6 +215,29 @@
             if (!cleanPhone) return '#';
             const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
             return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+        }
+
+        async function pickPhoneContact() {
+            if ('contacts' in navigator && 'ContactsManager' in window) {
+                try {
+                    const props = ['name', 'tel'];
+                    const opts = { multiple: false };
+                    const [contact] = await navigator.contacts.select(props, opts);
+
+                    if (contact) {
+                        if (contact.name && contact.name[0]) {
+                            document.getElementById('patientName').value = contact.name[0];
+                        }
+                        if (contact.tel && contact.tel[0]) {
+                            document.getElementById('patientPhone').value = sanitizePhoneNumber(contact.tel[0]);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Phonebook selection cancelled or denied:', err);
+                }
+            } else {
+                alert('Phonebook access is active when opening this site on a mobile device (Android Chrome). On computers, use typing or the "Import CSV" button.');
+            }
         }
 
         async function loadSchedule() {
@@ -414,7 +441,7 @@
                     }
                 } catch (err) {
                     console.error('CSV import failed:', err);
-                    alert('Error connecting to backend.');
+                    alert('Error connecting to backend server.');
                 }
             };
             reader.readAsText(file);

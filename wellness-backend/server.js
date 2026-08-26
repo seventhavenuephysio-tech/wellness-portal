@@ -33,8 +33,14 @@ const BlockSchema = new mongoose.Schema({
     reason: { type: String, default: 'Away' }
 });
 
+const PatientSchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true },
+    phone: { type: String, default: '' }
+});
+
 const Booking = mongoose.model('Booking', BookingSchema);
 const Block = mongoose.model('Block', BlockSchema);
+const Patient = mongoose.model('Patient', PatientSchema);
 
 const frontendPath = fs.existsSync(path.join(__dirname, '../frontend'))
     ? path.join(__dirname, '../frontend')
@@ -42,6 +48,7 @@ const frontendPath = fs.existsSync(path.join(__dirname, '../frontend'))
 
 app.use(express.static(frontendPath));
 
+// Schedule retrieval
 app.get('/api/schedule', async (req, res) => {
     try {
         if (mongoose.connection.readyState !== 1) {
@@ -60,6 +67,36 @@ app.get('/api/schedule', async (req, res) => {
     }
 });
 
+// Patient directory for typing auto-complete
+app.get('/api/patients', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) return res.json([]);
+        
+        const storedPatients = await Patient.find({});
+        const bookings = await Booking.find({}, 'name phone');
+        
+        const patientsMap = {};
+        
+        // Load explicitly saved patients
+        storedPatients.forEach(p => {
+            if (p.name) patientsMap[p.name.toLowerCase()] = { name: p.name, phone: p.phone };
+        });
+
+        // Merge past bookings
+        bookings.forEach(b => {
+            if (b.name && !patientsMap[b.name.toLowerCase()]) {
+                patientsMap[b.name.toLowerCase()] = { name: b.name, phone: b.phone || '' };
+            }
+        });
+
+        res.json(Object.values(patientsMap));
+    } catch (err) {
+        console.error('Error fetching patients:', err);
+        res.status(500).json({ error: 'Failed to fetch patients' });
+    }
+});
+
+// Single booking creation & patient index update
 app.post('/api/bookings', async (req, res) => {
     const { practitioner, slot, name, phone, date } = req.body;
     if (!practitioner || !slot || !name || !date) {
@@ -68,12 +105,23 @@ app.post('/api/bookings', async (req, res) => {
 
     try {
         const booking = await Booking.create({ practitioner, slot, name, phone, date });
+
+        // Save/Update patient phone for future auto-fill
+        if (name && phone) {
+            await Patient.updateOne(
+                { name: name.trim() },
+                { $set: { name: name.trim(), phone: phone.trim() } },
+                { upsert: true }
+            );
+        }
+
         res.status(201).json(booking);
     } catch (err) {
         res.status(500).json({ error: 'Failed to save booking' });
     }
 });
 
+// CSV Bulk booking import
 app.post('/api/bookings/bulk', async (req, res) => {
     const { bookings } = req.body;
     if (!Array.isArray(bookings) || bookings.length === 0) {
@@ -83,6 +131,22 @@ app.post('/api/bookings/bulk', async (req, res) => {
     try {
         const validBookings = bookings.filter(b => b.practitioner && b.slot && b.name && b.date);
         const created = await Booking.insertMany(validBookings);
+
+        // Bulk upsert patient names and numbers
+        const patientOps = validBookings
+            .filter(b => b.name && b.phone)
+            .map(b => ({
+                updateOne: {
+                    filter: { name: b.name.trim() },
+                    update: { $set: { name: b.name.trim(), phone: b.phone.trim() } },
+                    upsert: true
+                }
+            }));
+
+        if (patientOps.length > 0) {
+            await Patient.bulkWrite(patientOps);
+        }
+
         res.status(201).json({ count: created.length });
     } catch (err) {
         console.error('Bulk import error:', err);
@@ -90,6 +154,7 @@ app.post('/api/bookings/bulk', async (req, res) => {
     }
 });
 
+// Booking cancellation
 app.delete('/api/bookings', async (req, res) => {
     const { practitioner, slot, date } = req.body;
     try {
@@ -104,6 +169,7 @@ app.delete('/api/bookings', async (req, res) => {
     }
 });
 
+// Block slot
 app.post('/api/block', async (req, res) => {
     const { practitioner, slot, date, reason } = req.body;
     if (!practitioner || !slot || !date) {
@@ -118,6 +184,7 @@ app.post('/api/block', async (req, res) => {
     }
 });
 
+// Unblock slot
 app.delete('/api/block', async (req, res) => {
     const { practitioner, slot, date } = req.body;
     try {

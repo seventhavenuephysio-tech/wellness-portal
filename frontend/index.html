@@ -1,547 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Wellness Centre — Appointment Portal</title>
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background: #f4f6f8; color: #333; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-primary { background: #0d6efd; color: #fff; }
-        .btn-secondary { background: #e9ecef; color: #495057; }
-        .btn-danger { background: #dc3545; color: #fff; }
-        .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.8rem; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-whatsapp:hover { background: #1eb954; }
-        .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="date"], input[type="text"], input[type="tel"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-        .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d6efd; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .slot { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 8px; }
-        .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
-        .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
-        .slot-time { font-weight: bold; }
-        .slot-actions { display: flex; gap: 6px; align-items: center; }
-        .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input, .form-group select { width: 100%; }
-    </style>
-</head>
-<body>
+async function handleCSVUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    <div class="header">
-        <div class="logo">✚ The Wellness Centre</div>
-        <div class="controls">
-            <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
-            <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
-            <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
-            <button class="btn btn-secondary" onclick="document.getElementById('csvFileInput').click()">📥 Import CSV</button>
-        </div>
-    </div>
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return;
 
-    <div class="date-picker-container">
-        <button class="btn btn-secondary" onclick="changeDate(-1)">◀</button>
-        <button class="btn btn-secondary" onclick="setToday()">Today</button>
-        <button class="btn btn-secondary" onclick="changeDate(1)">▶</button>
-        <input type="date" id="datePicker" onchange="loadSchedule()">
-        <span id="dateDisplay" style="font-weight: bold; margin-left: 10px;"></span>
-    </div>
-
-    <div id="holidayBannerContainer"></div>
-
-    <div class="grid" id="practitionerGrid"></div>
-
-    <!-- Booking Modal -->
-    <div class="modal" id="bookingModal">
-        <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">Book Appointment</h3>
-                <button type="button" class="btn btn-secondary" onclick="pickFromPhonebook()" title="Pick contact from phone address book">📱 Pick Contact</button>
-            </div>
-            <form id="bookingForm" onsubmit="handleBookSubmit(event)">
-                <input type="hidden" id="bookPractitioner">
-                <input type="hidden" id="bookSlot">
-                <div class="form-group">
-                    <label>Patient Name</label>
-                    <input type="text" id="patientName" list="patientDatalist" oninput="handleNameInput(event)" placeholder="Type patient name..." required autocomplete="off">
-                    <datalist id="patientDatalist"></datalist>
-                </div>
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" id="patientPhone" placeholder="0777203606 or +263777203606">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Booking</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Block Modal -->
-    <div class="modal" id="blockModal">
-        <div class="modal-content">
-            <h3>Block Slot / Time Off</h3>
-            <form id="blockForm" onsubmit="handleBlockSubmit(event)">
-                <div class="form-group">
-                    <label>Practitioner</label>
-                    <select id="blockPractitionerSelect">
-                        <option value="Chido">Chido</option>
-                        <option value="Mispar">Mispar</option>
-                        <option value="Tinotenda">Tinotenda</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Slot</label>
-                    <select id="blockSlotSelect">
-                        <option value="08:00 AM">08:00 AM</option>
-                        <option value="09:00 AM">09:00 AM</option>
-                        <option value="10:00 AM">10:00 AM</option>
-                        <option value="11:00 AM">11:00 AM</option>
-                        <option value="12:00 PM">12:00 PM</option>
-                        <option value="01:00 PM">01:00 PM</option>
-                        <option value="02:00 PM">02:00 PM</option>
-                        <option value="03:00 PM">03:00 PM</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Reason</label>
-                    <input type="text" id="blockReason" placeholder="Lunch, Away, etc.">
-                </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('blockModal')">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Block Slot</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        const API_URL = window.location.origin.includes('onrender.com') 
-            ? `${window.location.origin}/api` 
-            : 'https://wellness-portal-api.onrender.com/api';
-
-        const practitioners = [
-            { name: 'Chido', title: 'Physiotherapist' },
-            { name: 'Mispar', title: 'Physiotherapist' },
-            { name: 'Tinotenda', title: 'Physiotherapist' }
-        ];
-        const timeSlots = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'];
+        // Clean headers for matching
+        const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
         
-        let rawScheduleData = { bookings: [], blocks: [] };
-        let phonebookDirectory = [];
+        const isBookingFile = rawHeaders.some(h => h.includes('slot') || h.includes('practitioner'));
 
-        const ZIM_HOLIDAYS_2026 = {
-            '2026-01-01': "New Year's Day",
-            '2026-02-21': "National Youth Day",
-            '2026-04-03': "Good Friday",
-            '2026-04-06': "Easter Monday",
-            '2026-04-18': "Independence Day",
-            '2026-05-01': "Workers' Day",
-            '2026-05-25': "Africa Day",
-            '2026-08-10': "Heroes' Day",
-            '2026-08-11': "Defence Forces Day",
-            '2026-09-15': "Munhumutapa Day",
-            '2026-12-22': "National Unity Day",
-            '2026-12-25': "Christmas Day",
-            '2026-12-26': "Boxing Day"
-        };
+        if (!isBookingFile) {
+            // --- PATIENT CONTACTS IMPORT (Google / iCloud / Phonebook CSV) ---
+            let nameIdx = rawHeaders.findIndex(h => h === 'name' || h.includes('givenname') || h.includes('displayname') || h.includes('first'));
+            if (nameIdx === -1) nameIdx = rawHeaders.findIndex(h => h.includes('name'));
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setToday();
-            loadPatientDirectory();
+            let phoneIdx = rawHeaders.findIndex(h => h.includes('phone1value') || h.includes('phone') || h.includes('mobile') || h.includes('contact'));
+            if (phoneIdx === -1) phoneIdx = 1; // Fallback to second column
 
-            const phoneInput = document.getElementById('patientPhone');
-            if (phoneInput) {
-                phoneInput.addEventListener('input', (e) => {
-                    let val = e.target.value.trim();
-                    if (val.startsWith('0')) {
-                        e.target.value = '+263 ' + val.substring(1);
-                    }
-                });
-            }
-        });
-
-        async function loadPatientDirectory() {
-            try {
-                const res = await fetch(`${API_URL}/patients`);
-                phonebookDirectory = await res.json();
-                
-                const datalist = document.getElementById('patientDatalist');
-                datalist.innerHTML = '';
-                phonebookDirectory.forEach(patient => {
-                    const option = document.createElement('option');
-                    option.value = patient.name;
-                    option.label = patient.phone;
-                    datalist.appendChild(option);
-                });
-            } catch (err) {
-                console.error('Failed to load patient directory:', err);
-            }
-        }
-
-        function handleNameInput(e) {
-            const inputVal = e.target.value.trim().toLowerCase();
-            const phoneInput = document.getElementById('patientPhone');
-            
-            const match = phonebookDirectory.find(p => p.name.toLowerCase() === inputVal);
-            if (match) {
-                phoneInput.value = match.phone;
-            }
-        }
-
-        async function pickFromPhonebook() {
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                try {
-                    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-                    if (contacts && contacts[0]) {
-                        if (contacts[0].name?.[0]) document.getElementById('patientName').value = contacts[0].name[0];
-                        if (contacts[0].tel?.[0]) {
-                            const phoneInput = document.getElementById('patientPhone');
-                            phoneInput.value = contacts[0].tel[0];
-                            phoneInput.dispatchEvent(new Event('input'));
-                        }
-                    }
-                } catch (err) {
-                    console.error('Contact picker error:', err);
-                }
-            } else {
-                alert('Contact picker works on mobile Chrome/Safari. On desktop, start typing a name to auto-fill stored patient numbers.');
-            }
-        }
-
-        function setToday() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
-            loadSchedule();
-        }
-
-        function changeDate(days) {
-            const picker = document.getElementById('datePicker');
-            const parts = picker.value.split('-');
-            const current = new Date(parts[0], parts[1] - 1, parts[2]);
-            current.setDate(current.getDate() + days);
-            const yyyy = current.getFullYear();
-            const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dd = String(current.getDate()).padStart(2, '0');
-            picker.value = `${yyyy}-${mm}-${dd}`;
-            loadSchedule();
-        }
-
-        function formatDisplayDate(dateStr) {
-            const parts = dateStr.split('-');
-            if (parts.length === 3) {
-                const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-                return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-            }
-            return dateStr;
-        }
-
-        function cleanSlot(s) {
-            return s ? String(s).replace(/^0/, '') : '';
-        }
-
-        function sanitizePhoneNumber(phone) {
-            if (!phone) return '';
-            let digits = String(phone).replace(/[^0-9]/g, '');
-            if (digits.startsWith('0')) {
-                digits = '263' + digits.substring(1);
-            } else if (digits.length === 9 && digits.startsWith('7')) {
-                digits = '263' + digits;
-            }
-            return digits;
-        }
-
-        function formatWhatsAppUrl(phone, name, practitioner, date, slot) {
-            const cleanPhone = sanitizePhoneNumber(phone);
-            if (!cleanPhone) return '#';
-            const msg = `Hi ${name}, your appointment at The Wellness Centre with ${practitioner} is confirmed for ${date} at ${slot}.`;
-            return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-        }
-
-        async function loadSchedule() {
-            const dateStr = document.getElementById('datePicker').value;
-            document.getElementById('dateDisplay').innerText = formatDisplayDate(dateStr);
-
-            try {
-                const res = await fetch(`${API_URL}/schedule`);
-                const data = await res.json();
-                
-                rawScheduleData = {
-                    bookings: Array.isArray(data.bookings) ? data.bookings : [],
-                    blocks: Array.isArray(data.blocks) ? data.blocks : []
-                };
-                renderGrid(rawScheduleData, dateStr);
-            } catch (err) {
-                console.error("Failed to load schedule:", err);
-                renderGrid({ bookings: [], blocks: [] }, dateStr);
-            }
-        }
-
-        function renderGrid(data, selectedDate) {
-            const grid = document.getElementById('practitionerGrid');
-            const holidayBanner = document.getElementById('holidayBannerContainer');
-            grid.innerHTML = '';
-            holidayBanner.innerHTML = '';
-
-            const holidayName = ZIM_HOLIDAYS_2026[selectedDate];
-
-            if (holidayName) {
-                holidayBanner.innerHTML = `<div class="holiday-banner">🌴 Public Holiday: ${holidayName} (Centre Closed)</div>`;
-            }
-
-            const query = (document.getElementById('searchInput').value || '').toLowerCase();
-
-            const parts = selectedDate.split('-');
-            const altDate1 = `${parts[2]}/${parts[1]}/${parts[0]}`; 
-            const altDate2 = `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
-
-            const blocksList = Array.isArray(data.blocks) ? data.blocks : [];
-            const bookingsList = Array.isArray(data.bookings) ? data.bookings : [];
-
-            practitioners.forEach(p => {
-                const card = document.createElement('div');
-                card.className = 'card';
-
-                let slotsHtml = '';
-                timeSlots.forEach(slot => {
-                    if (holidayName) {
-                        slotsHtml += `
-                            <div class="slot blocked">
-                                <span class="slot-time">${slot}</span>
-                                <span>🚫 Public Holiday (${holidayName})</span>
-                            </div>`;
-                        return;
-                    }
-
-                    const block = blocksList.find(b => 
-                        b && b.practitioner && typeof b.practitioner === 'string' &&
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
-                        cleanSlot(b.slot) === cleanSlot(slot) &&
-                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
-                    );
-
-                    const booking = bookingsList.find(b => 
-                        b && b.practitioner && typeof b.practitioner === 'string' &&
-                        b.practitioner.toLowerCase() === p.name.toLowerCase() &&
-                        cleanSlot(b.slot) === cleanSlot(slot) &&
-                        (b.date === selectedDate || b.date === altDate1 || b.date === altDate2)
-                    );
-
-                    if (query && booking && booking.name && !booking.name.toLowerCase().includes(query)) return;
-
-                    if (block) {
-                        slotsHtml += `
-                            <div class="slot blocked">
-                                <span class="slot-time">${slot}</span>
-                                <span>🚫 ${block.reason || 'Closed'}</span>
-                                <button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button>
-                            </div>`;
-                    } else if (booking) {
-                        const waUrl = formatWhatsAppUrl(booking.phone, booking.name, p.name, selectedDate, slot);
-
-                        slotsHtml += `
-                            <div class="slot booked">
-                                <span class="slot-time">${slot}</span>
-                                <span>👤 ${booking.name}</span>
-                                <div class="slot-actions">
-                                    ${booking.phone ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">💬 WhatsApp</a>` : ''}
-                                    <button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button>
-                                </div>
-                            </div>`;
-                    } else {
-                        if (query) return;
-                        slotsHtml += `
-                            <div class="slot">
-                                <span class="slot-time">${slot}</span>
-                                <button class="btn btn-primary" onclick="openBookingModal('${p.name}', '${slot}')">+ Book</button>
-                            </div>`;
-                    }
-                });
-
-                card.innerHTML = `
-                    <div class="card-header">
-                        <div class="avatar">${p.name[0]}</div>
-                        <div>
-                            <h3 style="margin:0;">${p.name}</h3>
-                            <small style="color:#6c757d;">${p.title}</small>
-                        </div>
-                    </div>
-                    <div>${slotsHtml || '<p style="color:#888; text-align:center;">No matching records found.</p>'}</div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        function filterSchedule() {
-            const dateStr = document.getElementById('datePicker').value;
-            renderGrid(rawScheduleData, dateStr);
-        }
-
-        function openBookingModal(practitioner, slot) {
-            document.getElementById('bookPractitioner').value = practitioner;
-            document.getElementById('bookSlot').value = slot;
-            document.getElementById('bookingModal').style.display = 'flex';
-            loadPatientDirectory();
-        }
-
-        function openBlockModal() {
-            document.getElementById('blockModal').style.display = 'flex';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
-        }
-
-        function parseCSV(text) {
-            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            if (lines.length < 2) return [];
-
-            const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
-            
-            let dateIdx = rawHeaders.findIndex(h => h.includes('date'));
-            let practitionerIdx = rawHeaders.findIndex(h => h.includes('practitioner') || h.includes('doctor') || h.includes('staff'));
-            let slotIdx = rawHeaders.findIndex(h => h.includes('slot') || h.includes('time'));
-            let nameIdx = rawHeaders.findIndex(h => h.includes('name') || h.includes('patient'));
-            let phoneIdx = rawHeaders.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('contact'));
-
-            if (practitionerIdx === -1) practitionerIdx = 0;
-            if (slotIdx === -1) slotIdx = 1;
-            if (nameIdx === -1) nameIdx = 2;
-            if (phoneIdx === -1) phoneIdx = 3;
-            if (dateIdx === -1) dateIdx = 4;
-
-            const results = [];
+            const contacts = [];
             for (let i = 1; i < lines.length; i++) {
                 const row = lines[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
-                if (row.length < 4) continue;
-
-                const practitioner = row[practitionerIdx] || '';
-                const slot = row[slotIdx] || '';
-                const name = row[nameIdx] || '';
+                const name = row[nameIdx];
                 const rawPhone = row[phoneIdx] || '';
-                const date = row[dateIdx] || '';
 
-                if (practitioner && slot && name && date) {
-                    results.push({
-                        practitioner,
-                        slot,
-                        name,
-                        phone: sanitizePhoneNumber(rawPhone),
-                        date
+                if (name && name.length > 0) {
+                    contacts.push({
+                        name: name,
+                        phone: sanitizePhoneNumber(rawPhone)
                     });
                 }
             }
-            return results;
-        }
 
-        async function handleCSVUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            if (contacts.length === 0) {
+                alert('No valid contact names or phone numbers found in file.');
+                return;
+            }
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const text = event.target.result;
-                const bookings = parseCSV(text);
-                
-                if (bookings.length === 0) {
-                    alert('No valid bookings found. CSV standard headers: Practitioner, Slot, Patient Name, Phone Number, Date');
-                    return;
+            try {
+                const res = await fetch(`${API_URL}/contacts/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contacts })
+                });
+
+                if (res.ok) {
+                    alert(`Success! Imported ${contacts.length} contacts into your auto-fill directory.`);
+                    loadPatientDirectory();
+                } else {
+                    alert('Failed to save imported contacts.');
                 }
+            } catch (err) {
+                console.error('Contact import error:', err);
+                alert('Error connecting to backend server.');
+            }
 
-                try {
-                    const res = await fetch(`${API_URL}/bookings/bulk`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ bookings })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert(`Successfully imported ${data.count} booking(s)!`);
-                        loadSchedule();
-                        loadPatientDirectory();
-                    } else {
-                        alert(`Import failed: ${data.error || 'Server error'}`);
-                    }
-                } catch (err) {
-                    console.error('CSV import failed:', err);
-                    alert('Error connecting to backend server.');
+        } else {
+            // --- APPOINTMENT SCHEDULE IMPORT ---
+            const bookings = parseCSV(text);
+            if (bookings.length === 0) {
+                alert('No valid bookings found. CSV headers needed: Practitioner, Slot, Patient Name, Phone Number, Date');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/bookings/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookings })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Successfully imported ${data.count} booking(s)!`);
+                    loadSchedule();
+                    loadPatientDirectory();
+                } else {
+                    alert(`Import failed: ${data.error || 'Server error'}`);
                 }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
+            } catch (err) {
+                console.error('CSV import failed:', err);
+                alert('Error connecting to backend server.');
+            }
         }
-
-        async function handleBookSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('datePicker').value;
-            const practitioner = document.getElementById('bookPractitioner').value;
-            const slot = document.getElementById('bookSlot').value;
-            const name = document.getElementById('patientName').value;
-            const rawPhone = document.getElementById('patientPhone').value;
-
-            const phone = sanitizePhoneNumber(rawPhone);
-
-            await fetch(`${API_URL}/bookings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, name, phone, date })
-            });
-
-            closeModal('bookingModal');
-            document.getElementById('bookingForm').reset();
-            loadSchedule();
-            loadPatientDirectory();
-        }
-
-        async function handleBlockSubmit(e) {
-            e.preventDefault();
-            const date = document.getElementById('datePicker').value;
-            const practitioner = document.getElementById('blockPractitionerSelect').value;
-            const slot = document.getElementById('blockSlotSelect').value;
-            const reason = document.getElementById('blockReason').value || 'Away';
-
-            await fetch(`${API_URL}/block`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date, reason })
-            });
-
-            closeModal('blockModal');
-            document.getElementById('blockForm').reset();
-            loadSchedule();
-        }
-
-        async function cancelBooking(practitioner, slot) {
-            const date = document.getElementById('datePicker').value;
-            await fetch(`${API_URL}/bookings`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date })
-            });
-            loadSchedule();
-        }
-
-        async function deleteBlock(practitioner, slot) {
-            const date = document.getElementById('datePicker').value;
-            await fetch(`${API_URL}/block`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ practitioner, slot, date })
-            });
-            loadSchedule();
-        }
-    </script>
-</body>
-</html>
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+}

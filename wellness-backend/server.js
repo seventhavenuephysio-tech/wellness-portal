@@ -36,7 +36,7 @@ const BlockSchema = new mongoose.Schema({
 const Booking = mongoose.model('Booking', BookingSchema);
 const Block = mongoose.model('Block', BlockSchema);
 
-// Locate frontend directory regardless of working folder
+// Locate frontend directory dynamically
 const frontendPath = fs.existsSync(path.join(__dirname, '../frontend'))
     ? path.join(__dirname, '../frontend')
     : path.join(__dirname, 'frontend');

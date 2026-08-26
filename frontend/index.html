@@ -8,103 +8,56 @@ async function handleCSVUpload(e) {
         const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length < 2) return;
 
-        // Parse CSV row respecting quoted commas
+        // Parse CSV line preserving quoted values
         const parseRow = (line) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
 
         const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-        
-        // Detect whether file is an appointment schedule or a contact list
-        const isBookingFile = headers.some(h => h.includes('slot') || h.includes('practitioner'));
 
-        if (!isBookingFile) {
-            // --- CONTACT LIST IMPORT (Google Contacts / iCloud / Custom CSV) ---
-            let nameIdx = headers.findIndex(h => h === 'name' || h.includes('displayname'));
-            let givenNameIdx = headers.findIndex(h => h.includes('givenname') || h.includes('firstname'));
-            let familyNameIdx = headers.findIndex(h => h.includes('familyname') || h.includes('lastname'));
-            
-            let phoneIdx = headers.findIndex(h => h.includes('phone1value') || h.includes('mobile') || h.includes('phone') || h.includes('cell'));
-            if (phoneIdx === -1) phoneIdx = headers.findIndex(h => h.includes('value') || h.includes('number'));
+        // Identify Name and Phone column positions
+        let nameIdx = headers.findIndex(h => h === 'name' || h.includes('displayname') || h.includes('givenname') || h.includes('first') || h.includes('patient'));
+        if (nameIdx === -1) nameIdx = 0; 
 
-            const contacts = [];
-            for (let i = 1; i < lines.length; i++) {
-                const row = parseRow(lines[i]);
-                
-                // Combine Given Name + Family Name if full 'Name' field is blank
-                let fullName = (nameIdx !== -1 && row[nameIdx]) ? row[nameIdx] : '';
-                if (!fullName && (givenNameIdx !== -1 || familyNameIdx !== -1)) {
-                    const first = givenNameIdx !== -1 ? (row[givenNameIdx] || '') : '';
-                    const last = familyNameIdx !== -1 ? (row[familyNameIdx] || '') : '';
-                    fullName = `${first} ${last}`.trim();
-                }
+        let phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('value') || h.includes('cell') || h.includes('number'));
+        if (phoneIdx === -1) phoneIdx = 1; 
 
-                const rawPhone = phoneIdx !== -1 ? (row[phoneIdx] || '') : '';
+        const contacts = [];
+        for (let i = 1; i < lines.length; i++) {
+            const row = parseRow(lines[i]);
+            const name = row[nameIdx] || row[0] || '';
+            const rawPhone = row[phoneIdx] || row[1] || '';
 
-                if (fullName) {
-                    contacts.push({
-                        name: fullName,
-                        phone: sanitizePhoneNumber(rawPhone)
-                    });
-                }
-            }
-
-            if (contacts.length === 0) {
-                alert('No valid contacts found in CSV file.');
-                return;
-            }
-
-            try {
-                // Save imported contacts to database directory
-                const dummyBookings = contacts.map(c => ({
+            if (name && name.length > 0) {
+                contacts.push({
                     practitioner: 'Chido',
                     slot: '08:00 AM',
-                    name: c.name,
-                    phone: c.phone,
+                    name: name,
+                    phone: sanitizePhoneNumber(rawPhone),
                     date: '2000-01-01'
-                }));
-
-                const res = await fetch(`${API_URL}/bookings/bulk`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bookings: dummyBookings })
                 });
-
-                if (res.ok) {
-                    alert(`Success! Imported ${contacts.length} patient contacts into your auto-fill directory.`);
-                    loadPatientDirectory();
-                } else {
-                    alert('Failed to save imported contacts.');
-                }
-            } catch (err) {
-                console.error('Contact import error:', err);
-                alert('Error connecting to backend server.');
             }
+        }
 
-        } else {
-            // --- APPOINTMENT SCHEDULE IMPORT ---
-            const bookings = parseCSV(text);
-            if (bookings.length === 0) {
-                alert('No valid bookings found. Schedule CSV headers needed: Practitioner, Slot, Patient Name, Phone Number, Date');
-                return;
-            }
+        if (contacts.length === 0) {
+            alert('No valid contacts found in CSV file.');
+            return;
+        }
 
-            try {
-                const res = await fetch(`${API_URL}/bookings/bulk`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bookings })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(`Successfully imported ${data.count} booking(s)!`);
-                    loadSchedule();
-                    loadPatientDirectory();
-                } else {
-                    alert(`Import failed: ${data.error || 'Server error'}`);
-                }
-            } catch (err) {
-                console.error('CSV import failed:', err);
-                alert('Error connecting to backend server.');
+        try {
+            const res = await fetch(`${API_URL}/bookings/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookings: contacts })
+            });
+
+            if (res.ok) {
+                alert(`Success! Imported ${contacts.length} patient phone numbers into your directory.`);
+                loadPatientDirectory();
+            } else {
+                alert('Failed to save imported contacts.');
             }
+        } catch (err) {
+            console.error('Contact import error:', err);
+            alert('Error connecting to backend server.');
         }
     };
     reader.readAsText(file);

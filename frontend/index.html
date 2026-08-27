@@ -39,13 +39,13 @@
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 300px;
+            max-height: 320px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             background: #fff;
             border: 1px solid #ced4da;
             border-radius: 0 0 6px 6px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1050;
             display: none;
         }
@@ -100,7 +100,7 @@
                 <div class="form-group">
                     <label>Patient Name</label>
                     <input type="text" id="patientName" onfocus="showContactSuggestions(this.value)" oninput="handleNameSearch(event)" placeholder="Type patient name or phone..." required autocomplete="off">
-                    <div id="contactDropdown" class="contact-dropdown" onscroll="handleDropdownScroll(this)"></div>
+                    <div id="contactDropdown" class="contact-dropdown"></div>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -166,8 +166,6 @@
         
         let rawScheduleData = { bookings: [], blocks: [] };
         let phonebookDirectory = [];
-        let currentFilteredContacts = [];
-        let renderLimit = 150;
 
         const ZIM_HOLIDAYS_2026 = {
             '2026-01-01': "New Year's Day", '2026-02-21': "National Youth Day", '2026-04-03': "Good Friday",
@@ -210,7 +208,6 @@
                 let phone = String(p.phone || '').trim();
                 let digits = phone.replace(/[^0-9]/g, '');
                 
-                // Truncate concatenated phone strings
                 if (digits.length > 12) {
                     if (digits.startsWith('263')) digits = digits.substring(0, 12);
                     else if (digits.startsWith('0')) digits = digits.substring(0, 10);
@@ -243,7 +240,7 @@
         }
 
         function clearLocalContacts() {
-            if (confirm('Clear local saved contacts? You can re-import your CSV clean file afterwards.')) {
+            if (confirm('Clear local saved contacts? You can re-import your CSV file afterwards.')) {
                 localStorage.removeItem('local_patient_directory');
                 phonebookDirectory = [];
                 alert('Local contacts cleared!');
@@ -251,50 +248,34 @@
             }
         }
 
+        function escapeAttr(str) {
+            return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
         function showContactSuggestions(query) {
             const dropdown = document.getElementById('contactDropdown');
             if (!dropdown) return;
 
             const q = (query || '').toLowerCase().trim();
-            currentFilteredContacts = q === '' 
+            const matches = q === '' 
                 ? phonebookDirectory 
                 : phonebookDirectory.filter(p => 
                     (p.name && p.name.toLowerCase().includes(q)) || 
                     (p.phone && p.phone.includes(q))
                 );
 
-            renderLimit = 150;
-            dropdown.scrollTop = 0;
-            renderDropdownChunk();
+            if (matches.length === 0) {
+                dropdown.innerHTML = `<div style="padding: 12px; text-align: center; color: #888; font-size: 0.9rem;">No contacts found.</div>`;
+            } else {
+                dropdown.innerHTML = matches.map(p => `
+                    <div class="contact-item" onmousedown="event.preventDefault(); selectContact('${escapeAttr(p.name)}', '${escapeAttr(p.phone)}')">
+                        <span><strong>${p.name}</strong></span>
+                        <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
+                    </div>
+                `).join('');
+            }
+
             dropdown.style.display = 'block';
-        }
-
-        function renderDropdownChunk() {
-            const dropdown = document.getElementById('contactDropdown');
-            if (!dropdown) return;
-
-            const slice = currentFilteredContacts.slice(0, renderLimit);
-
-            if (currentFilteredContacts.length === 0) {
-                dropdown.innerHTML = `<div style="padding: 10px; text-align: center; color: #888; font-size: 0.9rem;">No contacts found.</div>`;
-                return;
-            }
-
-            dropdown.innerHTML = slice.map(p => `
-                <div class="contact-item" onmousedown="event.preventDefault(); selectContact('${(p.name || '').replace(/'/g, "\\'")}', '${p.phone || ''}')">
-                    <span><strong>${p.name}</strong></span>
-                    <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
-                </div>
-            `).join('') + (renderLimit < currentFilteredContacts.length ? `<div style="padding: 10px; text-align: center; color: #0d6efd; font-size: 0.85rem; background: #f8f9fa;">↓ Scroll down for more (${renderLimit} of ${currentFilteredContacts.length})...</div>` : '');
-        }
-
-        function handleDropdownScroll(el) {
-            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-                if (renderLimit < currentFilteredContacts.length) {
-                    renderLimit += 150;
-                    renderDropdownChunk();
-                }
-            }
         }
 
         function handleNameSearch(e) {

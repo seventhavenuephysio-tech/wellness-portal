@@ -404,48 +404,6 @@
             document.getElementById(id).style.display = 'none';
         }
 
-        function parseCSV(text) {
-            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            if (lines.length < 2) return [];
-
-            const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
-            
-            let dateIdx = rawHeaders.findIndex(h => h.includes('date'));
-            let practitionerIdx = rawHeaders.findIndex(h => h.includes('practitioner') || h.includes('doctor') || h.includes('staff'));
-            let slotIdx = rawHeaders.findIndex(h => h.includes('slot') || h.includes('time'));
-            let nameIdx = rawHeaders.findIndex(h => h.includes('name') || h.includes('patient'));
-            let phoneIdx = rawHeaders.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('contact'));
-
-            if (practitionerIdx === -1) practitionerIdx = 0;
-            if (slotIdx === -1) slotIdx = 1;
-            if (nameIdx === -1) nameIdx = 2;
-            if (phoneIdx === -1) phoneIdx = 3;
-            if (dateIdx === -1) dateIdx = 4;
-
-            const results = [];
-            for (let i = 1; i < lines.length; i++) {
-                const row = lines[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
-                if (row.length < 4) continue;
-
-                const practitioner = row[practitionerIdx] || '';
-                const slot = row[slotIdx] || '';
-                const name = row[nameIdx] || '';
-                const rawPhone = row[phoneIdx] || '';
-                const date = row[dateIdx] || '';
-
-                if (practitioner && slot && name && date) {
-                    results.push({
-                        practitioner,
-                        slot,
-                        name,
-                        phone: sanitizePhoneNumber(rawPhone),
-                        date
-                    });
-                }
-            }
-            return results;
-        }
-
         async function handleCSVUpload(e) {
             const file = e.target.files[0];
             if (!file) return;

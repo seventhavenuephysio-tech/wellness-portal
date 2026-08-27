@@ -39,7 +39,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 250px;
+            max-height: 350px;
             overflow-y: auto;
             background: #fff;
             border: 1px solid #ced4da;
@@ -98,7 +98,7 @@
                 <div class="form-group">
                     <label>Patient Name</label>
                     <input type="text" id="patientName" onfocus="showContactSuggestions(this.value)" oninput="handleNameSearch(event)" placeholder="Type patient name or phone..." required autocomplete="off">
-                    <div id="contactDropdown" class="contact-dropdown" onscroll="handleDropdownScroll(this)"></div>
+                    <div id="contactDropdown" class="contact-dropdown"></div>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -164,8 +164,6 @@
         
         let rawScheduleData = { bookings: [], blocks: [] };
         let phonebookDirectory = [];
-        let currentFilteredContacts = [];
-        let renderLimit = 50;
 
         const ZIM_HOLIDAYS_2026 = {
             '2026-01-01': "New Year's Day", '2026-02-21': "National Youth Day", '2026-04-03': "Good Friday",
@@ -222,45 +220,28 @@
             if (!dropdown) return;
 
             const q = (query || '').toLowerCase().trim();
-            currentFilteredContacts = q === '' 
+            const filtered = q === '' 
                 ? phonebookDirectory 
                 : phonebookDirectory.filter(p => 
                     (p.name && p.name.toLowerCase().includes(q)) || 
                     (p.phone && p.phone.includes(q))
                 );
 
-            renderLimit = 50;
-            dropdown.scrollTop = 0;
-            renderDropdownChunk();
-            dropdown.style.display = 'block';
-        }
-
-        function renderDropdownChunk() {
-            const dropdown = document.getElementById('contactDropdown');
-            if (!dropdown) return;
-
-            const slice = currentFilteredContacts.slice(0, renderLimit);
-
-            if (currentFilteredContacts.length === 0) {
+            if (filtered.length === 0) {
                 dropdown.innerHTML = `<div style="padding: 10px; text-align: center; color: #888; font-size: 0.9rem;">No contacts found.</div>`;
+                dropdown.style.display = 'block';
                 return;
             }
 
-            dropdown.innerHTML = slice.map(p => `
+            // Render ALL filtered contacts instantly so the scrollbar covers everything from top to bottom
+            dropdown.innerHTML = filtered.map(p => `
                 <div class="contact-item" onmousedown="event.preventDefault(); selectContact('${(p.name || '').replace(/'/g, "\\'")}', '${p.phone || ''}')">
                     <span><strong>${p.name}</strong></span>
                     <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
                 </div>
-            `).join('') + (renderLimit < currentFilteredContacts.length ? `<div style="padding: 8px; text-align: center; color: #0d6efd; font-size: 0.85rem; background: #f8f9fa; font-weight: 500;">↓ Scroll down for more (${renderLimit} of ${currentFilteredContacts.length})...</div>` : '');
-        }
+            `).join('');
 
-        function handleDropdownScroll(el) {
-            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
-                if (renderLimit < currentFilteredContacts.length) {
-                    renderLimit += 50;
-                    renderDropdownChunk();
-                }
-            }
+            dropdown.style.display = 'block';
         }
 
         function handleNameSearch(e) {

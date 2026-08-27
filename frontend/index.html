@@ -29,36 +29,10 @@
         .slot-actions { display: flex; gap: 6px; align-items: center; }
         .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; overflow: visible; position: relative; }
+        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; position: relative; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; }
-
-        .contact-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            max-height: 320px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: #fff;
-            border: 1px solid #ced4da;
-            border-radius: 0 0 6px 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1050;
-            display: none;
-        }
-        .contact-item {
-            padding: 10px 12px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 0.9rem;
-        }
-        .contact-item:hover { background-color: #f0f4f9; }
     </style>
 </head>
 <body>
@@ -99,8 +73,8 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <input type="text" id="patientName" onfocus="showContactSuggestions(this.value)" oninput="handleNameSearch(event)" placeholder="Type patient name or phone..." required autocomplete="off">
-                    <div id="contactDropdown" class="contact-dropdown"></div>
+                    <input type="text" id="patientName" list="patientDatalist" oninput="handlePatientSelection(this.value)" placeholder="Type patient name or phone..." required autocomplete="off">
+                    <datalist id="patientDatalist"></datalist>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -188,14 +162,6 @@
                     }
                 });
             }
-
-            document.addEventListener('click', (e) => {
-                const dropdown = document.getElementById('contactDropdown');
-                const nameInput = document.getElementById('patientName');
-                if (dropdown && nameInput && !nameInput.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.style.display = 'none';
-                }
-            });
         });
 
         function cleanPatientList(contacts) {
@@ -207,13 +173,11 @@
             }).map(p => {
                 let phone = String(p.phone || '').trim();
                 let digits = phone.replace(/[^0-9]/g, '');
-                
                 if (digits.length > 12) {
                     if (digits.startsWith('263')) digits = digits.substring(0, 12);
                     else if (digits.startsWith('0')) digits = digits.substring(0, 10);
                     else digits = digits.substring(0, 12);
                 }
-                
                 return { name: p.name.trim(), phone: sanitizePhoneNumber(digits || phone) };
             });
         }
@@ -237,60 +201,34 @@
             } catch (err) {
                 console.warn('Using local directory cache:', err);
             }
+
+            populateDatalist();
+        }
+
+        function populateDatalist() {
+            const datalist = document.getElementById('patientDatalist');
+            if (!datalist) return;
+            datalist.innerHTML = phonebookDirectory.map(p => 
+                `<option value="${p.name}">${p.phone ? p.phone : ''}</option>`
+            ).join('');
+        }
+
+        function handlePatientSelection(value) {
+            const phoneInput = document.getElementById('patientPhone');
+            const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === value.trim().toLowerCase());
+            if (match) {
+                phoneInput.value = match.phone || '';
+            }
         }
 
         function clearLocalContacts() {
             if (confirm('Clear local saved contacts? You can re-import your CSV file afterwards.')) {
                 localStorage.removeItem('local_patient_directory');
                 phonebookDirectory = [];
+                populateDatalist();
                 alert('Local contacts cleared!');
                 loadPatientDirectory();
             }
-        }
-
-        function escapeAttr(str) {
-            return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        }
-
-        function showContactSuggestions(query) {
-            const dropdown = document.getElementById('contactDropdown');
-            if (!dropdown) return;
-
-            const q = (query || '').toLowerCase().trim();
-            const matches = q === '' 
-                ? phonebookDirectory 
-                : phonebookDirectory.filter(p => 
-                    (p.name && p.name.toLowerCase().includes(q)) || 
-                    (p.phone && p.phone.includes(q))
-                );
-
-            if (matches.length === 0) {
-                dropdown.innerHTML = `<div style="padding: 12px; text-align: center; color: #888; font-size: 0.9rem;">No contacts found.</div>`;
-            } else {
-                dropdown.innerHTML = matches.map(p => `
-                    <div class="contact-item" onmousedown="event.preventDefault(); selectContact('${escapeAttr(p.name)}', '${escapeAttr(p.phone)}')">
-                        <span><strong>${p.name}</strong></span>
-                        <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
-                    </div>
-                `).join('');
-            }
-
-            dropdown.style.display = 'block';
-        }
-
-        function handleNameSearch(e) {
-            const val = e.target.value;
-            const phoneInput = document.getElementById('patientPhone');
-            const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === val.trim().toLowerCase());
-            if (match) phoneInput.value = match.phone || '';
-            showContactSuggestions(val);
-        }
-
-        function selectContact(name, phone) {
-            document.getElementById('patientName').value = name;
-            document.getElementById('patientPhone').value = phone;
-            const dropdown = document.getElementById('contactDropdown');
-            if (dropdown) dropdown.style.display = 'none';
         }
 
         async function pickFromPhonebook() {
@@ -298,7 +236,10 @@
                 try {
                     const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
                     if (contacts && contacts[0]) {
-                        if (contacts[0].name?.[0]) document.getElementById('patientName').value = contacts[0].name[0];
+                        if (contacts[0].name?.[0]) {
+                            document.getElementById('patientName').value = contacts[0].name[0];
+                            handlePatientSelection(contacts[0].name[0]);
+                        }
                         if (contacts[0].tel?.[0]) {
                             const phoneInput = document.getElementById('patientPhone');
                             phoneInput.value = contacts[0].tel[0];
@@ -347,15 +288,12 @@
                     if (lines.length === 0) return;
 
                     const headerCells = parseCSVLine(lines[0]).map(c => c.toLowerCase().trim());
-                    
                     let nameIdx = headerCells.findIndex(c => c === 'name' || c === 'full name' || c === 'display name');
                     let firstIdx = headerCells.findIndex(c => c === 'given name' || c === 'first name');
                     let lastIdx = headerCells.findIndex(c => c === 'family name' || c === 'last name');
                     let phoneIdx = headerCells.findIndex(c => c.includes('phone 1') || c.includes('mobile') || c.includes('phone') || c.includes('tel'));
 
                     let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
-                    let count = 0;
-
                     const hasHeader = (nameIdx !== -1 || firstIdx !== -1 || phoneIdx !== -1);
                     const startIndex = hasHeader ? 1 : 0;
 
@@ -369,7 +307,6 @@
                         if (hasHeader) {
                             if (nameIdx !== -1 && cells[nameIdx]) name = cells[nameIdx];
                             else if (firstIdx !== -1 || lastIdx !== -1) name = `${cells[firstIdx] || ''} ${cells[lastIdx] || ''}`.trim();
-                            
                             if (phoneIdx !== -1 && cells[phoneIdx]) phone = cells[phoneIdx];
                         }
 
@@ -378,7 +315,6 @@
                                 if (!cell) continue;
                                 const cellLower = cell.toLowerCase().trim();
                                 if (cellLower.includes('mycontacts') || cellLower.includes('*')) continue;
-
                                 const digits = cell.replace(/[^0-9]/g, '');
                                 if (!phone && digits.length >= 8 && digits.length <= 13) {
                                     phone = cell;
@@ -394,7 +330,6 @@
                             const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
                             if (!exists) {
                                 savedContacts.push({ name: name.trim(), phone });
-                                count++;
                             }
                         }
                     }
@@ -525,8 +460,6 @@
         function openBlockModal() { document.getElementById('blockModal').style.display = 'flex'; }
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
-            const dropdown = document.getElementById('contactDropdown');
-            if (dropdown) dropdown.style.display = 'none';
         }
 
         async function handleBookSubmit(e) {

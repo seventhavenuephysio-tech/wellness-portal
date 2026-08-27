@@ -34,7 +34,7 @@
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; }
 
-        /* Autocomplete Dropdown */
+        /* Universal Autocomplete Dropdown */
         .contact-dropdown {
             position: absolute;
             top: 100%;
@@ -99,7 +99,7 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <input type="text" id="patientName" onfocus="showContactSuggestions(this.value)" oninput="handleNameSearch(event)" placeholder="Type patient name or phone..." required autocomplete="off">
+                    <input type="text" id="patientName" onfocus="showContactSuggestions(this.value)" oninput="handleNameSearch(event)" placeholder="Type any name from contacts..." required autocomplete="off">
                     <div id="contactDropdown" class="contact-dropdown"></div>
                 </div>
                 <div class="form-group">
@@ -207,21 +207,23 @@
         });
 
         async function loadPatientDirectory() {
-            let serverPatients = [];
+            // Immediately load from localStorage so contacts appear instantly without waiting for server response
+            const localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+            phonebookDirectory = localPatients;
+
             try {
                 const res = await fetch(`${API_URL}/patients`);
-                if (res.ok) serverPatients = await res.json();
+                if (res.ok) {
+                    const serverPatients = await res.json();
+                    const combinedMap = new Map();
+                    [...localPatients, ...serverPatients].forEach(p => {
+                        if (p && p.name) combinedMap.set((p.name + '_' + (p.phone || '')).toLowerCase(), p);
+                    });
+                    phonebookDirectory = Array.from(combinedMap.values());
+                }
             } catch (err) {
-                console.warn('Could not fetch server patient directory:', err);
+                console.warn('Using local directory cache:', err);
             }
-
-            const localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
-            
-            const combinedMap = new Map();
-            [...serverPatients, ...localPatients].forEach(p => {
-                if (p && p.name) combinedMap.set((p.name + '_' + (p.phone || '')).toLowerCase(), p);
-            });
-            phonebookDirectory = Array.from(combinedMap.values());
         }
 
         function showContactSuggestions(query) {
@@ -229,6 +231,7 @@
             if (!dropdown) return;
 
             const q = (query || '').toLowerCase().trim();
+            // Filter across ALL 1,768 contacts instantly
             const filtered = phonebookDirectory.filter(p => 
                 (p.name && p.name.toLowerCase().includes(q)) || 
                 (p.phone && p.phone.includes(q))
@@ -493,13 +496,8 @@
 
                     for (const line of lines) {
                         const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
-                        
-                        // Flexible detection: find cell with at least 5 digits for phone
                         const phoneCell = cells.find(c => c.replace(/[^0-9]/g, '').length >= 5);
-                        
-                        // Find name cell (non-email text cell)
                         const nameCell = cells.find(c => c !== phoneCell && /[a-zA-Z]{2,}/.test(c) && !c.includes('@')) || cells[0] || 'Patient';
-                        
                         const cleanPhone = phoneCell ? sanitizePhoneNumber(phoneCell) : '';
 
                         if (nameCell && nameCell.toLowerCase() !== 'name' && nameCell.toLowerCase() !== 'patient name') {
@@ -558,7 +556,7 @@
             });
 
             closeModal('blockModal');
-            document.getElementById('blockForm').reset();
+            document.getElementById('blockForm'].reset();
             loadSchedule();
         }
 

@@ -417,31 +417,40 @@
                 const parseRow = (line) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
                 const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-                let nameIdx = headers.findIndex(h => h === 'name' || h.includes('displayname') || h.includes('givenname') || h.includes('first') || h.includes('patient'));
-                if (nameIdx === -1) nameIdx = 0; 
+                let nameIdx = headers.findIndex(h => h.includes('name') || h.includes('patient') || h.includes('first') || h.includes('contact'));
+                let phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('number') || h.includes('tel') || h.includes('value'));
 
-                let phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('value') || h.includes('cell') || h.includes('number'));
-                if (phoneIdx === -1) phoneIdx = 1; 
+                if (nameIdx === -1) nameIdx = 0;
+                if (phoneIdx === -1) phoneIdx = 1;
 
                 const contacts = [];
                 for (let i = 1; i < lines.length; i++) {
                     const row = parseRow(lines[i]);
-                    const name = row[nameIdx] || row[0] || '';
-                    const rawPhone = row[phoneIdx] || row[1] || '';
+                    if (row.length === 0 || row.every(cell => cell === '')) continue;
 
-                    if (name && name.length > 0) {
+                    let name = row[nameIdx] || row[0] || '';
+                    let rawPhone = row[phoneIdx] || row[1] || '';
+
+                    if (!rawPhone || !/[0-9]/.test(rawPhone)) {
+                        const foundPhone = row.find(cell => /[0-9]{7,}/.test(cell.replace(/[^0-9]/g, '')));
+                        if (foundPhone) rawPhone = foundPhone;
+                    }
+
+                    const cleanPhone = sanitizePhoneNumber(rawPhone);
+
+                    if (name && cleanPhone) {
                         contacts.push({
                             practitioner: 'Chido',
                             slot: '08:00 AM',
                             name: name,
-                            phone: sanitizePhoneNumber(rawPhone),
+                            phone: cleanPhone,
                             date: '2000-01-01'
                         });
                     }
                 }
 
                 if (contacts.length === 0) {
-                    alert('No valid contacts found in CSV file.');
+                    alert('No valid phone numbers found in CSV file.');
                     return;
                 }
 
@@ -456,7 +465,7 @@
                         alert(`Success! Imported ${contacts.length} patient phone numbers into your directory.`);
                         loadPatientDirectory();
                     } else {
-                        alert('Failed to save imported contacts.');
+                        alert('Failed to save imported phone numbers.');
                     }
                 } catch (err) {
                     console.error('Contact import error:', err);

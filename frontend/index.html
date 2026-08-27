@@ -39,7 +39,7 @@
             top: 100%;
             left: 0;
             right: 0;
-            max-height: 350px;
+            max-height: 300px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             background: #fff;
@@ -69,9 +69,10 @@
             <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
             <label class="btn btn-secondary" style="cursor: pointer; margin: 0;">
-                📇 Import CSV Contacts
+                📇 Import CSV
                 <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
             </label>
+            <button class="btn btn-danger" onclick="clearLocalContacts()" title="Wipe local saved contacts">🗑️ Clear Contacts</button>
         </div>
     </div>
 
@@ -166,7 +167,7 @@
         let rawScheduleData = { bookings: [], blocks: [] };
         let phonebookDirectory = [];
         let currentFilteredContacts = [];
-        let renderLimit = 300;
+        let renderLimit = 150;
 
         const ZIM_HOLIDAYS_2026 = {
             '2026-01-01': "New Year's Day", '2026-02-21': "National Youth Day", '2026-04-03': "Good Friday",
@@ -184,7 +185,7 @@
             if (phoneInput) {
                 phoneInput.addEventListener('input', (e) => {
                     let val = e.target.value.trim();
-                    if (val.startsWith('0')) {
+                    if (val.startsWith('0') && val.length > 1) {
                         e.target.value = '+263 ' + val.substring(1);
                     }
                 });
@@ -199,8 +200,31 @@
             });
         });
 
+        function cleanPatientList(contacts) {
+            return contacts.filter(p => {
+                if (!p || !p.name) return false;
+                const nameLower = p.name.toLowerCase().trim();
+                if (nameLower.includes('mycontacts') || nameLower.includes('*') || nameLower === 'unnamed' || nameLower === 'given name') return false;
+                return true;
+            }).map(p => {
+                let phone = String(p.phone || '').trim();
+                let digits = phone.replace(/[^0-9]/g, '');
+                
+                // Truncate concatenated phone strings
+                if (digits.length > 12) {
+                    if (digits.startsWith('263')) digits = digits.substring(0, 12);
+                    else if (digits.startsWith('0')) digits = digits.substring(0, 10);
+                    else digits = digits.substring(0, 12);
+                }
+                
+                return { name: p.name.trim(), phone: sanitizePhoneNumber(digits || phone) };
+            });
+        }
+
         async function loadPatientDirectory() {
-            const localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+            let localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+            localPatients = cleanPatientList(localPatients);
+            localStorage.setItem('local_patient_directory', JSON.stringify(localPatients));
             phonebookDirectory = localPatients;
 
             try {
@@ -211,10 +235,19 @@
                     [...localPatients, ...serverPatients].forEach(p => {
                         if (p && p.name) combinedMap.set((p.name + '_' + (p.phone || '')).toLowerCase(), p);
                     });
-                    phonebookDirectory = Array.from(combinedMap.values());
+                    phonebookDirectory = cleanPatientList(Array.from(combinedMap.values()));
                 }
             } catch (err) {
                 console.warn('Using local directory cache:', err);
+            }
+        }
+
+        function clearLocalContacts() {
+            if (confirm('Clear local saved contacts? You can re-import your CSV clean file afterwards.')) {
+                localStorage.removeItem('local_patient_directory');
+                phonebookDirectory = [];
+                alert('Local contacts cleared!');
+                loadPatientDirectory();
             }
         }
 
@@ -230,7 +263,7 @@
                     (p.phone && p.phone.includes(q))
                 );
 
-            renderLimit = 300;
+            renderLimit = 150;
             dropdown.scrollTop = 0;
             renderDropdownChunk();
             dropdown.style.display = 'block';
@@ -252,13 +285,13 @@
                     <span><strong>${p.name}</strong></span>
                     <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
                 </div>
-            `).join('') + (renderLimit < currentFilteredContacts.length ? `<div style="padding: 10px; text-align: center; color: #0d6efd; font-size: 0.85rem; background: #f8f9fa; font-weight: 500;">↓ Scroll down for more (${renderLimit} of ${currentFilteredContacts.length})...</div>` : '');
+            `).join('') + (renderLimit < currentFilteredContacts.length ? `<div style="padding: 10px; text-align: center; color: #0d6efd; font-size: 0.85rem; background: #f8f9fa;">↓ Scroll down for more (${renderLimit} of ${currentFilteredContacts.length})...</div>` : '');
         }
 
         function handleDropdownScroll(el) {
             if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
                 if (renderLimit < currentFilteredContacts.length) {
-                    renderLimit += 300;
+                    renderLimit += 150;
                     renderDropdownChunk();
                 }
             }
@@ -295,6 +328,106 @@
             } else {
                 alert('Contact picker works on mobile browsers.');
             }
+        }
+
+        function parseCSVLine(text) {
+            let row = [];
+            let inQuotes = false;
+            let currentField = '';
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                if (char === '"') {
+                    if (inQuotes && text[i+1] === '"') {
+                        currentField += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if ((char === ',' || char === '\t' || char === ';') && !inQuotes) {
+                    row.push(currentField.trim().replace(/^"|"$/g, ''));
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            row.push(currentField.trim().replace(/^"|"$/g, ''));
+            return row;
+        }
+
+        function handleCSVUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const rawText = event.target.result;
+                    const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
+                    if (lines.length === 0) return;
+
+                    const headerCells = parseCSVLine(lines[0]).map(c => c.toLowerCase().trim());
+                    
+                    let nameIdx = headerCells.findIndex(c => c === 'name' || c === 'full name' || c === 'display name');
+                    let firstIdx = headerCells.findIndex(c => c === 'given name' || c === 'first name');
+                    let lastIdx = headerCells.findIndex(c => c === 'family name' || c === 'last name');
+                    let phoneIdx = headerCells.findIndex(c => c.includes('phone 1') || c.includes('mobile') || c.includes('phone') || c.includes('tel'));
+
+                    let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+                    let count = 0;
+
+                    const hasHeader = (nameIdx !== -1 || firstIdx !== -1 || phoneIdx !== -1);
+                    const startIndex = hasHeader ? 1 : 0;
+
+                    for (let i = startIndex; i < lines.length; i++) {
+                        const cells = parseCSVLine(lines[i]);
+                        if (cells.length === 0) continue;
+
+                        let name = '';
+                        let phone = '';
+
+                        if (hasHeader) {
+                            if (nameIdx !== -1 && cells[nameIdx]) name = cells[nameIdx];
+                            else if (firstIdx !== -1 || lastIdx !== -1) name = `${cells[firstIdx] || ''} ${cells[lastIdx] || ''}`.trim();
+                            
+                            if (phoneIdx !== -1 && cells[phoneIdx]) phone = cells[phoneIdx];
+                        }
+
+                        if (!name || !phone) {
+                            for (const cell of cells) {
+                                if (!cell) continue;
+                                const cellLower = cell.toLowerCase().trim();
+                                if (cellLower.includes('mycontacts') || cellLower.includes('*')) continue;
+
+                                const digits = cell.replace(/[^0-9]/g, '');
+                                if (!phone && digits.length >= 8 && digits.length <= 13) {
+                                    phone = cell;
+                                } else if (!name && !cell.includes('@') && !/^\d+$/.test(cell) && cell.length > 1) {
+                                    name = cell;
+                                }
+                            }
+                        }
+
+                        if (name.toLowerCase().includes('mycontacts') || name.includes('*')) continue;
+
+                        if (name && name.trim().length > 1) {
+                            const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
+                            if (!exists) {
+                                savedContacts.push({ name: name.trim(), phone });
+                                count++;
+                            }
+                        }
+                    }
+
+                    savedContacts = cleanPatientList(savedContacts);
+                    localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
+                    alert(`Success! Cleaned and saved ${savedContacts.length} contacts.`);
+                    loadPatientDirectory();
+                } catch (err) {
+                    alert(`Error parsing file: ${err.message}`);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         }
 
         function setToday() {
@@ -413,91 +546,6 @@
             document.getElementById(id).style.display = 'none';
             const dropdown = document.getElementById('contactDropdown');
             if (dropdown) dropdown.style.display = 'none';
-        }
-
-        function handleCSVUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const rawText = event.target.result;
-                    const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
-                    let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
-                    let count = 0;
-
-                    function parseCSVLine(text) {
-                        let row = [];
-                        let inQuotes = false;
-                        let currentField = '';
-                        for (let i = 0; i < text.length; i++) {
-                            let char = text[i];
-                            if (char === '"') {
-                                if (inQuotes && text[i+1] === '"') {
-                                    currentField += '"';
-                                    i++;
-                                } else {
-                                    inQuotes = !inQuotes;
-                                }
-                            } else if ((char === ',' || char === '\t' || char === ';') && !inQuotes) {
-                                row.push(currentField.trim().replace(/^"|"$/g, ''));
-                                currentField = '';
-                            } else {
-                                currentField += char;
-                            }
-                        }
-                        row.push(currentField.trim().replace(/^"|"$/g, ''));
-                        return row;
-                    }
-
-                    for (const line of lines) {
-                        const cells = parseCSVLine(line);
-                        if (cells.length === 0) continue;
-
-                        let nameParts = [];
-                        let phone = '';
-
-                        for (const cell of cells) {
-                            if (!cell) continue;
-                            const digits = cell.replace(/[^0-9]/g, '');
-                            if (digits.length >= 6 && !phone && (cell.includes('+') || digits.length >= 9)) {
-                                phone = sanitizePhoneNumber(cell);
-                            } else if (!cell.includes('@') && !/^\d+$/.test(cell)) {
-                                nameParts.push(cell);
-                            } else if (!phone && digits.length >= 6) {
-                                phone = sanitizePhoneNumber(cell);
-                            }
-                        }
-
-                        let name = nameParts.join(' ').trim();
-                        const lowerName = name.toLowerCase();
-
-                        if (lowerName.includes('name') && (lowerName.includes('given') || lowerName.includes('first') || lowerName.includes('full') || lowerName.includes('mobile'))) {
-                            continue;
-                        }
-                        if (['name', 'full name', 'title', 'phone', 'mobile phone', 'given name', 'family name'].includes(lowerName)) {
-                            continue;
-                        }
-
-                        if (name) {
-                            const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
-                            if (!exists) {
-                                savedContacts.push({ name, phone });
-                                count++;
-                            }
-                        }
-                    }
-
-                    localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
-                    alert(`Success! Imported ${count} new contacts. Total directory size: ${savedContacts.length}.`);
-                    loadPatientDirectory();
-                } catch (err) {
-                    alert(`Error parsing file: ${err.message}`);
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
         }
 
         async function handleBookSubmit(e) {

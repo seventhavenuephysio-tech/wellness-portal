@@ -202,10 +202,13 @@
         function handleNameInput(e) {
             const inputVal = e.target.value.trim().toLowerCase();
             const phoneInput = document.getElementById('patientPhone');
-            
+            if (!phoneInput) return;
+
             const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === inputVal);
             if (match) {
                 phoneInput.value = match.phone;
+            } else {
+                phoneInput.value = '';
             }
         }
 

@@ -230,13 +230,13 @@
                 return;
             }
 
-            const topMatches = filtered.slice(0, 50);
+            const topMatches = filtered.slice(0, 100);
             dropdown.innerHTML = topMatches.map(p => `
                 <div class="contact-item" onclick="selectContact('${(p.name || '').replace(/'/g, "\\'")}', '${p.phone || ''}')">
                     <span><strong>${p.name}</strong></span>
                     <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
                 </div>
-            `).join('') + (filtered.length > 50 ? `<div style="padding:6px; text-align:center; color:#888; font-size:0.8rem; background:#f9f9f9;">Showing 50 of ${filtered.length} matches...</div>` : '');
+            `).join('') + (filtered.length > 100 ? `<div style="padding:6px; text-align:center; color:#888; font-size:0.8rem; background:#f9f9f9;">Showing 100 of ${filtered.length} matches...</div>` : '');
 
             dropdown.style.display = 'block';
         }
@@ -401,32 +401,39 @@
                     let count = 0;
 
                     for (const line of lines) {
-                        // Relaxed matching: Splits on comma, semicolon, or tab
+                        // Universal aggressive parser: grabs any text columns as name and any numbers as phone
                         const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
-                        if (cells.length < 2) continue;
+                        if (cells.length === 0) continue;
 
-                        let name = '';
-                        let phone = '';
+                        let foundName = '';
+                        let foundPhone = '';
 
                         for (const cell of cells) {
-                            if (cell.replace(/[^0-9]/g, '').length >= 5) {
-                                phone = sanitizePhoneNumber(cell);
-                            } else if (cell.length > 1 && !cell.includes('@') && !/^\d+$/.test(cell)) {
-                                if (!name) name = cell;
+                            if (!cell) continue;
+                            const digitsOnly = cell.replace(/[^0-9]/g, '');
+                            if (digitsOnly.length >= 6) {
+                                foundPhone = sanitizePhoneNumber(cell);
+                            } else if (cell.length > 1 && !cell.includes('@') && !/^\d+$/.test(cell) && !foundName) {
+                                foundName = cell;
                             }
                         }
 
-                        if (name && phone && name.toLowerCase() !== 'name') {
-                            const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
+                        // Fallback if line wasn't standard delimited
+                        if (!foundName && cells[0] && !cells[0].includes('@')) {
+                            foundName = cells[0];
+                        }
+
+                        if (foundName && foundName.toLowerCase() !== 'name' && foundName.toLowerCase() !== 'full name') {
+                            const exists = savedContacts.some(p => p.name.toLowerCase() === foundName.toLowerCase());
                             if (!exists) {
-                                savedContacts.push({ name, phone });
+                                savedContacts.push({ name: foundName, phone: foundPhone });
                                 count++;
                             }
                         }
                     }
 
                     localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
-                    alert(`Import Success! Added ${count} new valid contacts. Total directory size: ${savedContacts.length}`);
+                    alert(`Import Success! Added ${count} new contacts. Total directory size: ${savedContacts.length}`);
                     loadPatientDirectory();
                 } catch (err) {
                     alert(`Error parsing contacts: ${err.message}`);
@@ -469,7 +476,7 @@
             });
 
             closeModal('blockModal');
-            document.getElementById('blockForm').reset();
+            document.getElementById('blockForm'].reset();
             loadSchedule();
         }
 

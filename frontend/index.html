@@ -411,38 +411,68 @@
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {
-                    const lines = event.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    const rawText = event.target.result;
+                    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                     if (lines.length === 0) return alert('The selected CSV file is empty.');
 
-                    let count = 0;
-                    for (const line of lines) {
-                        const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
-                        const phoneCell = cells.find(c => c.replace(/[^0-9]/g, '').length >= 7);
-                        if (!phoneCell) continue;
+                    // Read first line headers
+                    const headerCells = lines[0].split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, '').toLowerCase());
+                    const isHeaderRow = headerCells.some(c => 
+                        c.includes('practitioner') || c.includes('slot') || c.includes('name') || c.includes('phone') || c.includes('date')
+                    );
 
-                        const nameCell = cells.find(c => c !== phoneCell && /[a-zA-Z]{2,}/.test(c) && !c.includes('@')) || 'Patient';
-                        const cleanPhone = sanitizePhoneNumber(phoneCell);
+                    let nameIdx = headerCells.findIndex(c => c.includes('patient') || c.includes('name'));
+                    let phoneIdx = headerCells.findIndex(c => c.includes('phone') || c.includes('mobile') || c.includes('tel'));
+                    let practitionerIdx = headerCells.findIndex(c => c.includes('practitioner') || c.includes('doctor'));
+                    let slotIdx = headerCells.findIndex(c => c.includes('slot') || c.includes('time'));
+                    let dateIdx = headerCells.findIndex(c => c.includes('date'));
+
+                    const dataLines = isHeaderRow ? lines.slice(1) : lines;
+                    const defaultDate = document.getElementById('datePicker')?.value || '2000-01-01';
+
+                    let count = 0;
+                    for (const line of dataLines) {
+                        const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
+                        if (cells.length === 0 || cells.every(c => !c)) continue;
+
+                        let name = 'Patient';
+                        let phone = '';
+                        let practitioner = 'Chido';
+                        let slot = '08:00 AM';
+                        let date = defaultDate;
+
+                        if (isHeaderRow && nameIdx !== -1 && phoneIdx !== -1) {
+                            name = cells[nameIdx] || 'Patient';
+                            phone = cells[phoneIdx] || '';
+                            if (practitionerIdx !== -1 && cells[practitionerIdx]) practitioner = cells[practitionerIdx];
+                            if (slotIdx !== -1 && cells[slotIdx]) slot = cells[slotIdx];
+                            if (dateIdx !== -1 && cells[dateIdx]) date = cells[dateIdx];
+                        } else {
+                            const phoneCell = cells.find(c => c.replace(/[^0-9]/g, '').length >= 7);
+                            if (!phoneCell) continue;
+                            phone = phoneCell;
+                            const nameCell = cells.find(c => c !== phoneCell && /[a-zA-Z]{2,}/.test(c) && !c.includes('@'));
+                            if (nameCell) name = nameCell;
+                        }
+
+                        const cleanPhone = sanitizePhoneNumber(phone);
+                        if (!cleanPhone || cleanPhone.length < 7) continue;
 
                         const res = await fetch(`${API_URL}/bookings`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                practitioner: 'Chido',
-                                slot: '08:00 AM',
-                                name: nameCell,
-                                phone: cleanPhone,
-                                date: '2000-01-01'
-                            })
+                            body: JSON.stringify({ practitioner, slot, name, phone: cleanPhone, date })
                         });
 
                         if (res.ok) count++;
                     }
 
                     if (count > 0) {
-                        alert(`Successfully imported ${count} phone numbers into your patient directory!`);
+                        alert(`Successfully imported ${count} record(s) into your system!`);
+                        loadSchedule();
                         loadPatientDirectory();
                     } else {
-                        alert('No valid 7+ digit phone numbers were found in the uploaded file.');
+                        alert('No valid records found. Ensure your CSV contains valid phone numbers with at least 7 digits.');
                     }
                 } catch (err) {
                     alert(`Error processing file: ${err.message}`);

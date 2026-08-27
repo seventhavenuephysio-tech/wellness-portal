@@ -73,7 +73,7 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <input type="text" id="patientName" list="patientDatalist" oninput="handlePatientSelection(this.value)" placeholder="Type patient name or phone..." required autocomplete="off">
+                    <input type="text" id="patientName" list="patientDatalist" oninput="onPatientInput(this.value)" placeholder="Type patient name or phone..." required autocomplete="off">
                     <datalist id="patientDatalist"></datalist>
                 </div>
                 <div class="form-group">
@@ -202,18 +202,33 @@
                 console.warn('Using local directory cache:', err);
             }
 
-            populateDatalist();
+            updatePatientDatalist('');
         }
 
-        function populateDatalist() {
+        function updatePatientDatalist(query = '') {
             const datalist = document.getElementById('patientDatalist');
             if (!datalist) return;
-            datalist.innerHTML = phonebookDirectory.map(p => 
+            
+            const q = query.trim().toLowerCase();
+            let matches = [];
+            
+            if (!q) {
+                matches = phonebookDirectory.slice(0, 20);
+            } else {
+                matches = phonebookDirectory.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(q)) || 
+                    (p.phone && p.phone.includes(q))
+                ).slice(0, 20);
+            }
+
+            datalist.innerHTML = matches.map(p => 
                 `<option value="${p.name}">${p.phone ? p.phone : ''}</option>`
             ).join('');
         }
 
-        function handlePatientSelection(value) {
+        function onPatientInput(value) {
+            updatePatientDatalist(value);
+            
             const phoneInput = document.getElementById('patientPhone');
             const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === value.trim().toLowerCase());
             if (match) {
@@ -225,7 +240,7 @@
             if (confirm('Clear local saved contacts? You can re-import your CSV file afterwards.')) {
                 localStorage.removeItem('local_patient_directory');
                 phonebookDirectory = [];
-                populateDatalist();
+                updatePatientDatalist('');
                 alert('Local contacts cleared!');
                 loadPatientDirectory();
             }
@@ -237,8 +252,9 @@
                     const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
                     if (contacts && contacts[0]) {
                         if (contacts[0].name?.[0]) {
-                            document.getElementById('patientName').value = contacts[0].name[0];
-                            handlePatientSelection(contacts[0].name[0]);
+                            const nameVal = contacts[0].name[0];
+                            document.getElementById('patientName').value = nameVal;
+                            onPatientInput(nameVal);
                         }
                         if (contacts[0].tel?.[0]) {
                             const phoneInput = document.getElementById('patientPhone');

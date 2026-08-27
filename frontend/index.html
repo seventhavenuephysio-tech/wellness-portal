@@ -43,7 +43,7 @@
             <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
             <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
-            <button class="btn btn-secondary" onclick="document.getElementById('csvFileInput').click()">📇 Import Contacts CSV</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('csvFileInput').click()">📇 Import CSV Contacts</button>
         </div>
     </div>
 
@@ -171,11 +171,24 @@
         });
 
         async function loadPatientDirectory() {
+            let serverPatients = [];
             try {
                 const res = await fetch(`${API_URL}/patients`);
-                phonebookDirectory = await res.json();
-                
-                const datalist = document.getElementById('patientDatalist');
+                if (res.ok) serverPatients = await res.json();
+            } catch (err) {
+                console.warn('Could not fetch server patient directory:', err);
+            }
+
+            const localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+            
+            const combinedMap = new Map();
+            [...serverPatients, ...localPatients].forEach(p => {
+                if (p && p.phone) combinedMap.set(p.phone, p);
+            });
+            phonebookDirectory = Array.from(combinedMap.values());
+
+            const datalist = document.getElementById('patientDatalist');
+            if (datalist) {
                 datalist.innerHTML = '';
                 phonebookDirectory.forEach(patient => {
                     const option = document.createElement('option');
@@ -183,8 +196,6 @@
                     option.label = patient.phone;
                     datalist.appendChild(option);
                 });
-            } catch (err) {
-                console.error('Failed to load patient directory:', err);
             }
         }
 
@@ -404,64 +415,41 @@
             document.getElementById(id).style.display = 'none';
         }
 
-        async function handleCSVUpload(e) {
+        function handleCSVUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = async (event) => {
+            reader.onload = function(event) {
                 try {
                     const rawText = event.target.result;
                     const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                     if (lines.length === 0) return alert('The selected CSV file is empty.');
 
+                    let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
                     let count = 0;
+
                     for (const line of lines) {
                         const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
-                        
-                        // Find cell with 7+ digits for phone
                         const phoneCell = cells.find(c => c.replace(/[^0-9]/g, '').length >= 7);
                         if (!phoneCell) continue;
 
-                        // Find cell with letters for name
                         const nameCell = cells.find(c => c !== phoneCell && /[a-zA-Z]{2,}/.test(c) && !c.includes('@')) || 'Patient';
                         const cleanPhone = sanitizePhoneNumber(phoneCell);
 
-                        if (!cleanPhone) continue;
-
-                        // Save contact directly into backend patient directory
-                        const res = await fetch(`${API_URL}/patients`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: nameCell, phone: cleanPhone })
-                        });
-
-                        // Fallback in case backend patient directory is populated via booking records
-                        if (!res.ok) {
-                            await fetch(`${API_URL}/bookings`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    practitioner: 'Chido',
-                                    slot: '08:00 AM',
-                                    name: nameCell,
-                                    phone: cleanPhone,
-                                    date: '1970-01-01'
-                                })
-                            });
+                        if (cleanPhone) {
+                            if (!savedContacts.some(p => p.phone === cleanPhone)) {
+                                savedContacts.push({ name: nameCell, phone: cleanPhone });
+                                count++;
+                            }
                         }
-
-                        count++;
                     }
 
-                    if (count > 0) {
-                        alert(`Successfully imported ${count} patient contact(s) into your directory!`);
-                        loadPatientDirectory();
-                    } else {
-                        alert('No valid phone numbers found in the CSV file.');
-                    }
+                    localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
+                    alert(`Success! Imported ${count} contact(s) into your patient directory.`);
+                    loadPatientDirectory();
                 } catch (err) {
-                    alert(`Error processing file: ${err.message}`);
+                    alert(`Error reading CSV file: ${err.message}`);
                 }
             };
             reader.readAsText(file);

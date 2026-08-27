@@ -230,13 +230,13 @@
                 return;
             }
 
-            const topMatches = filtered.slice(0, 100);
+            const topMatches = filtered.slice(0, 150);
             dropdown.innerHTML = topMatches.map(p => `
                 <div class="contact-item" onclick="selectContact('${(p.name || '').replace(/'/g, "\\'")}', '${p.phone || ''}')">
                     <span><strong>${p.name}</strong></span>
                     <small style="color: #6c757d;">${p.phone || 'No Phone'}</small>
                 </div>
-            `).join('') + (filtered.length > 100 ? `<div style="padding:6px; text-align:center; color:#888; font-size:0.8rem; background:#f9f9f9;">Showing 100 of ${filtered.length} matches...</div>` : '');
+            `).join('') + (filtered.length > 150 ? `<div style="padding:6px; text-align:center; color:#888; font-size:0.8rem; background:#f9f9f9;">Showing 150 of ${filtered.length} matches...</div>` : '');
 
             dropdown.style.display = 'block';
         }
@@ -397,46 +397,44 @@
                 try {
                     const rawText = event.target.result;
                     const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                    let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
+                    let savedContacts = [];
                     let count = 0;
 
                     for (const line of lines) {
-                        // Universal aggressive parser: grabs any text columns as name and any numbers as phone
                         const cells = line.split(/,|\t|;/).map(c => c.trim().replace(/^"|"$/g, ''));
                         if (cells.length === 0) continue;
 
-                        let foundName = '';
-                        let foundPhone = '';
+                        let name = '';
+                        let phone = '';
 
                         for (const cell of cells) {
                             if (!cell) continue;
-                            const digitsOnly = cell.replace(/[^0-9]/g, '');
-                            if (digitsOnly.length >= 6) {
-                                foundPhone = sanitizePhoneNumber(cell);
-                            } else if (cell.length > 1 && !cell.includes('@') && !/^\d+$/.test(cell) && !foundName) {
-                                foundName = cell;
+                            const digits = cell.replace(/[^0-9]/g, '');
+                            if (digits.length >= 6) {
+                                phone = sanitizePhoneNumber(cell);
+                            } else if (cell.length > 1 && !cell.includes('@') && !/^\d+$/.test(cell) && !name) {
+                                name = cell;
                             }
                         }
 
-                        // Fallback if line wasn't standard delimited
-                        if (!foundName && cells[0] && !cells[0].includes('@')) {
-                            foundName = cells[0];
+                        if (!name && cells[0] && !cells[0].includes('@')) {
+                            name = cells[0];
                         }
 
-                        if (foundName && foundName.toLowerCase() !== 'name' && foundName.toLowerCase() !== 'full name') {
-                            const exists = savedContacts.some(p => p.name.toLowerCase() === foundName.toLowerCase());
+                        if (name && name.toLowerCase() !== 'name' && name.toLowerCase() !== 'full name' && name.toLowerCase() !== 'given name') {
+                            const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
                             if (!exists) {
-                                savedContacts.push({ name: foundName, phone: foundPhone });
+                                savedContacts.push({ name, phone });
                                 count++;
                             }
                         }
                     }
 
                     localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
-                    alert(`Import Success! Added ${count} new contacts. Total directory size: ${savedContacts.length}`);
+                    alert(`Import Success! Loaded ${count} contacts. Type any name to see them.`);
                     loadPatientDirectory();
                 } catch (err) {
-                    alert(`Error parsing contacts: ${err.message}`);
+                    alert(`Error parsing file: ${err.message}`);
                 }
             };
             reader.readAsText(file);
@@ -476,7 +474,7 @@
             });
 
             closeModal('blockModal');
-            document.getElementById('blockForm'].reset();
+            document.getElementById('blockForm').reset();
             loadSchedule();
         }
 

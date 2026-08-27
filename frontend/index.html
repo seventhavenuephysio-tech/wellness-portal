@@ -34,11 +34,10 @@
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; }
 
-        /* Custom Interactive Dropdown */
         .autocomplete-wrapper { position: relative; width: 100%; }
-        .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 6px 6px; max-height: 180px; overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+        .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 6px 6px; max-height: 220px; overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
         .autocomplete-item { padding: 10px 12px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
-        .autocomplete-item:hover, .autocomplete-item.active { background-color: #e9ecef; }
+        .autocomplete-item:hover { background-color: #e9ecef; }
         .autocomplete-item .phone-tag { color: #6c757d; font-size: 0.8rem; }
     </style>
 </head>
@@ -49,11 +48,7 @@
         <div class="controls">
             <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
-            <label class="btn btn-secondary" style="cursor: pointer; margin: 0;">
-                📇 Import CSV
-                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
-            </label>
-            <button class="btn btn-danger" onclick="clearLocalContacts()" title="Wipe local saved contacts">🗑️ Clear Contacts</button>
+            <button class="btn btn-danger" onclick="clearLocalContacts()" title="Wipe all saved contacts">🗑️ Clear Saved Contacts</button>
         </div>
     </div>
 
@@ -81,7 +76,7 @@
                 <div class="form-group">
                     <label>Patient Name</label>
                     <div class="autocomplete-wrapper">
-                        <input type="text" id="patientName" oninput="onPatientInput(this.value)" onfocus="onPatientInput(this.value)" placeholder="Type patient name or phone..." required autocomplete="off">
+                        <input type="text" id="patientName" oninput="onPatientInput(this.value)" onfocus="onPatientInput(this.value)" placeholder="Type patient name..." required autocomplete="off">
                         <div id="autocompleteResults" class="autocomplete-results"></div>
                     </div>
                 </div>
@@ -179,18 +174,8 @@
             });
         });
 
-        function cleanPatientList(contacts) {
-            return contacts.filter(p => p && p.name && p.name.trim().length > 0)
-                .map(p => ({
-                    name: p.name.trim(),
-                    phone: sanitizePhoneNumber(p.phone || '')
-                }));
-        }
-
         async function loadPatientDirectory() {
             let localPatients = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
-            localPatients = cleanPatientList(localPatients);
-            localStorage.setItem('local_patient_directory', JSON.stringify(localPatients));
             phonebookDirectory = localPatients;
 
             try {
@@ -199,12 +184,15 @@
                     const serverPatients = await res.json();
                     const combinedMap = new Map();
                     [...localPatients, ...serverPatients].forEach(p => {
-                        if (p && p.name) combinedMap.set((p.name + '_' + (p.phone || '')).toLowerCase(), p);
+                        if (p && (p.name || p.phone)) {
+                            const key = ((p.name || '') + '_' + (p.phone || '')).toLowerCase().trim();
+                            if (key) combinedMap.set(key, p);
+                        }
                     });
-                    phonebookDirectory = cleanPatientList(Array.from(combinedMap.values()));
+                    phonebookDirectory = Array.from(combinedMap.values());
                 }
             } catch (err) {
-                console.warn('Using local directory cache:', err);
+                console.warn('Using local cache:', err);
             }
         }
 
@@ -217,12 +205,14 @@
                 return;
             }
 
-            container.innerHTML = matches.map(p => `
-                <div class="autocomplete-item" onclick="selectPatient('${p.name.replace(/'/g, "\\'")}', '${p.phone || ''}')">
-                    <span><strong>${p.name}</strong></span>
+            let html = matches.map(p => `
+                <div class="autocomplete-item" onclick="selectPatient('${(p.name || '').replace(/'/g, "\\'")}', '${p.phone || ''}')">
+                    <span><strong>${p.name || 'Unnamed'}</strong></span>
                     <span class="phone-tag">${p.phone || ''}</span>
                 </div>
             `).join('');
+
+            container.innerHTML = html;
             container.style.display = 'block';
         }
 
@@ -233,23 +223,23 @@
 
         function onPatientInput(value) {
             const q = (value || '').trim().toLowerCase();
-            let matches = [];
-
             if (!q) {
-                matches = phonebookDirectory.slice(0, 30);
-            } else {
-                matches = phonebookDirectory.filter(p => 
-                    (p.name && p.name.toLowerCase().includes(q)) || 
-                    (p.phone && p.phone.includes(q))
-                ).slice(0, 30);
+                hideAutocomplete();
+                return;
             }
+
+            const terms = q.split(/\s+/);
+            const matches = phonebookDirectory.filter(p => {
+                const nameLower = (p.name || '').toLowerCase();
+                const phoneClean = (p.phone || '').replace(/[^0-9]/g, '');
+                const qClean = q.replace(/[^0-9]/g, '');
+
+                const matchName = terms.every(t => nameLower.includes(t));
+                const matchPhone = qClean.length >= 3 && phoneClean.includes(qClean);
+                return matchName || matchPhone;
+            }).slice(0, 30);
 
             renderAutocomplete(matches);
-
-            const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === q);
-            if (match) {
-                document.getElementById('patientPhone').value = match.phone || '';
-            }
         }
 
         function selectPatient(name, phone) {
@@ -259,12 +249,13 @@
         }
 
         function clearLocalContacts() {
-            if (confirm('Clear local saved contacts? You can re-import your CSV file afterwards.')) {
+            if (confirm('Clear all saved contacts and start completely fresh?')) {
                 localStorage.removeItem('local_patient_directory');
+                localStorage.clear();
                 phonebookDirectory = [];
                 hideAutocomplete();
-                alert('Local contacts cleared!');
-                loadPatientDirectory();
+                alert('All saved contacts wiped! Reloading page...');
+                window.location.reload();
             }
         }
 
@@ -288,113 +279,6 @@
             } else {
                 alert('Contact picker works on mobile browsers.');
             }
-        }
-
-        function parseCSVLine(text) {
-            let row = [];
-            let inQuotes = false;
-            let currentField = '';
-            for (let i = 0; i < text.length; i++) {
-                let char = text[i];
-                if (char === '"') {
-                    if (inQuotes && text[i+1] === '"') {
-                        currentField += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if ((char === ',' || char === '\t' || char === ';') && !inQuotes) {
-                    row.push(currentField.trim().replace(/^"|"$/g, ''));
-                    currentField = '';
-                } else {
-                    currentField += char;
-                }
-            }
-            row.push(currentField.trim().replace(/^"|"$/g, ''));
-            return row;
-        }
-
-        function handleCSVUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const rawText = event.target.result;
-                    const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
-                    if (lines.length === 0) return;
-
-                    const headerCells = parseCSVLine(lines[0]).map(c => c.toLowerCase().trim());
-                    
-                    let nameIdx = headerCells.findIndex(c => c === 'name' || c === 'full name' || c === 'display name');
-                    let firstIdx = headerCells.findIndex(c => c === 'given name' || c === 'first name');
-                    let lastIdx = headerCells.findIndex(c => c === 'family name' || c === 'last name');
-                    let orgIdx = headerCells.findIndex(c => c.includes('organization') || c.includes('company'));
-                    
-                    let phoneIndices = [];
-                    headerCells.forEach((c, idx) => {
-                        if (c.includes('phone') || c.includes('mobile') || c.includes('tel') || c.includes('cell')) {
-                            phoneIndices.push(idx);
-                        }
-                    });
-
-                    let savedContacts = JSON.parse(localStorage.getItem('local_patient_directory') || '[]');
-                    const hasHeader = (nameIdx !== -1 || firstIdx !== -1 || phoneIndices.length > 0);
-                    const startIndex = hasHeader ? 1 : 0;
-
-                    for (let i = startIndex; i < lines.length; i++) {
-                        const cells = parseCSVLine(lines[i]);
-                        if (cells.length === 0) continue;
-
-                        let name = '';
-                        let phone = '';
-
-                        if (hasHeader) {
-                            if (nameIdx !== -1 && cells[nameIdx]) name = cells[nameIdx];
-                            if (!name && (firstIdx !== -1 || lastIdx !== -1)) {
-                                name = `${cells[firstIdx] || ''} ${cells[lastIdx] || ''}`.trim();
-                            }
-                            if (!name && orgIdx !== -1 && cells[orgIdx]) name = cells[orgIdx];
-
-                            for (const pIdx of phoneIndices) {
-                                if (cells[pIdx] && cells[pIdx].trim().length > 0) {
-                                    phone = cells[pIdx];
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!name || !phone) {
-                            for (const cell of cells) {
-                                if (!cell) continue;
-                                const digits = cell.replace(/[^0-9]/g, '');
-                                if (!phone && digits.length >= 8 && digits.length <= 13) {
-                                    phone = cell;
-                                } else if (!name && !cell.includes('@') && !/^\d+$/.test(cell) && cell.length > 1) {
-                                    name = cell;
-                                }
-                            }
-                        }
-
-                        if (name && name.trim().length > 0) {
-                            const exists = savedContacts.some(p => p.name.toLowerCase() === name.toLowerCase());
-                            if (!exists) {
-                                savedContacts.push({ name: name.trim(), phone: phone || '' });
-                            }
-                        }
-                    }
-
-                    savedContacts = cleanPatientList(savedContacts);
-                    localStorage.setItem('local_patient_directory', JSON.stringify(savedContacts));
-                    alert(`Import successful! ${savedContacts.length} total contacts available.`);
-                    loadPatientDirectory();
-                } catch (err) {
-                    alert(`Error parsing file: ${err.message}`);
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
         }
 
         function setToday() {
@@ -502,13 +386,9 @@
             document.getElementById('bookPractitioner').value = practitioner;
             document.getElementById('bookSlot').value = slot;
             document.getElementById('bookingModal').style.display = 'flex';
-            loadPatientDirectory();
             setTimeout(() => {
                 const nameInput = document.getElementById('patientName');
-                if (nameInput) {
-                    nameInput.focus();
-                    onPatientInput(nameInput.value);
-                }
+                if (nameInput) nameInput.focus();
             }, 100);
         }
         function openBlockModal() { document.getElementById('blockModal').style.display = 'flex'; }

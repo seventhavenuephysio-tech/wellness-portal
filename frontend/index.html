@@ -30,9 +30,35 @@
         .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; }
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
         .form-group input, .form-group select { width: 100%; }
+
+        /* Custom Autocomplete Dropdown */
+        .contact-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 1050;
+            display: none;
+        }
+        .contact-item {
+            padding: 9px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
+        }
+        .contact-item:hover { background-color: #f0f4f9; }
     </style>
 </head>
 <body>
@@ -71,8 +97,8 @@
                 <input type="hidden" id="bookSlot">
                 <div class="form-group">
                     <label>Patient Name</label>
-                    <input type="text" id="patientName" list="patientDatalist" oninput="handleNameInput(event)" placeholder="Type patient name..." required autocomplete="off">
-                    <datalist id="patientDatalist"></datalist>
+                    <input type="text" id="patientName" onfocus="showContactSuggestions('')" oninput="handleNameSearch(event)" placeholder="Type patient name or phone..." required autocomplete="off">
+                    <div id="contactDropdown" class="contact-dropdown"></div>
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -168,6 +194,14 @@
                     }
                 });
             }
+
+            document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('contactDropdown');
+                const nameInput = document.getElementById('patientName');
+                if (dropdown && nameInput && !nameInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
         });
 
         async function loadPatientDirectory() {
@@ -186,30 +220,51 @@
                 if (p && p.phone) combinedMap.set(p.phone, p);
             });
             phonebookDirectory = Array.from(combinedMap.values());
-
-            const datalist = document.getElementById('patientDatalist');
-            if (datalist) {
-                datalist.innerHTML = '';
-                phonebookDirectory.forEach(patient => {
-                    const option = document.createElement('option');
-                    option.value = patient.name;
-                    option.label = patient.phone;
-                    datalist.appendChild(option);
-                });
-            }
         }
 
-        function handleNameInput(e) {
-            const inputVal = e.target.value.trim().toLowerCase();
-            const phoneInput = document.getElementById('patientPhone');
-            if (!phoneInput) return;
+        function showContactSuggestions(query) {
+            const dropdown = document.getElementById('contactDropdown');
+            if (!dropdown) return;
 
-            const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === inputVal);
+            const q = query.toLowerCase().trim();
+            const filtered = phonebookDirectory.filter(p => 
+                (p.name && p.name.toLowerCase().includes(q)) || 
+                (p.phone && p.phone.includes(q))
+            );
+
+            if (filtered.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            dropdown.innerHTML = filtered.map(p => `
+                <div class="contact-item" onclick="selectContact('${p.name.replace(/'/g, "\\'")}', '${p.phone}')">
+                    <span><strong>${p.name}</strong></span>
+                    <small style="color: #6c757d;">${p.phone}</small>
+                </div>
+            `).join('');
+
+            dropdown.style.display = 'block';
+        }
+
+        function handleNameSearch(e) {
+            const val = e.target.value;
+            const phoneInput = document.getElementById('patientPhone');
+            
+            const match = phonebookDirectory.find(p => p.name && p.name.toLowerCase() === val.trim().toLowerCase());
             if (match) {
                 phoneInput.value = match.phone;
             } else {
                 phoneInput.value = '';
             }
+
+            showContactSuggestions(val);
+        }
+
+        function selectContact(name, phone) {
+            document.getElementById('patientName').value = name;
+            document.getElementById('patientPhone').value = phone;
+            document.getElementById('contactDropdown').style.display = 'none';
         }
 
         async function pickFromPhonebook() {
@@ -416,6 +471,8 @@
 
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
+            const dropdown = document.getElementById('contactDropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
 
         function handleCSVUpload(e) {

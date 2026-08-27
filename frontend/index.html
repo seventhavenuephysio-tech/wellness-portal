@@ -410,51 +410,79 @@
 
             const reader = new FileReader();
             reader.onload = async (event) => {
-                const text = event.target.result;
-                const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                if (lines.length < 2) return;
-
-                const parseRow = (line) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-                const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-
-                let nameIdx = headers.findIndex(h => h.includes('name') || h.includes('patient') || h.includes('first') || h.includes('contact'));
-                let phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('number') || h.includes('tel') || h.includes('value'));
-
-                if (nameIdx === -1) nameIdx = 0;
-                if (phoneIdx === -1) phoneIdx = 1;
-
-                const contacts = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const row = parseRow(lines[i]);
-                    if (row.length === 0 || row.every(cell => cell === '')) continue;
-
-                    let name = row[nameIdx] || row[0] || '';
-                    let rawPhone = row[phoneIdx] || row[1] || '';
-
-                    if (!rawPhone || !/[0-9]/.test(rawPhone)) {
-                        const foundPhone = row.find(cell => /[0-9]{7,}/.test(cell.replace(/[^0-9]/g, '')));
-                        if (foundPhone) rawPhone = foundPhone;
-                    }
-
-                    const cleanPhone = sanitizePhoneNumber(rawPhone);
-
-                    if (name && cleanPhone) {
-                        contacts.push({
-                            practitioner: 'Chido',
-                            slot: '08:00 AM',
-                            name: name,
-                            phone: cleanPhone,
-                            date: '2000-01-01'
-                        });
-                    }
-                }
-
-                if (contacts.length === 0) {
-                    alert('No valid phone numbers found in CSV file.');
-                    return;
-                }
-
                 try {
+                    const text = event.target.result;
+                    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    if (lines.length === 0) {
+                        alert('The selected CSV file is empty.');
+                        return;
+                    }
+
+                    const sample = lines[0];
+                    let delimiter = ',';
+                    if ((sample.match(/;/g) || []).length > (sample.match(/,/g) || []).length) delimiter = ';';
+                    if ((sample.match(/\t/g) || []).length > (sample.match(/,/g) || []).length) delimiter = '\t';
+
+                    const parseRow = (line) => line.split(new RegExp(`${delimiter}(?=(?:(?:[^"]*"){2})*[^"]*$)`)).map(c => c.trim().replace(/^"|"$/g, ''));
+
+                    const firstRow = parseRow(lines[0]);
+                    const hasHeader = firstRow.some(cell => isNaN(cell) && /[a-zA-Z]/.test(cell));
+                    const startIdx = hasHeader ? 1 : 0;
+
+                    let nameIdx = -1, phoneIdx = -1, firstNameIdx = -1, lastNameIdx = -1;
+
+                    if (hasHeader) {
+                        const headers = firstRow.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                        nameIdx = headers.findIndex(h => h === 'name' || h.includes('displayname') || h.includes('patient') || h.includes('contactname') || h === 'fullname');
+                        firstNameIdx = headers.findIndex(h => h.includes('given') || h.includes('first'));
+                        lastNameIdx = headers.findIndex(h => h.includes('family') || h.includes('last'));
+                        phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('mobile') || h.includes('cell') || h.includes('tel') || h.includes('number') || h.includes('value'));
+                    }
+
+                    const contacts = [];
+                    for (let i = startIdx; i < lines.length; i++) {
+                        const row = parseRow(lines[i]);
+                        if (!row || row.length === 0 || row.every(c => c === '')) continue;
+
+                        let name = '';
+                        if (nameIdx !== -1 && row[nameIdx]) {
+                            name = row[nameIdx];
+                        } else if (firstNameIdx !== -1 || lastNameIdx !== -1) {
+                            const first = (firstNameIdx !== -1 && row[firstNameIdx]) ? row[firstNameIdx] : '';
+                            const last = (lastNameIdx !== -1 && row[lastNameIdx]) ? row[lastNameIdx] : '';
+                            name = `${first} ${last}`.trim();
+                        }
+
+                        let rawPhone = (phoneIdx !== -1 && row[phoneIdx]) ? row[phoneIdx] : '';
+
+                        if (!rawPhone || !/[0-9]/.test(rawPhone)) {
+                            const candidatePhone = row.find(c => (c.replace(/[^0-9]/g, '').length >= 7));
+                            if (candidatePhone) rawPhone = candidatePhone;
+                        }
+
+                        if (!name) {
+                            const candidateName = row.find(c => c !== rawPhone && /[a-zA-Z]{2,}/.test(c) && !c.includes('@'));
+                            if (candidateName) name = candidateName;
+                        }
+
+                        const cleanPhone = sanitizePhoneNumber(rawPhone);
+
+                        if (name && cleanPhone) {
+                            contacts.push({
+                                practitioner: 'Chido',
+                                slot: '08:00 AM',
+                                name: name,
+                                phone: cleanPhone,
+                                date: '2000-01-01'
+                            });
+                        }
+                    }
+
+                    if (contacts.length === 0) {
+                        alert('Could not parse valid patient names and phone numbers. Please ensure your CSV includes phone numbers with at least 7 digits.');
+                        return;
+                    }
+
                     const res = await fetch(`${API_URL}/bookings/bulk`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -465,11 +493,12 @@
                         alert(`Success! Imported ${contacts.length} patient phone numbers into your directory.`);
                         loadPatientDirectory();
                     } else {
-                        alert('Failed to save imported phone numbers.');
+                        const errText = await res.text();
+                        alert(`Server returned HTTP ${res.status}: ${errText || 'Failed to save contacts'}`);
                     }
                 } catch (err) {
-                    console.error('Contact import error:', err);
-                    alert('Error connecting to backend server.');
+                    console.error('CSV import error:', err);
+                    alert(`Error parsing file: ${err.message}`);
                 }
             };
             reader.readAsText(file);

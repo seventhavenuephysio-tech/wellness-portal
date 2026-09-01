@@ -135,7 +135,7 @@
     <script>
         const API_URL = window.location.origin.includes('onrender.com') 
             ? `${window.location.origin}/api` 
-            : 'https://wellness-portal-api.onrender.com/api';
+            : 'http://localhost:5000/api';
 
         const practitioners = [
             { name: 'Chido', title: 'Physiotherapist' },
@@ -255,8 +255,10 @@
 
         function onPatientInput(value) {
             const q = (value || '').trim().toLowerCase();
+            
+            // Show all contacts when field is empty or focused
             if (!q) {
-                hideAutocomplete();
+                renderAutocomplete(phonebookDirectory);
                 return;
             }
 
@@ -269,7 +271,7 @@
                 const matchName = terms.every(t => nameLower.includes(t));
                 const matchPhone = qClean.length >= 3 && phoneClean.includes(qClean);
                 return matchName || matchPhone;
-            }).slice(0, 30);
+            });
 
             renderAutocomplete(matches);
         }
@@ -409,7 +411,10 @@
             document.getElementById('bookingModal').style.display = 'flex';
             setTimeout(() => {
                 const nameInput = document.getElementById('patientName');
-                if (nameInput) nameInput.focus();
+                if (nameInput) {
+                    nameInput.focus();
+                    onPatientInput(nameInput.value);
+                }
             }, 100);
         }
         function openBlockModal() { document.getElementById('blockModal').style.display = 'flex'; }

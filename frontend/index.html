@@ -51,7 +51,6 @@
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
             <button class="btn btn-success" onclick="document.getElementById('csvFileInput').click()">📥 Import CSV</button>
             <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCSVImport(event)">
-            <button class="btn btn-danger" onclick="clearLocalContacts()" title="Wipe all saved contacts">🗑️ Clear</button>
         </div>
     </div>
 
@@ -279,17 +278,6 @@
             document.getElementById('patientName').value = name;
             document.getElementById('patientPhone').value = phone || '';
             hideAutocomplete();
-        }
-
-        function clearLocalContacts() {
-            if (confirm('Clear all saved contacts and start completely fresh?')) {
-                localStorage.removeItem('local_patient_directory');
-                localStorage.clear();
-                phonebookDirectory = [];
-                hideAutocomplete();
-                alert('All saved contacts wiped! Reloading page...');
-                window.location.reload();
-            }
         }
 
         async function pickFromPhonebook() {

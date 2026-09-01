@@ -4,50 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Wellness Centre — Appointment Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
-        body { background: #f4f6f8; color: #333; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .logo { font-size: 1.2rem; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 8px; }
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-primary { background: #0d6efd; color: #fff; }
-        .btn-secondary { background: #e9ecef; color: #495057; }
-        .btn-success { background: #198754; color: #fff; }
-        .btn-danger { background: #dc3545; color: #fff; }
-        .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.8rem; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-whatsapp:hover { background: #1eb954; }
-        .date-picker-container { display: flex; align-items: center; gap: 10px; background: #fff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="date"], input[type="text"], input[type="tel"] { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.95rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-        .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #0d6efd; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .slot { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 8px; }
-        .slot.booked { background: #e8f4ea; border-color: #c3e6cb; }
-        .slot.blocked { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
-        .slot-time { font-weight: bold; }
-        .slot-actions { display: flex; gap: 6px; align-items: center; }
-        .holiday-banner { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; font-size: 1rem; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 100%; max-width: 420px; position: relative; }
-        .form-group { margin-bottom: 15px; position: relative; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        :root {
+            --bg-main: #f8fafc;
+            --surface: #ffffff;
+            --primary: #0f766e;
+            --primary-hover: #0d9488;
+            --primary-light: #ccfbf1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --booked-bg: #f0fdf4;
+            --booked-border: #bbf7d0;
+            --booked-text: #166534;
+            --blocked-bg: #fff1f2;
+            --blocked-border: #fecdd3;
+            --blocked-text: #9f1239;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg-main); color: var(--text-main); padding: 24px; min-height: 100vh; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 16px 24px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; letter-spacing: -0.02em; }
+        .logo-icon { background: var(--primary-light); color: var(--primary); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        
+        .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .search-box { position: relative; display: flex; align-items: center; }
+        .search-box input { padding: 9px 14px 9px 38px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 0.9rem; outline: none; transition: all 0.2s; background: #f8fafc; }
+        .search-box input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
+        .search-icon { position: absolute; left: 12px; color: var(--text-muted); font-size: 0.9rem; pointer-events: none; }
+
+        .btn { padding: 9px 16px; border: none; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; font-size: 0.875rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-whatsapp { background: #25D366; color: #fff; font-size: 0.78rem; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(37,211,102,0.2); }
+        .btn-whatsapp:hover { background: #1eb954; transform: translateY(-1px); }
+
+        .date-picker-container { display: flex; align-items: center; gap: 12px; background: var(--surface); padding: 12px 20px; border-radius: var(--radius-lg); margin-bottom: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); width: fit-content; }
+        input[type="date"], input[type="text"], input[type="tel"], select { padding: 9px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 0.9rem; outline: none; transition: all 0.2s; }
+        input[type="date"]:focus, input[type="text"]:focus, input[type="tel"]:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12); }
+        .date-display { font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-left: 6px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); }
+        .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--border-light); padding-bottom: 14px; }
+        .avatar { width: 44px; height: 44px; border-radius: 12px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
+        
+        .slot { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border: 1px solid var(--border-light); border-radius: var(--radius-md); margin-bottom: 10px; background: #fafafa; transition: all 0.15s; }
+        .slot:hover { border-color: #cbd5e1; background: #fff; }
+        .slot.booked { background: var(--booked-bg); border-color: var(--booked-border); }
+        .slot.blocked { background: var(--blocked-bg); border-color: var(--blocked-border); color: var(--blocked-text); }
+        .slot-time { font-weight: 700; font-size: 0.88rem; color: #334155; }
+        .slot-actions { display: flex; gap: 8px; align-items: center; }
+
+        .holiday-banner { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; padding: 14px 20px; border-radius: var(--radius-lg); margin-bottom: 24px; text-align: center; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: var(--surface); padding: 28px; border-radius: 20px; width: 100%; max-width: 440px; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); border: 1px solid var(--border-light); }
+        .form-group { margin-bottom: 18px; position: relative; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; color: #475569; }
         .form-group input, .form-group select { width: 100%; }
 
         .autocomplete-wrapper { position: relative; width: 100%; }
-        .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ced4da; border-top: none; border-radius: 0 0 6px 6px; max-height: 220px; overflow-y: auto; z-index: 1050; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
-        .autocomplete-item { padding: 10px 12px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
-        .autocomplete-item:hover { background-color: #e9ecef; }
-        .autocomplete-item .phone-tag { color: #6c757d; font-size: 0.8rem; }
+        .autocomplete-results { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border-light); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); max-height: 220px; overflow-y: auto; z-index: 1050; box-shadow: var(--shadow-md); display: none; }
+        .autocomplete-item { padding: 10px 14px; cursor: pointer; font-size: 0.88rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s; }
+        .autocomplete-item:hover { background-color: #f1f5f9; }
+        .autocomplete-item .phone-tag { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">✚ The Wellness Centre</div>
+        <div class="logo">
+            <div class="logo-icon">✚</div>
+            <span>The Wellness Centre</span>
+        </div>
         <div class="controls">
-            <input type="text" id="searchInput" placeholder="🔍 Search patient..." onkeyup="filterSchedule()">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search patient..." onkeyup="filterSchedule()">
+            </div>
             <button class="btn btn-secondary" onclick="openBlockModal()">🚫 Block Time</button>
             <button class="btn btn-success" onclick="document.getElementById('csvFileInput').click()">📥 Import CSV</button>
             <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCSVImport(event)">
@@ -60,7 +110,7 @@
         <button class="btn btn-secondary" onclick="setToday()">Today</button>
         <button class="btn btn-secondary" onclick="changeDate(1)">▶</button>
         <input type="date" id="datePicker" onchange="loadSchedule()">
-        <span id="dateDisplay" style="font-weight: bold; margin-left: 10px;"></span>
+        <span id="dateDisplay" class="date-display"></span>
     </div>
 
     <div id="holidayBannerContainer"></div>
@@ -69,8 +119,8 @@
     <!-- Booking Modal -->
     <div class="modal" id="bookingModal">
         <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">Book Appointment</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a;">Book Appointment</h3>
                 <button type="button" class="btn btn-secondary" onclick="pickFromPhonebook()" title="Pick contact from phone address book">📱 Pick Contact</button>
             </div>
             <form id="bookingForm" onsubmit="handleBookSubmit(event)">
@@ -87,7 +137,7 @@
                     <label>Phone Number</label>
                     <input type="tel" id="patientPhone" placeholder="0777203606 or +263777203606">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Booking</button>
                 </div>
@@ -98,7 +148,7 @@
     <!-- Block Modal -->
     <div class="modal" id="blockModal">
         <div class="modal-content">
-            <h3>Block Slot / Time Off</h3>
+            <h3 style="margin-bottom: 20px; font-size: 1.15rem; color: #0f172a;">Block Slot / Time Off</h3>
             <form id="blockForm" onsubmit="handleBlockSubmit(event)">
                 <div class="form-group">
                     <label>Practitioner</label>
@@ -125,7 +175,7 @@
                     <label>Reason</label>
                     <input type="text" id="blockReason" placeholder="Lunch, Away, etc.">
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('blockModal')">Cancel</button>
                     <button type="submit" class="btn btn-danger">Block Slot</button>
                 </div>
@@ -214,14 +264,12 @@
                     let trimmed = line.trim();
                     if (!trimmed) return;
 
-                    // Robust parsing: split by comma or semicolon while preserving quoted strings
                     let parts = trimmed.match(/(".*?"|[^",;]+)(?=\s*[,;]|\s*$)/g) || trimmed.split(/[,;]/);
                     
                     if (parts && parts.length >= 1) {
                         let name = parts[0].replace(/^["']|["']$/g, '').trim();
                         let phone = parts[1] ? parts[1].replace(/^["']|["']$/g, '').trim() : '';
                         
-                        // Ignore header rows
                         const lowerName = name.toLowerCase();
                         if (name && lowerName !== 'name' && lowerName !== 'first name' && lowerName !== 'display name') {
                             existing.push({ name, phone });
@@ -230,7 +278,6 @@
                     }
                 });
 
-                // Deduplicate directory entries
                 const uniqueMap = new Map();
                 existing.forEach(p => {
                     if (p && p.name) {
@@ -421,16 +468,16 @@
                     if (query && booking && booking.name && !booking.name.toLowerCase().includes(query)) return;
 
                     if (block) {
-                        slotsHtml += `<div class="slot blocked"><span class="slot-time">${slot}</span><span>🚫 ${block.reason || 'Closed'}</span><button class="btn btn-secondary" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button></div>`;
+                        slotsHtml += `<div class="slot blocked"><span class="slot-time">${slot}</span><span>🚫 ${block.reason || 'Closed'}</span><button class="btn btn-secondary" style="font-size: 0.78rem; padding: 4px 8px;" onclick="deleteBlock('${p.name}', '${slot}')">Unblock</button></div>`;
                     } else if (booking) {
-                        slotsHtml += `<div class="slot booked"><span class="slot-time">${slot}</span><span>👤 ${booking.name}</span><div class="slot-actions">${booking.phone ? `<a href="${formatWhatsAppUrl(booking.phone, booking.name, p.name, selectedDate, slot)}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">💬 WhatsApp</a>` : ''}<button class="btn btn-danger" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div></div>`;
+                        slotsHtml += `<div class="slot booked"><span class="slot-time">${slot}</span><span>👤 ${booking.name}</span><div class="slot-actions">${booking.phone ? `<a href="${formatWhatsAppUrl(booking.phone, booking.name, p.name, selectedDate, slot)}" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp">💬 WhatsApp</a>` : ''}<button class="btn btn-danger" style="font-size: 0.78rem; padding: 4px 8px;" onclick="cancelBooking('${p.name}', '${slot}')">Cancel</button></div></div>`;
                     } else {
                         if (query) return;
-                        slotsHtml += `<div class="slot"><span class="slot-time">${slot}</span><button class="btn btn-primary" onclick="openBookingModal('${p.name}', '${slot}')">+ Book</button></div>`;
+                        slotsHtml += `<div class="slot"><span class="slot-time">${slot}</span><button class="btn btn-primary" style="font-size: 0.8rem; padding: 5px 12px;" onclick="openBookingModal('${p.name}', '${slot}')">+ Book</button></div>`;
                     }
                 });
 
-                card.innerHTML = `<div class="card-header"><div class="avatar">${p.name[0]}</div><div><h3 style="margin:0;">${p.name}</h3><small style="color:#6c757d;">${p.title}</small></div></div><div>${slotsHtml || '<p style="color:#888; text-align:center;">No matching records found.</p>'}</div>`;
+                card.innerHTML = `<div class="card-header"><div class="avatar">${p.name[0]}</div><div><h3 style="margin:0; font-size: 1.1rem; color: #0f172a;">${p.name}</h3><small style="color:#64748b; font-weight: 500;">${p.title}</small></div></div><div>${slotsHtml || '<p style="color:#888; text-align:center; padding: 20px 0;">No matching records found.</p>'}</div>`;
                 grid.appendChild(card);
             });
         }
